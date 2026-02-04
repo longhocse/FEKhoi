@@ -18,7 +18,7 @@ export default function Home() {
                 Hành trình an toàn, <span>Kết nối mọi nơi</span>
               </h1>
               <p className="text-white-50 mb-4">
-                Đặt vé xe khách trực tuyến dễ dàng, nhanh chóng cùng BUGO.
+                Đặt vé xe khách trực tuyến dễ dàng, nhanh chóng cùng BUSGO.
               </p>
               <SearchBox />
             </Col>
@@ -76,7 +76,7 @@ export default function Home() {
           <Col md={6}>
             <Card className="soft-card p-4" style={{ background: "#FF6B35", color: "white" }}>
               <div className="fw-bold fs-5">Giảm 50k cho khách mới</div>
-              <div className="opacity-75 small">Nhập mã BUGO50 khi đặt vé</div>
+              <div className="opacity-75 small">Nhập mã BUSGO50 khi đặt vé</div>
               <Button className="mt-3 pill" variant="light">Dùng ngay</Button>
             </Card>
           </Col>
@@ -95,7 +95,7 @@ export default function Home() {
             <Col md={8}>
               <div className="fw-bold fs-4">Dành cho Nhà Xe</div>
               <div className="text-white-50">
-                Mở rộng quy mô kinh doanh, quản lý lịch trình & doanh thu thông minh cùng BUGO.
+                Mở rộng quy mô kinh doanh, quản lý lịch trình & doanh thu thông minh cùng BUSGO.
               </div>
             </Col>
             <Col md={4} className="d-flex gap-2 justify-content-md-end">

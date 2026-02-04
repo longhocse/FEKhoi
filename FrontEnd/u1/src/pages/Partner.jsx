@@ -8,7 +8,7 @@ export default function Partner() {
       <Row className="g-3">
         <Col lg={7}>
           <Card className="soft-card p-4">
-            <h5 className="fw-bold">Vì sao hợp tác với BUGO?</h5>
+            <h5 className="fw-bold">Vì sao hợp tác với BUSGO?</h5>
             <ul className="text-muted mb-0">
               <li>Quản lý tuyến, ghế, giá vé tập trung</li>
               <li>Hỗ trợ marketing & bán vé online</li>

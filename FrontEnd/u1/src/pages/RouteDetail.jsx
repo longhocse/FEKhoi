@@ -30,9 +30,26 @@ export default function RouteDetail() {
           <div className="fs-3 fw-bold text-primary-custom">
             {route.price.toLocaleString("vi-VN")}đ
           </div>
-          <Button className="pill px-4" variant="primary">
-            Đặt vé ngay
-          </Button>
+          <Button 
+  className="pill px-4" 
+  variant="primary"
+  onClick={() => navigate('/chon-ghe', { 
+    state: { 
+      route: {
+        id: route.id,
+        from: route.from,
+        to: route.to,
+        price: route.price,
+        date: "14/1/2026", // Có thể dynamic
+        time: "08:00 sáng",
+        busType: "Xe phổ thông",
+        company: route.company
+      }
+    } 
+  })}
+>
+  Chọn ghế và đặt vé
+</Button>
         </div>
       </Card>
     </Container>

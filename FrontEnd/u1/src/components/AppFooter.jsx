@@ -8,7 +8,7 @@ export default function AppFooter() {
           <Col md={4}>
             <div className="fw-bold">
               <i className="bi bi-bus-front me-2" />
-              BUGO
+              BUSnpm installGO
             </div>
             <div className="text-white-50 small mt-2">
               Nền tảng đặt vé xe khách trực tuyến.
@@ -18,7 +18,7 @@ export default function AppFooter() {
           <Col md={4}>
             <div className="fw-semibold mb-2">Hỗ trợ</div>
             <div className="text-white-50 small">Hotline: 1900-xxxx</div>
-            <div className="text-white-50 small">Email: support@bugo.vn</div>
+            <div className="text-white-50 small">Email: support@busgo.vn</div>
           </Col>
 
           <Col md={4}>
@@ -29,7 +29,7 @@ export default function AppFooter() {
 
         <hr className="border-white border-opacity-25 my-4" />
         <div className="text-center text-white-50 small">
-          © {new Date().getFullYear()} BUGO. All rights reserved.
+          © {new Date().getFullYear()} BUSGO. All rights reserved.
         </div>
       </Container>
     </footer>
