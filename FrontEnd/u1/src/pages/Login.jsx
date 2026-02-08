@@ -9,7 +9,7 @@ export default function Login() {
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
-  
+
   const { login } = useAuth();
   const navigate = useNavigate();
 
@@ -20,9 +20,9 @@ export default function Login() {
 
     try {
       await login(email, password);
-      navigate("/");
+      navigate("/"); // khách hàng về trang chủ
     } catch (err) {
-      setError(err.toString());
+      setError("Email hoặc mật khẩu không đúng");
     } finally {
       setLoading(false);
     }
@@ -38,36 +38,51 @@ export default function Login() {
         <Form onSubmit={handleSubmit}>
           <Form.Group className="mb-3">
             <Form.Label>Email</Form.Label>
-            <Form.Control 
-              type="email" 
-              placeholder="email@..." 
+            <Form.Control
+              type="email"
+              placeholder="email@..."
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               required
             />
           </Form.Group>
+
           <Form.Group className="mb-3">
             <Form.Label>Mật khẩu</Form.Label>
-            <Form.Control 
-              type="password" 
-              placeholder="••••••••" 
+            <Form.Control
+              type="password"
+              placeholder="••••••••"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
               required
             />
           </Form.Group>
 
-          <Button 
-            variant="primary" 
-            className="w-100 pill" 
+          {/* NÚT ĐĂNG NHẬP KHÁCH */}
+          <Button
+            variant="primary"
+            className="w-100 pill mb-3"
             type="submit"
             disabled={loading}
           >
             {loading ? "Đang đăng nhập..." : "Đăng nhập"}
           </Button>
 
-          <div className="text-center mt-3 small">
-            Chưa có tài khoản? <Link to="/dang-ky" className="text-primary-custom fw-semibold">Đăng ký</Link>
+          {/* NÚT ĐĂNG NHẬP NHÀ XE */}
+          <Button
+            variant="outline-dark"
+            className="w-100 pill mb-3"
+            type="button"
+            onClick={() => navigate("/dang-nhap-nha-xe")}
+          >
+            Đăng nhập với tư cách nhà xe
+          </Button>
+
+          <div className="text-center small">
+            Chưa có tài khoản?{" "}
+            <Link to="/dang-ky" className="text-primary-custom fw-semibold">
+              Đăng ký
+            </Link>
           </div>
         </Form>
       </Card>

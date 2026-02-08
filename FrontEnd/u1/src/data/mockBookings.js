@@ -1,13 +1,22 @@
-// src/data/mockBookings.js
-export const mockBookings = [
+const mockBookings = [
   {
-    id: 'BK001',
-    route: 'Đà Nẵng → Hồ Chí Minh',
-    date: '15/01/2024',
-    time: '08:00 sáng',
-    seats: ['A1', 'A2'],
-    price: 500000,
-    status: 'confirmed'
+    id: 1,
+    from: "TP.HCM",
+    to: "Đà Lạt",
+    busName: "Phương Trang",
+    departureTime: "08:00 - 08/02/2026",
+    bookedAt: "07/02/2026 21:15",
+    paymentMethod: "MoMo"
   },
-  // ... thêm booking khác
+  {
+    id: 2,
+    from: "TP.HCM",
+    to: "Nha Trang",
+    busName: "Thành Bưởi",
+    departureTime: "22:00 - 09/02/2026",
+    bookedAt: "08/02/2026 09:30",
+    paymentMethod: "Tiền mặt"
+  }
 ];
+
+export default mockBookings;

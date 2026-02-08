@@ -9,12 +9,18 @@ export default function AppNavbar() {
 
   const handleLogout = () => {
     logout();
-    navigate('/');
+    navigate("/dang-nhap");
   };
 
   return (
-    <Navbar expand="lg" className="bg-secondary-custom" variant="dark" sticky="top">
+    <Navbar
+      expand="lg"
+      variant="dark"
+      sticky="top"
+      className="bg-secondary-custom"
+    >
       <Container>
+        {/* ===== LOGO ===== */}
         <Navbar.Brand as={NavLink} to="/" className="fw-bold">
           <i className="bi bi-bus-front me-2" />
           BUSGO
@@ -22,29 +28,52 @@ export default function AppNavbar() {
 
         <Navbar.Toggle />
         <Navbar.Collapse>
-          <Nav className="mx-auto gap-2">
-            <Nav.Link as={NavLink} to="/" end>Trang chủ</Nav.Link>
-            <Nav.Link as={NavLink} to="/tuyen-xe">Vé xe khách</Nav.Link>
-            <Nav.Link as={NavLink} to="/doi-tac">Dành cho nhà xe</Nav.Link>
+          {/* ===== MENU CHÍNH ===== */}
+          <Nav className="mx-auto gap-3">
+            <Nav.Link as={NavLink} to="/" end>
+              Trang chủ
+            </Nav.Link>
+
+            <Nav.Link as={NavLink} to="/tuyen-xe">
+              Vé xe khách
+            </Nav.Link>
+
+            <Nav.Link as={NavLink} to="/doi-tac">
+              Dành cho nhà xe
+            </Nav.Link>
           </Nav>
 
+          {/* ===== KHU VỰC TÀI KHOẢN ===== */}
           <div className="d-flex gap-2">
             {isAuthenticated ? (
               <Dropdown align="end">
-                <Dropdown.Toggle variant="light" className="pill">
+                <Dropdown.Toggle
+                  variant="light"
+                  className="pill d-flex align-items-center"
+                >
                   <i className="bi bi-person-circle me-2"></i>
-                  {user?.name || 'Tài khoản'}
+                  {user?.name || "Tài khoản"}
                 </Dropdown.Toggle>
+
                 <Dropdown.Menu>
-                  <Dropdown.Item as={NavLink} to="/thong-tin-ca-nhan">
+                  <Dropdown.Item
+                    as={NavLink}
+                    to="/thong-tin-ca-nhan"
+                  >
                     <i className="bi bi-person me-2"></i>
                     Thông tin cá nhân
                   </Dropdown.Item>
-                  <Dropdown.Item as={NavLink} to="/chon-ghe">
+
+                  <Dropdown.Item
+                    as={NavLink}
+                    to="/my-tickets"
+                  >
                     <i className="bi bi-ticket-perforated me-2"></i>
                     Vé của tôi
                   </Dropdown.Item>
+
                   <Dropdown.Divider />
+
                   <Dropdown.Item onClick={handleLogout}>
                     <i className="bi bi-box-arrow-right me-2"></i>
                     Đăng xuất
@@ -53,10 +82,18 @@ export default function AppNavbar() {
               </Dropdown>
             ) : (
               <>
-                <Button variant="outline-light" onClick={() => navigate("/dang-nhap")}>
+                <Button
+                  variant="outline-light"
+                  onClick={() => navigate("/dang-nhap")}
+                >
                   Đăng nhập
                 </Button>
-                <Button variant="primary" onClick={() => navigate("/dang-ky")} className="pill px-3">
+
+                <Button
+                  variant="primary"
+                  className="pill px-3"
+                  onClick={() => navigate("/dang-ky")}
+                >
                   Đăng ký
                 </Button>
               </>
