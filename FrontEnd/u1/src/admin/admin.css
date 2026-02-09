@@ -1,0 +1,82 @@
+.admin-layout {
+  display: flex;
+  min-height: 100vh;
+  background: #f4f6f9;
+}
+
+.admin-sidebar {
+  width: 240px;
+  background: #2f353a;
+  color: #fff;
+  padding: 20px;
+}
+
+.admin-sidebar .logo {
+  margin-bottom: 20px;
+}
+
+.admin-sidebar a {
+  display: block;
+  padding: 10px;
+  color: #cfd8dc;
+  text-decoration: none;
+  border-radius: 6px;
+  margin-bottom: 5px;
+}
+
+.admin-sidebar a.active,
+.admin-sidebar a:hover {
+  background: #20a8d8;
+  color: #fff;
+}
+
+.admin-content {
+  flex: 1;
+  padding: 24px;
+}
+
+/* CARDS */
+.admin-stats {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 16px;
+  margin-bottom: 24px;
+}
+
+.admin-stats .card {
+  padding: 20px;
+  border-radius: 8px;
+  color: #fff;
+}
+
+.card.blue { background: #20a8d8; }
+.card.green { background: #4dbd74; }
+.card.orange { background: #f9b115; }
+.card.red { background: #f86c6b; }
+
+/* TABLE */
+.admin-table {
+  background: #fff;
+  padding: 20px;
+  border-radius: 8px;
+}
+
+.admin-table table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.admin-table th,
+.admin-table td {
+  padding: 12px;
+  border-bottom: 1px solid #eee;
+}
+
+.badge {
+  padding: 4px 10px;
+  border-radius: 12px;
+  font-size: 12px;
+}
+
+.badge.success { background: #d4edda; color: #155724; }
+.badge.warning { background: #fff3cd; color: #856404; }

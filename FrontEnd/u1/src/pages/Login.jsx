@@ -14,19 +14,27 @@ export default function Login() {
   const navigate = useNavigate();
 
   const handleSubmit = async (e) => {
-    e.preventDefault();
-    setError("");
-    setLoading(true);
+  e.preventDefault();
+  setError("");
+  setLoading(true);
 
-    try {
-      await login(email, password);
-      navigate("/"); // khách hàng về trang chủ
-    } catch (err) {
-      setError("Email hoặc mật khẩu không đúng");
-    } finally {
-      setLoading(false);
+  try {
+    const user = await login(email, password);
+
+    if (user.role === "admin") {
+      navigate("/admin");
+    } else if (user.role === "partner") {
+      navigate("/partner");
+    } else {
+      navigate("/");
     }
-  };
+  } catch (err) {
+    setError(err);
+  } finally {
+    setLoading(false);
+  }
+};
+
 
   return (
     <Container className="py-5" style={{ maxWidth: 520 }}>

@@ -23,6 +23,12 @@ import PartnerDashboard from "./partner/PartnerDashboard";
 import PartnerLayout from "./partner/PartnerLayout";
 import CreateTrip from "./partner/CreateTrip";
 
+// Pages admin
+import AdminLayout from "./admin/AdminLayout";
+import AdminDashboard from "./admin/AdminDashboard";
+import AdminUsers from "./admin/AdminUsers";
+import AdminRoute from "./components/AdminRoute";
+
 export default function App() {
   return (
     <AuthProvider>
@@ -38,6 +44,17 @@ export default function App() {
           <Route path="/dang-ky" element={<Register />} />
           <Route path="/chon-ghe" element={<SeatSelection />} />
           <Route path="/thanh-toan" element={<Payment />} />
+          <Route
+  path="/admin"
+  element={
+    <AdminRoute>
+      <AdminLayout />
+    </AdminRoute>
+  }
+>
+  <Route index element={<AdminDashboard />} />
+  <Route path="users" element={<AdminUsers />} />
+</Route>
           <Route
   path="/doi-tac"
   element={

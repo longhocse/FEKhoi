@@ -5,7 +5,7 @@ import { useAuth } from "../context/AuthContext";
 
 export default function AppNavbar() {
   const navigate = useNavigate();
-  const { user, isAuthenticated, logout } = useAuth();
+  const { user, isAuthenticated, logout, isAdmin } = useAuth();
 
   const handleLogout = () => {
     logout();
@@ -56,29 +56,37 @@ export default function AppNavbar() {
                 </Dropdown.Toggle>
 
                 <Dropdown.Menu>
-                  <Dropdown.Item
-                    as={NavLink}
-                    to="/thong-tin-ca-nhan"
-                  >
-                    <i className="bi bi-person me-2"></i>
-                    Thông tin cá nhân
-                  </Dropdown.Item>
+  <Dropdown.Item as={NavLink} to="/thong-tin-ca-nhan">
+    <i className="bi bi-person me-2"></i>
+    Thông tin cá nhân
+  </Dropdown.Item>
 
-                  <Dropdown.Item
-                    as={NavLink}
-                    to="/my-tickets"
-                  >
-                    <i className="bi bi-ticket-perforated me-2"></i>
-                    Vé của tôi
-                  </Dropdown.Item>
+  <Dropdown.Item as={NavLink} to="/my-tickets">
+    <i className="bi bi-ticket-perforated me-2"></i>
+    Vé của tôi
+  </Dropdown.Item>
+{/* ===== ADMIN ONLY ===== */}
+{isAdmin && (
+  <>
+    <Dropdown.Divider />
+    <Dropdown.Item
+      as={NavLink}
+      to="/admin"
+    >
+      <i className="bi bi-shield-lock me-2"></i>
+      Quản lý hệ thống
+    </Dropdown.Item>
+  </>
+)}
 
-                  <Dropdown.Divider />
+  <Dropdown.Divider />
 
-                  <Dropdown.Item onClick={handleLogout}>
-                    <i className="bi bi-box-arrow-right me-2"></i>
-                    Đăng xuất
-                  </Dropdown.Item>
-                </Dropdown.Menu>
+  <Dropdown.Item onClick={handleLogout}>
+    <i className="bi bi-box-arrow-right me-2"></i>
+    Đăng xuất
+  </Dropdown.Item>
+</Dropdown.Menu>
+
               </Dropdown>
             ) : (
               <>
