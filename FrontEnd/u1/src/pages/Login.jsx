@@ -14,26 +14,26 @@ export default function Login() {
   const navigate = useNavigate();
 
   const handleSubmit = async (e) => {
-  e.preventDefault();
-  setError("");
-  setLoading(true);
+    e.preventDefault();
+    setError("");
+    setLoading(true);
 
-  try {
-    const user = await login(email, password);
+    try {
+      const user = await login(email, password);
 
-    if (user.role === "admin") {
-      navigate("/admin");
-    } else if (user.role === "partner") {
-      navigate("/partner");
-    } else {
-      navigate("/");
+      if (user.role === "admin") {
+        navigate("/admin");
+      } else if (user.role === "partner") {
+        navigate("/partner");
+      } else {
+        navigate("/");
+      }
+    } catch (err) {
+      setError(err.message);
+    } finally {
+      setLoading(false);
     }
-  } catch (err) {
-    setError(err);
-  } finally {
-    setLoading(false);
-  }
-};
+  };
 
 
   return (

@@ -6,6 +6,8 @@ import AppFooter from "./components/AppFooter";
 import PrivateRoute from "./components/PrivateRoute";
 import PartnerRoute from "./components/PartnerRoute";
 
+import { useState, useEffect } from "react";
+
 // Pages khách
 import Home from "./pages/Home";
 import RoutesPage from "./pages/Routes";
@@ -30,6 +32,17 @@ import AdminUsers from "./admin/AdminUsers";
 import AdminRoute from "./components/AdminRoute";
 
 export default function App() {
+  const [message, setMessage] = useState("");
+
+  useEffect(() => {
+    fetch("http://localhost:5000/api/test")
+      .then((res) => res.json())
+      .then((data) => setMessage(data.message))
+      .catch((err) => console.error(err));
+  }, []);
+
+
+
   return (
     <AuthProvider>
       <BrowserRouter>
@@ -45,27 +58,27 @@ export default function App() {
           <Route path="/chon-ghe" element={<SeatSelection />} />
           <Route path="/thanh-toan" element={<Payment />} />
           <Route
-  path="/admin"
-  element={
-    <AdminRoute>
-      <AdminLayout />
-    </AdminRoute>
-  }
->
-  <Route index element={<AdminDashboard />} />
-  <Route path="users" element={<AdminUsers />} />
-</Route>
+            path="/admin"
+            element={
+              <AdminRoute>
+                <AdminLayout />
+              </AdminRoute>
+            }
+          >
+            <Route index element={<AdminDashboard />} />
+            <Route path="users" element={<AdminUsers />} />
+          </Route>
           <Route
-  path="/doi-tac"
-  element={
-    <PartnerRoute>
-      <PartnerLayout />
-    </PartnerRoute>
-  }
->
-  <Route index element={<PartnerDashboard />} />
-  <Route path="tao-chuyen-xe" element={<CreateTrip />} />
-</Route>
+            path="/doi-tac"
+            element={
+              <PartnerRoute>
+                <PartnerLayout />
+              </PartnerRoute>
+            }
+          >
+            <Route index element={<PartnerDashboard />} />
+            <Route path="tao-chuyen-xe" element={<CreateTrip />} />
+          </Route>
 
           <Route
             path="/thong-tin-ca-nhan"
@@ -88,19 +101,25 @@ export default function App() {
             }
           />
           <Route
-  path="/nha-xe/tao-chuyen"
-  element={
-    <PartnerRoute>
-      <CreateTrip />
-    </PartnerRoute>
-  }
-/>
+            path="/nha-xe/tao-chuyen"
+            element={
+              <PartnerRoute>
+                <CreateTrip />
+              </PartnerRoute>
+            }
+          />
 
           {/* ===== 404 ===== */}
           <Route path="*" element={<NotFound />} />
         </Routes>
 
         <AppFooter />
+
+        <div>
+          <h1>React + Node.js</h1>
+          <p>{message}</p>
+        </div>
+
       </BrowserRouter>
     </AuthProvider>
   );

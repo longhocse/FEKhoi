@@ -21,66 +21,26 @@ export const AuthProvider = ({ children }) => {
     setLoading(false);
   }, []);
 
-  /* ================= LOGIN ================= */
-  const login = (email, password, role = null) => {
-
-    return new Promise((resolve, reject) => {
-      setTimeout(() => {
-        const users = JSON.parse(localStorage.getItem("users") || "[]");
-
-        const foundUser = users.find(
-  (u) => u.email === email && u.password === password
-);
-
-
-
-        if (!foundUser) {
-          reject("Email / mật khẩu / vai trò không đúng");
-          return;
-        }
-
-        const userData = {
-          id: foundUser.id,
-          name: foundUser.name,
-          email: foundUser.email,
-          role: foundUser.role || "customer",
-        };
-
-        setUser(userData);
-        localStorage.setItem("user", JSON.stringify(userData));
-        resolve(userData);
-      }, 500);
+  /* ================= LOGIN (CALL API) ================= */
+  const login = async (email, password) => {
+    const res = await fetch("http://localhost:5000/api/login", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({ email, password }),
     });
-  };
 
-  /* ================= REGISTER (CUSTOMER) ================= */
-  const register = (data) => {
-    return new Promise((resolve, reject) => {
-      setTimeout(() => {
-        const users = JSON.parse(localStorage.getItem("users") || "[]");
+    const data = await res.json();
 
-        if (users.some((u) => u.email === data.email)) {
-          reject("Email đã tồn tại");
-          return;
-        }
+    if (!res.ok) {
+      throw new Error(data.message || "Đăng nhập thất bại");
+    }
 
-        const newUser = {
-          id: Date.now().toString(),
-          role: "customer",
-          ...data,
-          createdAt: new Date().toISOString(),
-        };
+    setUser(data.user);
+    localStorage.setItem("user", JSON.stringify(data.user));
 
-        users.push(newUser);
-        localStorage.setItem("users", JSON.stringify(users));
-
-        const { password, ...safeUser } = newUser;
-        setUser(safeUser);
-        localStorage.setItem("user", JSON.stringify(safeUser));
-
-        resolve(safeUser);
-      }, 500);
-    });
+    return data.user;
   };
 
   /* ================= LOGOUT ================= */
@@ -102,7 +62,6 @@ export const AuthProvider = ({ children }) => {
         user,
         loading,
         login,
-        register,
         logout,
         isAuthenticated,
         isAdmin,
