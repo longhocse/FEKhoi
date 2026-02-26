@@ -15,11 +15,19 @@ export default function PartnerLogin() {
     setError("");
 
     try {
-      // role = partner
-      await login(email, password, "partner");
-      navigate("/nha-xe"); // ✅ ĐÚNG ROUTE
+      const user = await login(email, password, "partner");
+
+      // 🚨 Kiểm tra role
+      if (user.role !== "partner") {
+        setError("Tài khoản này không phải nhà xe!");
+        return;
+      }
+
+      // ✅ Nếu đúng partner
+      navigate("/nha-xe");
+
     } catch (err) {
-      setError(err);
+      setError(err.message || "Đăng nhập thất bại");
     }
   };
 
@@ -34,6 +42,7 @@ export default function PartnerLogin() {
           <Form.Group className="mb-3">
             <Form.Label>Email nhà xe</Form.Label>
             <Form.Control
+              type="email"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               required

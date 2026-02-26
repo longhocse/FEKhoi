@@ -4,7 +4,7 @@ import { useAuth } from "../context/AuthContext";
 import { useState } from "react";
 
 export default function Profile() {
-  const { user, updateProfile, logout } = useAuth();
+  const { user, updateProfile, logout, changePassword } = useAuth();
   const [editMode, setEditMode] = useState(false);
   const [formData, setFormData] = useState({
     name: user?.name || "",
@@ -31,14 +31,17 @@ export default function Profile() {
 
     try {
       const { currentPassword, newPassword, confirmPassword, ...profileData } = formData;
+
       await updateProfile(profileData);
+
       setMessage({ type: "success", text: "Cập nhật thông tin thành công!" });
       setEditMode(false);
+
     } catch (error) {
-      setMessage({ type: "danger", text: error.toString() });
-    } finally {
-      setLoading(false);
+      setMessage({ type: "danger", text: error.message });
     }
+
+    setLoading(false);
   };
 
   const handleChangePassword = async (e) => {
@@ -46,7 +49,6 @@ export default function Profile() {
     setLoading(true);
     setMessage({ type: "", text: "" });
 
-    // Validate
     if (formData.newPassword !== formData.confirmPassword) {
       setMessage({ type: "danger", text: "Mật khẩu xác nhận không khớp" });
       setLoading(false);
@@ -59,17 +61,23 @@ export default function Profile() {
       return;
     }
 
-    // Giả lập API call thay đổi mật khẩu
-    setTimeout(() => {
+    try {
+      await changePassword(formData.currentPassword, formData.newPassword);
+
       setMessage({ type: "success", text: "Đổi mật khẩu thành công!" });
+
       setFormData({
         ...formData,
         currentPassword: "",
         newPassword: "",
         confirmPassword: ""
       });
-      setLoading(false);
-    }, 1000);
+
+    } catch (error) {
+      setMessage({ type: "danger", text: error.message });
+    }
+
+    setLoading(false);
   };
 
   if (!user) {
@@ -140,14 +148,14 @@ export default function Profile() {
                   />
                 </Form.Group>
                 <div className="d-flex gap-2">
-                  <Button 
-                    variant="primary" 
+                  <Button
+                    variant="primary"
                     type="submit"
                     disabled={loading}
                   >
                     {loading ? "Đang lưu..." : "Lưu thay đổi"}
                   </Button>
-                  <Button 
+                  <Button
                     variant="outline-secondary"
                     onClick={() => {
                       setEditMode(false);
@@ -166,7 +174,7 @@ export default function Profile() {
             ) : (
               <div className="profile-info">
                 <div className="d-flex align-items-center mb-4">
-                  <div className="profile-avatar bg-primary-custom text-white rounded-circle d-flex align-items-center justify-content-center me-4" 
+                  <div className="profile-avatar bg-primary-custom text-white rounded-circle d-flex align-items-center justify-content-center me-4"
                     style={{ width: 80, height: 80, fontSize: '2rem' }}>
                     {user.name.charAt(0).toUpperCase()}
                   </div>
@@ -176,7 +184,7 @@ export default function Profile() {
                     {user.phone && <p className="text-muted mb-0">{user.phone}</p>}
                   </div>
                 </div>
-                
+
                 <div className="row">
                   <div className="col-md-6 mb-3">
                     <div className="fw-semibold">Ngày tham gia:</div>
@@ -222,8 +230,8 @@ export default function Profile() {
                   onChange={handleChange}
                 />
               </Form.Group>
-              <Button 
-                variant="primary" 
+              <Button
+                variant="primary"
                 type="submit"
                 disabled={loading}
               >
@@ -254,8 +262,8 @@ export default function Profile() {
                 <i className="bi bi-shield-check me-2"></i>
                 Bảo mật
               </Button>
-              <Button 
-                variant="outline-danger" 
+              <Button
+                variant="outline-danger"
                 className="text-start mt-3"
                 onClick={logout}
               >

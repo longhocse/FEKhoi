@@ -22,8 +22,8 @@ export const AuthProvider = ({ children }) => {
   }, []);
 
   /* ================= LOGIN (CALL API) ================= */
-  const login = async (email, password) => {
-    const res = await fetch("http://localhost:5000/api/login", {
+  const login = async (email, password, roleRequired = null) => {
+    const res = await fetch("http://localhost:5000/api/auth/login", {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
@@ -33,15 +33,91 @@ export const AuthProvider = ({ children }) => {
 
     const data = await res.json();
 
+    console.log("STATUS:", res.status);
+    console.log("DATA:", data);
+
     if (!res.ok) {
       throw new Error(data.message || "Đăng nhập thất bại");
     }
 
-    setUser(data.user);
-    localStorage.setItem("user", JSON.stringify(data.user));
+    // ✅ Backend trả trực tiếp user
+    if (roleRequired && data.role !== roleRequired) {
+      throw new Error("Tài khoản không có quyền truy cập");
+    }
 
-    return data.user;
+    setUser(data);
+    localStorage.setItem("user", JSON.stringify(data));
+
+    return data;
   };
+
+  /* ================= REGISTER (CALL API) ================= */
+  const register = async (userData) => {
+    const res = await fetch("http://localhost:5000/api/auth/register", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify(userData),
+    });
+
+    const data = await res.json();
+
+    console.log("STATUS:", res.status);
+    console.log("DATA:", data);
+
+    if (!res.ok) {
+      throw new Error(data.message || "Đăng ký thất bại");
+    }
+
+    return data;
+  };
+
+
+
+  const updateProfile = async (profileData) => {
+    const res = await fetch("http://localhost:5000/api/auth/profile", {
+      method: "PUT",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        id: user.id,        // ✅ thêm dòng này
+        ...profileData
+      }),
+    });
+
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.message);
+
+    const updatedUser = { ...user, ...profileData };
+    setUser(updatedUser);
+    localStorage.setItem("user", JSON.stringify(updatedUser));
+  };
+
+  const changePassword = async (currentPassword, newPassword) => {
+    const res = await fetch("http://localhost:5000/api/auth/change-password", {
+      method: "PUT",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        id: user.id,   // 👈 lấy id từ user đang login
+        currentPassword,
+        newPassword
+      }),
+    });
+
+    const data = await res.json();
+
+    if (!res.ok) {
+      throw new Error(data.message || "Đổi mật khẩu thất bại");
+    }
+
+    return data;
+  };
+
+
 
   /* ================= LOGOUT ================= */
   const logout = () => {
@@ -62,6 +138,9 @@ export const AuthProvider = ({ children }) => {
         user,
         loading,
         login,
+        register,
+        updateProfile,
+        changePassword,
         logout,
         isAuthenticated,
         isAdmin,
