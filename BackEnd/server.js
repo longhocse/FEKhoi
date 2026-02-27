@@ -12,7 +12,7 @@ app.use(express.json());
 // Cấu hình SQL Server
 const config = {
     user: "sa",              // sửa lại user của bạn
-    password: "hoangquoc123",      // sửa lại password SQL
+    password: "1234",      // sửa lại password SQL
     server: "localhost",
     database: "BUSGO",     // sửa lại đúng tên database
     options: {
