@@ -1,24 +1,25 @@
 import { Container, Row, Col, Form, Card } from "react-bootstrap";
 import { useSearchParams } from "react-router-dom";
-import { popularRoutes } from "../data/mockRoutes";
 import RouteCard from "../components/RouteCard";
-import { useMemo, useState } from "react";
+import { useEffect } from "react";
+import { useTrip } from "../context/TripContext";
 
 export default function RoutesPage() {
   const [params] = useSearchParams();
-  const [minPrice, setMinPrice] = useState("");
+  const { trips, loading, filters, setFilters } = useTrip();
 
-  const fromQ = (params.get("from") || "").toLowerCase();
-  const toQ = (params.get("to") || "").toLowerCase();
+  const fromQ = params.get("from") || "";
+  const toQ = params.get("to") || "";
 
-  const filtered = useMemo(() => {
-    return popularRoutes.filter((r) => {
-      const okFrom = !fromQ || r.from.toLowerCase().includes(fromQ);
-      const okTo = !toQ || r.to.toLowerCase().includes(toQ);
-      const okPrice = !minPrice || r.price >= Number(minPrice);
-      return okFrom && okTo && okPrice;
-    });
-  }, [fromQ, toQ, minPrice]);
+  // Khi thay đổi from/to trên URL
+  useEffect(() => {
+    setFilters((prev) => ({
+      ...prev,
+      from: fromQ,
+      to: toQ,
+      page: 1,
+    }));
+  }, [fromQ, toQ]);
 
   return (
     <Container className="py-4">
@@ -27,33 +28,76 @@ export default function RoutesPage() {
       <Card className="soft-card p-3 mb-3">
         <Row className="g-2">
           <Col md={4}>
-            <Form.Control value={params.get("from") || ""} disabled />
+            <Form.Control value={fromQ} disabled />
           </Col>
           <Col md={4}>
-            <Form.Control value={params.get("to") || ""} disabled />
+            <Form.Control value={toQ} disabled />
           </Col>
           <Col md={4}>
             <Form.Control
               placeholder="Giá tối thiểu (vd: 150000)"
-              value={minPrice}
-              onChange={(e) => setMinPrice(e.target.value)}
+              value={filters.minPrice}
+              onChange={(e) =>
+                setFilters((prev) => ({
+                  ...prev,
+                  minPrice: e.target.value,
+                  page: 1,
+                }))
+              }
             />
           </Col>
         </Row>
       </Card>
 
+      {loading && <div>Đang tải...</div>}
+
       <Row className="g-3">
-        {filtered.map((r) => (
+        {trips.length === 0 && !loading && (
+          <Col>
+            <div className="text-muted">
+              Không tìm thấy tuyến phù hợp.
+            </div>
+          </Col>
+        )}
+
+        {trips.map((r) => (
           <Col key={r.id} lg={3} md={6}>
             <RouteCard item={r} />
           </Col>
         ))}
-        {filtered.length === 0 && (
-          <Col>
-            <div className="text-muted">Không tìm thấy tuyến phù hợp.</div>
-          </Col>
-        )}
       </Row>
+
+      {/* Pagination */}
+      <div className="d-flex justify-content-center mt-4">
+        <button
+          className="btn btn-outline-primary me-2"
+          disabled={filters.page === 1}
+          onClick={() =>
+            setFilters((prev) => ({
+              ...prev,
+              page: prev.page - 1,
+            }))
+          }
+        >
+          Trang trước
+        </button>
+
+        <span className="mx-3 align-self-center">
+          Trang {filters.page}
+        </span>
+
+        <button
+          className="btn btn-outline-primary"
+          onClick={() =>
+            setFilters((prev) => ({
+              ...prev,
+              page: prev.page + 1,
+            }))
+          }
+        >
+          Trang sau
+        </button>
+      </div>
     </Container>
   );
 }

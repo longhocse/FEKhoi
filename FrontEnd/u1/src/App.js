@@ -8,6 +8,8 @@ import PartnerRoute from "./components/PartnerRoute";
 
 import { useState, useEffect } from "react";
 
+import { TripProvider } from "./context/TripContext";
+
 // Pages khách
 import Home from "./pages/Home";
 import RoutesPage from "./pages/Routes";
@@ -41,86 +43,67 @@ export default function App() {
       .catch((err) => console.error(err));
   }, []);
 
-
-
   return (
     <AuthProvider>
-      <BrowserRouter>
-        <AppNavbar />
+      <TripProvider>
+        <BrowserRouter>
 
-        <Routes>
-          {/* ===== KHÁCH ===== */}
-          <Route path="/" element={<Home />} />
-          <Route path="/tuyen-xe" element={<RoutesPage />} />
-          <Route path="/tuyen-xe/:id" element={<RouteDetail />} />
-          <Route path="/dang-nhap" element={<Login />} />
-          <Route path="/dang-ky" element={<Register />} />
-          <Route path="/chon-ghe" element={<SeatSelection />} />
-          <Route path="/thanh-toan" element={<Payment />} />
-          <Route
-            path="/admin"
-            element={
-              <AdminRoute>
-                <AdminLayout />
-              </AdminRoute>
-            }
-          >
-            <Route index element={<AdminDashboard />} />
-            <Route path="users" element={<AdminUsers />} />
-          </Route>
-          <Route
-            path="/doi-tac"
-            element={
-              <PartnerRoute>
-                <PartnerLayout />
-              </PartnerRoute>
-            }
-          >
-            <Route index element={<PartnerDashboard />} />
-            <Route path="tao-chuyen-xe" element={<CreateTrip />} />
-          </Route>
+          <AppNavbar />
 
-          <Route
-            path="/thong-tin-ca-nhan"
-            element={
-              <PrivateRoute>
-                <Profile />
-              </PrivateRoute>
-            }
-          />
+          <Routes>
+            {/* ===== KHÁCH ===== */}
+            <Route path="/" element={<Home />} />
+            <Route path="/tuyen-xe" element={<RoutesPage />} />
+            <Route path="/tuyen-xe/:id" element={<RouteDetail />} />
+            <Route path="/dang-nhap" element={<Login />} />
+            <Route path="/dang-ky" element={<Register />} />
+            <Route path="/chon-ghe" element={<SeatSelection />} />
+            <Route path="/thanh-toan" element={<Payment />} />
 
-          {/* ===== NHÀ XE ===== */}
-          <Route path="/dang-nhap-nha-xe" element={<PartnerLogin />} />
+            {/* ===== ADMIN ===== */}
+            <Route
+              path="/admin"
+              element={
+                <AdminRoute>
+                  <AdminLayout />
+                </AdminRoute>
+              }
+            >
+              <Route index element={<AdminDashboard />} />
+              <Route path="users" element={<AdminUsers />} />
+            </Route>
 
-          <Route
-            path="/nha-xe"
-            element={
-              <PartnerRoute>
-                <PartnerDashboard />
-              </PartnerRoute>
-            }
-          />
-          <Route
-            path="/nha-xe/tao-chuyen"
-            element={
-              <PartnerRoute>
-                <CreateTrip />
-              </PartnerRoute>
-            }
-          />
+            {/* ===== PARTNER ===== */}
+            <Route
+              path="/doi-tac"
+              element={
+                <PartnerRoute>
+                  <PartnerLayout />
+                </PartnerRoute>
+              }
+            >
+              <Route index element={<PartnerDashboard />} />
+              <Route path="tao-chuyen-xe" element={<CreateTrip />} />
+            </Route>
 
-          {/* ===== 404 ===== */}
-          <Route path="*" element={<NotFound />} />
-        </Routes>
+            <Route
+              path="/thong-tin-ca-nhan"
+              element={
+                <PrivateRoute>
+                  <Profile />
+                </PrivateRoute>
+              }
+            />
 
-        <AppFooter />
+            <Route path="/dang-nhap-nha-xe" element={<PartnerLogin />} />
 
-        <div>
-          <h1>React + Node.js</h1>
-          <p>{message}</p>
-        </div>
+            <Route path="*" element={<NotFound />} />
+          </Routes>
 
-      </BrowserRouter>
+          <AppFooter />
+
+        </BrowserRouter>
+      </TripProvider>
     </AuthProvider>
   );
 }

@@ -6,24 +6,35 @@ export default function RouteCard({ item }) {
 
   return (
     <Card className="soft-card h-100 overflow-hidden">
-      {/* ảnh demo bằng gradient (khỏi cần ảnh) */}
+      {/* Ảnh demo */}
       <div style={{ height: 120 }} className="hero" />
 
       <Card.Body>
         <div className="d-flex justify-content-between align-items-start">
           <div>
-            <div className="fw-bold">{item.from} → {item.to}</div>
-            <div className="text-muted small">{item.duration} • {item.company}</div>
+            {/* FROM → TO */}
+            <div className="fw-bold">
+              {item.fromStation} → {item.toStation}
+            </div>
+
+            {/* START TIME */}
+            <div className="text-muted small">
+              Khởi hành:{" "}
+              {new Date(item.startTime).toLocaleString("vi-VN")}
+            </div>
           </div>
+
           <Badge bg="light" text="dark" className="border">
             Phổ biến
           </Badge>
         </div>
 
         <div className="mt-3 d-flex align-items-center justify-content-between">
+          {/* PRICE */}
           <div className="fw-bold text-primary-custom">
-            {item.price.toLocaleString("vi-VN")}đ
+            {Number(item.price).toLocaleString("vi-VN")}đ
           </div>
+
           <Button
             variant="outline-primary"
             size="sm"

@@ -1,0 +1,89 @@
+const { getPool } = require("../config/db");
+
+const getPopularTrips = async (req, res) => {
+    try {
+        const pool = await getPool();
+
+        const result = await pool.request().query(`
+      SELECT TOP 4 
+        t.id,
+        fs.name AS fromStation,
+        ts.name AS toStation,
+        t.startTime,
+        t.price
+      FROM Trips t
+      JOIN Stations fs ON t.fromStationId = fs.id
+      JOIN Stations ts ON t.toStationId = ts.id
+      WHERE t.isActive = 1
+      ORDER BY t.createdAt DESC
+    `);
+
+        res.json(result.recordset);
+    } catch (error) {
+        console.error(error);
+        res.status(500).json({ message: "Server error" });
+    }
+};
+
+
+const getTrips = async (req, res) => {
+    try {
+        const page = parseInt(req.query.page) || 1;
+        const limit = 20;
+        const offset = (page - 1) * limit;
+
+        const { from, to, minPrice } = req.query;
+
+        let where = "WHERE t.isActive = 1";
+        let params = [];
+
+        if (from) {
+            where += " AND s1.name LIKE @from";
+            params.push({ name: "from", type: require("mssql").NVarChar, value: `%${from}%` });
+        }
+
+        if (to) {
+            where += " AND s2.name LIKE @to";
+            params.push({ name: "to", type: require("mssql").NVarChar, value: `%${to}%` });
+        }
+
+        if (minPrice) {
+            where += " AND t.price >= @minPrice";
+            params.push({ name: "minPrice", type: require("mssql").Decimal(10, 2), value: minPrice });
+        }
+
+        const pool = await getPool();
+
+        const request = pool.request();
+        params.forEach(p => request.input(p.name, p.type, p.value));
+
+        const result = await request.query(`
+      SELECT t.id,
+             s1.name AS fromStation,
+             s2.name AS toStation,
+             v.name AS vehicle,
+             t.startTime,
+             t.price
+      FROM Trips t
+      JOIN Stations s1 ON t.fromStationId = s1.id
+      JOIN Stations s2 ON t.toStationId = s2.id
+      JOIN Vehicles v ON t.vehicleId = v.id
+      ${where}
+      ORDER BY t.startTime
+      OFFSET ${offset} ROWS
+      FETCH NEXT ${limit} ROWS ONLY
+    `);
+
+        res.json(result.recordset);
+    } catch (err) {
+        console.error(err);
+        res.status(500).json({ message: "Server error" });
+    }
+};
+
+
+
+module.exports = {
+    getPopularTrips,
+    getTrips
+};
