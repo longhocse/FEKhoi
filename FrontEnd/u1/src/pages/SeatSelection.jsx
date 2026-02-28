@@ -275,8 +275,8 @@ export default function SeatSelection() {
             <div className="row">
               <div className="col-md-6">
                 <ul className="mb-0">
-                  <li className="mb-2">• Nhấn vào ghế <span className="text-success fw-semibold">xanh</span> để chọn</li>
-                  <li className="mb-2">• Ghế <span className="text-primary-custom fw-semibold">cam</span> là ghế bạn đã chọn</li>
+                  <li className="mb-2">• Nhấn vào ghế trống để chọn</li>
+                  <li className="mb-2">• Ghế <span className="text-success fw-semibold">xanh</span> là ghế bạn đã chọn</li>
                 </ul>
               </div>
               <div className="col-md-6">
