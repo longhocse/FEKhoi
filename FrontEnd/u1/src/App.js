@@ -1,5 +1,6 @@
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { AuthProvider } from "./context/AuthContext";
+import "./App.css";
 
 import AppNavbar from "./components/AppNavbar";
 import AppFooter from "./components/AppFooter";
