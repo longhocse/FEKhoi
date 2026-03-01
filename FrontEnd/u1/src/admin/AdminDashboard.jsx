@@ -1,27 +1,44 @@
+import { useEffect, useState } from "react";
 import "./admin.css";
 
 export default function AdminDashboard() {
+  const [stats, setStats] = useState({
+    totalUsers: 0,
+    totalPartners: 0
+  });
+
+  useEffect(() => {
+    fetch("http://localhost:5000/api/admin/dashboard")
+      .then(res => res.json())
+      .then(data => {
+        setStats(data);
+      })
+      .catch(err => {
+        console.error("Lỗi lấy dashboard:", err);
+      });
+  }, []);
+
   return (
     <>
       {/* CARDS */}
       <div className="admin-stats">
         <div className="card blue">
-          <h3>1,248</h3>
+          <h3>{stats.totalUsers}</h3>
           <p>Người dùng</p>
         </div>
 
         <div className="card green">
-          <h3>42</h3>
+          <h3>{stats.totalPartners}</h3>
           <p>Nhà xe</p>
         </div>
 
         <div className="card orange">
-          <h3>356</h3>
+          <h3>--</h3>
           <p>Chuyến xe</p>
         </div>
 
         <div className="card red">
-          <h3>128,000,000 ₫</h3>
+          <h3>--</h3>
           <p>Doanh thu</p>
         </div>
       </div>
@@ -43,19 +60,9 @@ export default function AdminDashboard() {
 
           <tbody>
             <tr>
-              <td>#BK1023</td>
-              <td>Nguyễn Văn A</td>
-              <td>Hà Nội → Đà Nẵng</td>
-              <td>350,000₫</td>
-              <td><span className="badge success">Đã thanh toán</span></td>
-            </tr>
-
-            <tr>
-              <td>#BK1024</td>
-              <td>Trần Thị B</td>
-              <td>HCM → Nha Trang</td>
-              <td>280,000₫</td>
-              <td><span className="badge warning">Chờ xử lý</span></td>
+              <td colSpan="5" style={{ textAlign: "center" }}>
+                Chưa có dữ liệu
+              </td>
             </tr>
           </tbody>
         </table>

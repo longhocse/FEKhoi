@@ -197,3 +197,55 @@ VALUES
 
 -- CUSTOMER
 (N'Trần Văn A', '0900000003', 'customer@busgo.vn', '123456', NULL, 'customer', NULL);
+
+INSERT INTO Vehicles 
+(name, description, type, numberOfFloors, partnerId, licensePlate)
+VALUES
+(N'Xe giường nằm 40 chỗ', 
+ N'Xe giường nằm cao cấp, có wifi và điều hòa', 
+ N'SLEEPER', 
+ 1, 
+ 2, 
+ '29B-12345');
+
+INSERT INTO Wallets (userId, balance)
+VALUES 
+(2, 0),       -- wallet partner
+(3, 1000000); -- wallet customer
+
+INSERT INTO Stations (name, address, province)
+VALUES
+(N'Bến xe Giáp Bát', N'Giải Phóng, Hà Nội', N'Hà Nội'),
+(N'Bến xe Đà Nẵng', N'Tôn Đức Thắng, Đà Nẵng', N'Đà Nẵng');
+
+INSERT INTO Trips 
+(fromStationId, toStationId, vehicleId, startTime, price, estimatedDuration)
+VALUES
+(1, 2, 1, '2026-03-10 08:00:00', 350000, 900);
+
+INSERT INTO Seats (vehicleId, name, floor, type)
+VALUES
+(1, 'A1', 1, 'VIP'),
+(1, 'A2', 1, 'VIP'),
+(1, 'B1', 1, 'NORMAL'),
+(1, 'B2', 1, 'NORMAL');
+
+INSERT INTO Transactions (walletId, amount, type, status, description)
+VALUES
+(2, 350000, 'PAYMENT', 'SUCCESS', N'Thanh toán vé Hà Nội - Đà Nẵng');
+
+INSERT INTO Tickets
+(userId, tripId, seatId, totalAmount, paymentMethod, transactionId, status)
+VALUES
+(3, 1, 1, 350000, 'WALLET', 1, 'PAID');
+
+INSERT INTO TicketPassengers
+(ticketId, fullName, phoneNumber, email)
+VALUES
+(1, N'Trần Văn A', '0900000003', 'customer@busgo.vn');
+
+INSERT INTO Points (address, stationId)
+VALUES
+(N'Thành phố Vinh', 1);
+ select * from Users;
+ select * from Vehicles;

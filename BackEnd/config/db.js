@@ -1,21 +1,27 @@
 const sql = require("mssql");
 
 const config = {
-    user: "sa",
-    password: "1234",
-    server: "localhost",
-    database: "BUSGO",
-    options: {
-        encrypt: false,
-        trustServerCertificate: true
-    }
+  user: "sa",
+  password: "1234",
+  server: "localhost",
+  database: "BUSGO",
+  options: {
+    encrypt: false,
+    trustServerCertificate: true
+  }
 };
 
-const pool = sql.connect(config)
-    .then(() => {
-        console.log("✅ Connected to SQL Server");
-        return sql;
-    })
-    .catch(err => console.log("❌ DB connection failed:", err));
+const poolPromise = new sql.ConnectionPool(config)
+  .connect()
+  .then(pool => {
+    console.log("✅ Connected to SQL Server");
+    return pool;
+  })
+  .catch(err => {
+    console.error("❌ DB connection failed:", err);
+  });
 
-module.exports = { sql, pool };
+module.exports = {
+  sql,
+  poolPromise
+};

@@ -28,7 +28,8 @@ import CreateTrip from "./partner/CreateTrip";
 import AdminLayout from "./admin/AdminLayout";
 import AdminDashboard from "./admin/AdminDashboard";
 import AdminUsers from "./admin/AdminUsers";
-
+import AdminPartners from "./admin/AdminPartners";
+import AdminRoutes from "./admin/AdminRoutes";
 export default function App() {
   const [message, setMessage] = useState("");
 
@@ -69,17 +70,19 @@ export default function App() {
 
 
           {/* ================= ADMIN (Không có Navbar/Footer) ================= */}
-          <Route
-            path="/admin"
-            element={
-              <AdminRoute>
-                <AdminLayout />
-              </AdminRoute>
-            }
-          >
-            <Route index element={<AdminDashboard />} />
-            <Route path="users" element={<AdminUsers />} />
-          </Route>
+<Route
+  path="/admin"
+  element={
+    <AdminRoute>
+      <AdminLayout />
+    </AdminRoute>
+  }
+>
+  <Route index element={<AdminDashboard />} />
+  <Route path="users" element={<AdminUsers />} />
+  <Route path="partners" element={<AdminPartners />} />
+  <Route path="routes" element={<AdminRoutes />} />
+</Route>
 
 
           {/* ================= PARTNER ================= */}

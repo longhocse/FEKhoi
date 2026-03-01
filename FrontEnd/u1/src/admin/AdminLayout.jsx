@@ -7,14 +7,14 @@ export default function AdminLayout() {
   const navigate = useNavigate();
 
   const handleLogout = () => {
-    logout();          // xóa token / user
-    navigate("/dang-nhap");  // quay về login
+    logout();
+    navigate("/dang-nhap");
   };
 
   return (
     <div className="admin-layout">
 
-      {/* SIDEBAR */}
+      {/* ===== SIDEBAR ===== */}
       <aside className="admin-sidebar">
         <h2 className="logo">🚌 BusGo Admin</h2>
 
@@ -27,32 +27,23 @@ export default function AdminLayout() {
         </NavLink>
 
         <NavLink to="/admin/partners">
-          🏢 Nhà xe
-        </NavLink>
-
-        <NavLink to="/admin/routes">
-          🛣 Tuyến xe
+          🏢 Quản lý nhà xe
         </NavLink>
 
         <NavLink to="/admin/bookings">
-          🎫 Vé xe
-        </NavLink>
-
-        <NavLink to="/admin/revenue">
-          💰 Doanh thu
+          🎫 Quản lý vé
         </NavLink>
 
         <NavLink to="/admin/settings">
           ⚙️ Cài đặt
         </NavLink>
 
-        {/* ===== NÚT ĐĂNG XUẤT ===== */}
         <button className="logout-btn" onClick={handleLogout}>
           🚪 Đăng xuất
         </button>
       </aside>
 
-      {/* CONTENT */}
+      {/* ===== CONTENT ===== */}
       <main className="admin-content">
         <Outlet />
       </main>
