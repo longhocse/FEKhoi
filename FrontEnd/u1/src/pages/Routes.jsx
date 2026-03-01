@@ -1,6 +1,6 @@
 import { Container, Row, Col, Form, Card } from "react-bootstrap";
 import { useSearchParams } from "react-router-dom";
-import { popularRoutes } from "../data/mockRoutes";
+//import { popularRoutes } from "../data/mockRoutes";
 import RouteCard from "../components/RouteCard";
 import { useMemo, useState } from "react";
 

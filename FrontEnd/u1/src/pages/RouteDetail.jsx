@@ -1,6 +1,6 @@
 import { Container, Card, Button, Badge } from "react-bootstrap";
 import { useParams, useNavigate } from "react-router-dom";
-import { popularRoutes } from "../data/mockRoutes";
+//import { popularRoutes } from "../data/mockRoutes";
 
 export default function RouteDetail() {
   const { id } = useParams();

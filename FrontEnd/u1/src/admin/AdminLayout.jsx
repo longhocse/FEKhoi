@@ -1,9 +1,19 @@
-import { Outlet, NavLink } from "react-router-dom";
+import { Outlet, NavLink, useNavigate } from "react-router-dom";
+import { useAuth } from "../context/AuthContext";
 import "./admin.css";
 
 export default function AdminLayout() {
+  const { logout } = useAuth();
+  const navigate = useNavigate();
+
+  const handleLogout = () => {
+    logout();          // xóa token / user
+    navigate("/dang-nhap");  // quay về login
+  };
+
   return (
     <div className="admin-layout">
+
       {/* SIDEBAR */}
       <aside className="admin-sidebar">
         <h2 className="logo">🚌 BusGo Admin</h2>
@@ -35,12 +45,18 @@ export default function AdminLayout() {
         <NavLink to="/admin/settings">
           ⚙️ Cài đặt
         </NavLink>
+
+        {/* ===== NÚT ĐĂNG XUẤT ===== */}
+        <button className="logout-btn" onClick={handleLogout}>
+          🚪 Đăng xuất
+        </button>
       </aside>
 
       {/* CONTENT */}
       <main className="admin-content">
         <Outlet />
       </main>
+
     </div>
   );
 }
