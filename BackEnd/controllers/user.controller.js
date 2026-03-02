@@ -5,11 +5,11 @@ exports.getUsers = async (req, res) => {
   try {
     const pool = await poolPromise;
 
-    const result = await pool.request().query(`
-      SELECT id, name, email, role, isActive, createdAt
-      FROM Users
-      ORDER BY id DESC
-    `);
+const result = await pool.request().query(`
+  SELECT id, name, email, phoneNumber, role, isActive, createdAt
+  FROM Users
+  ORDER BY id DESC
+`);
 
     res.json(result.recordset);
 
@@ -45,20 +45,43 @@ exports.getUserById = async (req, res) => {
 
 /* ================= CREATE USER ================= */
 exports.createUser = async (req, res) => {
-  const { name, email, password, role } = req.body;
+  const { name, email, password, role, phoneNumber } = req.body;
+
+  console.log("Create user body:", req.body);
 
   try {
     const pool = await poolPromise;
 
-    await pool
-      .request()
+    // 🔥 Check email tồn tại
+    const emailCheck = await pool.request()
+      .input("email", sql.VarChar, email)
+      .query("SELECT id FROM Users WHERE email = @email");
+
+    if (emailCheck.recordset.length > 0) {
+      return res.status(400).json({ message: "Email đã tồn tại" });
+    }
+
+    // 🔥 Check phone tồn tại (nếu có nhập)
+    if (phoneNumber) {
+      const phoneCheck = await pool.request()
+        .input("phoneNumber", sql.VarChar, phoneNumber)
+        .query("SELECT id FROM Users WHERE phoneNumber = @phoneNumber");
+
+      if (phoneCheck.recordset.length > 0) {
+        return res.status(400).json({ message: "Số điện thoại đã tồn tại" });
+      }
+    }
+
+    // 🔥 Insert
+    await pool.request()
       .input("name", sql.NVarChar, name)
       .input("email", sql.VarChar, email)
       .input("password", sql.VarChar, password)
       .input("role", sql.VarChar, role)
+      .input("phoneNumber", sql.VarChar, phoneNumber || null)
       .query(`
-        INSERT INTO Users (name, email, password, role, isActive)
-        VALUES (@name, @email, @password, @role, 1)
+        INSERT INTO Users (name, email, password, role, phoneNumber, isActive)
+        VALUES (@name, @email, @password, @role, @phoneNumber, 1)
       `);
 
     res.status(201).json({ message: "User created successfully" });
@@ -70,23 +93,54 @@ exports.createUser = async (req, res) => {
 };
 
 /* ================= UPDATE USER ================= */
+/* ================= UPDATE USER ================= */
 exports.updateUser = async (req, res) => {
-  const { name, email, role } = req.body;
+  const { name, email, role, phoneNumber } = req.body;
 
   try {
     const pool = await poolPromise;
 
-    await pool
-      .request()
+    // 🔥 Check email trùng (trừ chính nó)
+    const emailCheck = await pool.request()
+      .input("email", sql.VarChar, email)
+      .input("id", sql.Int, req.params.id)
+      .query(`
+        SELECT id FROM Users 
+        WHERE email = @email AND id != @id
+      `);
+
+    if (emailCheck.recordset.length > 0) {
+      return res.status(400).json({ message: "Email đã tồn tại" });
+    }
+
+    // 🔥 Check phone trùng (nếu có nhập)
+    if (phoneNumber) {
+      const phoneCheck = await pool.request()
+        .input("phoneNumber", sql.VarChar, phoneNumber)
+        .input("id", sql.Int, req.params.id)
+        .query(`
+          SELECT id FROM Users 
+          WHERE phoneNumber = @phoneNumber AND id != @id
+        `);
+
+      if (phoneCheck.recordset.length > 0) {
+        return res.status(400).json({ message: "Số điện thoại đã tồn tại" });
+      }
+    }
+
+    // 🔥 Update
+    await pool.request()
       .input("id", sql.Int, req.params.id)
       .input("name", sql.NVarChar, name)
       .input("email", sql.VarChar, email)
       .input("role", sql.VarChar, role)
+      .input("phoneNumber", sql.VarChar, phoneNumber || null)
       .query(`
         UPDATE Users
         SET name = @name,
             email = @email,
             role = @role,
+            phoneNumber = @phoneNumber,
             updatedAt = GETDATE()
         WHERE id = @id
       `);
