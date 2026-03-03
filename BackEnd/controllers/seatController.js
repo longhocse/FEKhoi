@@ -17,7 +17,7 @@ exports.getSeats = (req, res) => {
 exports.holdSeats = (req, res) => {
   const { tripId, seatNumbers } = req.body;
 
-  const trip = trips.find((t) => t.id === tripId);
+  const trip = trips.find((t) => t.id === Number(tripId));
   if (!trip) {
     return res.status(404).json({ message: "Trip not found" });
   }
