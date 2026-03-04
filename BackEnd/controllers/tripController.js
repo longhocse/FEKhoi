@@ -82,8 +82,46 @@ const getTrips = async (req, res) => {
 };
 
 
+const getTripById = async (req, res) => {
+    try {
+        const { id } = req.params;
+        const pool = await getPool();
+
+        const result = await pool.request()
+            .input("id", require("mssql").Int, id)
+            .query(`
+                SELECT 
+                    t.id,
+                    s1.name AS fromStation,
+                    s2.name AS toStation,
+                    v.name AS vehicleName,
+                    t.startTime,
+                    t.price,
+                    t.estimatedDuration,
+                    t.imageUrl
+                FROM Trips t
+                JOIN Stations s1 ON t.fromStationId = s1.id
+                JOIN Stations s2 ON t.toStationId = s2.id
+                JOIN Vehicles v ON t.vehicleId = v.id
+                WHERE t.id = @id
+            `);
+
+        if (result.recordset.length === 0) {
+            return res.status(404).json({ message: "Trip not found" });
+        }
+
+        res.json(result.recordset[0]);
+
+    } catch (err) {
+        console.error(err);
+        res.status(500).json({ message: "Server error" });
+    }
+};
+
+
 
 module.exports = {
     getPopularTrips,
-    getTrips
+    getTrips,
+    getTripById
 };
