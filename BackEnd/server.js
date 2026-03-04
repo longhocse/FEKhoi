@@ -20,7 +20,6 @@ const PORT = 5000;
 app.use(cors());
 app.use(express.json());
 
-connectDB();
 
 // gọi routes
 app.use("/api/trips", tripRoutes);
@@ -36,7 +35,5 @@ app.listen(5000, () => {
         res.send("Backend is running 🚀");
     });
 
-    app.listen(PORT, () => {
-        console.log(`🚀 Server running at http://localhost:${PORT}`);
-    });
+
 });

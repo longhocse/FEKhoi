@@ -22,15 +22,9 @@ export const AuthProvider = ({ children }) => {
     setLoading(false);
   }, []);
 
-<<<<<<< HEAD
   /* ================= LOGIN (CALL API) ================= */
   const login = async (email, password, roleRequired = null) => {
     const res = await fetch("http://localhost:5000/api/auth/login", {
-=======
-  /* ================= LOGIN ================= */
-  const login = async (email, password) => {
-    const res = await fetch("http://localhost:5000/api/login", {
->>>>>>> origin/main
       method: "POST",
       headers: {
         "Content-Type": "application/json",

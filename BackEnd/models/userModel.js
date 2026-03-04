@@ -1,8 +1,8 @@
 const { sql } = require("../config/db");
-const { getPool } = require("../config/db");
+const { poolPromise } = require("../config/db");
 
 exports.findByEmail = async (email) => {
-    const pool = getPool();
+    const pool = await poolPromise;
 
     const result = await pool.request()
         .input("email", email)
@@ -12,7 +12,7 @@ exports.findByEmail = async (email) => {
 };
 
 exports.createUser = async (user) => {
-    const pool = getPool();
+    const pool = await poolPromise;
 
     await pool.request()
         .input("name", user.name)
@@ -29,7 +29,7 @@ exports.createUser = async (user) => {
 
 /* ================= UPDATE PROFILE ================= */
 exports.updateUser = async (id, data) => {
-    const pool = getPool();
+    const pool = await poolPromise;
 
     await pool.request()
         .input("id", id)
@@ -47,7 +47,7 @@ exports.updateUser = async (id, data) => {
 
 /* ================= CHANGE PASSWORD (NO BCRYPT) ================= */
 exports.changePassword = async (id, currentPassword, newPassword) => {
-    const pool = getPool();
+    const pool = await poolPromise;
 
     // 1️⃣ Lấy user theo id
     const result = await pool.request()
@@ -86,7 +86,7 @@ exports.changePassword = async (id, currentPassword, newPassword) => {
 
 
 exports.findById = async (id) => {
-    const pool = getPool();
+    const pool = await poolPromise;
 
     const result = await pool.request()
         .input("id", id)

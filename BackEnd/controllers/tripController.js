@@ -1,8 +1,8 @@
-const { getPool } = require("../config/db");
+const { poolPromise } = require("../config/db");
 
 const getPopularTrips = async (req, res) => {
     try {
-        const pool = await getPool();
+        const pool = await poolPromise;
 
         const result = await pool.request().query(`
       SELECT TOP 4 
@@ -52,7 +52,7 @@ const getTrips = async (req, res) => {
             params.push({ name: "minPrice", type: require("mssql").Decimal(10, 2), value: minPrice });
         }
 
-        const pool = await getPool();
+        const pool = await poolPromise;
 
         const request = pool.request();
         params.forEach(p => request.input(p.name, p.type, p.value));
@@ -85,7 +85,7 @@ const getTrips = async (req, res) => {
 const getTripById = async (req, res) => {
     try {
         const { id } = req.params;
-        const pool = await getPool();
+        const pool = await poolPromise;
 
         const result = await pool.request()
             .input("id", require("mssql").Int, id)
