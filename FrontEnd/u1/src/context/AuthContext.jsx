@@ -1,11 +1,12 @@
 // src/context/AuthContext.jsx
 import { createContext, useContext, useEffect, useState } from "react";
 
-const AuthContext = createContext(null);
+const AuthContext = createContext(); // ✅ TẠO CONTEXT
+
 export const useAuth = () => useContext(AuthContext);
 
 export const AuthProvider = ({ children }) => {
-  const [user, setUser] = useState(null);
+  const [user, setUser] = useState(null); // ✅ Hook nằm trong component
   const [loading, setLoading] = useState(true);
 
   /* ================= LOAD USER ================= */
@@ -21,9 +22,15 @@ export const AuthProvider = ({ children }) => {
     setLoading(false);
   }, []);
 
+<<<<<<< HEAD
   /* ================= LOGIN (CALL API) ================= */
   const login = async (email, password, roleRequired = null) => {
     const res = await fetch("http://localhost:5000/api/auth/login", {
+=======
+  /* ================= LOGIN ================= */
+  const login = async (email, password) => {
+    const res = await fetch("http://localhost:5000/api/login", {
+>>>>>>> origin/main
       method: "POST",
       headers: {
         "Content-Type": "application/json",

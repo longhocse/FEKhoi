@@ -1,16 +1,16 @@
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { AuthProvider } from "./context/AuthContext";
-
-import AppNavbar from "./components/AppNavbar";
-import AppFooter from "./components/AppFooter";
-import PrivateRoute from "./components/PrivateRoute";
-import PartnerRoute from "./components/PartnerRoute";
-
 import { useState, useEffect } from "react";
 
 import { TripProvider } from "./context/TripContext";
 
 // Pages khách
+import PrivateRoute from "./components/PrivateRoute";
+import PartnerRoute from "./components/PartnerRoute";
+import AdminRoute from "./components/AdminRoute";
+import MainLayout from "./components/MainLayout";
+
+// ===== Pages khách =====
 import Home from "./pages/Home";
 import RoutesPage from "./pages/Routes";
 import RouteDetail from "./pages/RouteDetail";
@@ -21,18 +21,18 @@ import SeatSelection from "./pages/SeatSelection";
 import Payment from "./pages/Payment";
 import NotFound from "./pages/NotFound";
 
-// Pages nhà xe
+// ===== Pages nhà xe =====
 import PartnerLogin from "./pages/PartnerLogin";
 import PartnerDashboard from "./partner/PartnerDashboard";
 import PartnerLayout from "./partner/PartnerLayout";
 import CreateTrip from "./partner/CreateTrip";
 
-// Pages admin
+// ===== Pages admin =====
 import AdminLayout from "./admin/AdminLayout";
 import AdminDashboard from "./admin/AdminDashboard";
 import AdminUsers from "./admin/AdminUsers";
-import AdminRoute from "./components/AdminRoute";
-
+import AdminPartners from "./admin/AdminPartners";
+import AdminRoutes from "./admin/AdminRoutes";
 export default function App() {
   const [message, setMessage] = useState("");
 
@@ -99,6 +99,87 @@ export default function App() {
 
             <Route path="*" element={<NotFound />} />
           </Routes>
+
+        <Routes>
+
+          {/* ================= KHÁCH (Có Navbar + Footer) ================= */}
+          <Route element={<MainLayout />}>
+
+            <Route path="/" element={<Home />} />
+            <Route path="/tuyen-xe" element={<RoutesPage />} />
+            <Route path="/tuyen-xe/:id" element={<RouteDetail />} />
+            <Route path="/dang-nhap" element={<Login />} />
+            <Route path="/dang-ky" element={<Register />} />
+            <Route path="/chon-ghe" element={<SeatSelection />} />
+            <Route path="/thanh-toan" element={<Payment />} />
+
+            <Route
+              path="/thong-tin-ca-nhan"
+              element={
+                <PrivateRoute>
+                  <Profile />
+                </PrivateRoute>
+              }
+            />
+
+          </Route>
+
+
+          {/* ================= ADMIN (Không có Navbar/Footer) ================= */}
+<Route
+  path="/admin"
+  element={
+    <AdminRoute>
+      <AdminLayout />
+    </AdminRoute>
+  }
+>
+  <Route index element={<AdminDashboard />} />
+  <Route path="users" element={<AdminUsers />} />
+  <Route path="partners" element={<AdminPartners />} />
+  <Route path="routes" element={<AdminRoutes />} />
+</Route>
+
+
+          {/* ================= PARTNER ================= */}
+          <Route
+            path="/doi-tac"
+            element={
+              <PartnerRoute>
+                <PartnerLayout />
+              </PartnerRoute>
+            }
+          >
+            <Route index element={<PartnerDashboard />} />
+            <Route path="tao-chuyen-xe" element={<CreateTrip />} />
+          </Route>
+
+          <Route path="/dang-nhap-nha-xe" element={<PartnerLogin />} />
+
+          <Route
+            path="/nha-xe"
+            element={
+              <PartnerRoute>
+                <PartnerDashboard />
+              </PartnerRoute>
+            }
+          />
+
+          <Route
+            path="/nha-xe/tao-chuyen"
+            element={
+              <PartnerRoute>
+                <CreateTrip />
+              </PartnerRoute>
+            }
+          />
+
+          {/* ================= 404 ================= */}
+          <Route path="*" element={<NotFound />} />
+
+        </Routes>
+
+
 
           <AppFooter />
 

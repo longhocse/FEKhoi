@@ -24,7 +24,7 @@ export default function Login() {
       if (user.role === "admin") {
         navigate("/admin");
       } else if (user.role === "partner") {
-        navigate("/partner");
+        navigate("/doi-tac");
       } else {
         navigate("/");
       }
