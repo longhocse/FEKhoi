@@ -1,0 +1,114 @@
+// src/components/AppNavbar.jsx
+import { Container, Nav, Navbar, Button, Dropdown } from "react-bootstrap";
+import { NavLink, useNavigate } from "react-router-dom";
+import { useAuth } from "../context/AuthContext";
+
+export default function AppNavbar() {
+  const navigate = useNavigate();
+  const { user, isAuthenticated, logout, isAdmin } = useAuth();
+
+  const handleLogout = () => {
+    logout();
+    navigate("/dang-nhap");
+  };
+
+  return (
+    <Navbar
+      expand="lg"
+      variant="dark"
+      sticky="top"
+      className="bg-secondary-custom"
+    >
+      <Container>
+        {/* ===== LOGO ===== */}
+        <Navbar.Brand as={NavLink} to="/" className="fw-bold">
+          <i className="bi bi-bus-front me-2" />
+          BUSGO
+        </Navbar.Brand>
+
+        <Navbar.Toggle />
+        <Navbar.Collapse>
+          {/* ===== MENU CHÍNH ===== */}
+          <Nav className="mx-auto gap-3">
+            <Nav.Link as={NavLink} to="/" end>
+              Trang chủ
+            </Nav.Link>
+
+            <Nav.Link as={NavLink} to="/tuyen-xe">
+              Vé xe khách
+            </Nav.Link>
+
+            <Nav.Link as={NavLink} to="/doi-tac">
+              Dành cho nhà xe
+            </Nav.Link>
+          </Nav>
+
+          {/* ===== KHU VỰC TÀI KHOẢN ===== */}
+          <div className="d-flex gap-2">
+            {isAuthenticated ? (
+              <Dropdown align="end">
+                <Dropdown.Toggle
+                  variant="light"
+                  className="pill d-flex align-items-center"
+                >
+                  <i className="bi bi-person-circle me-2"></i>
+                  {user?.name || "Tài khoản"}
+                </Dropdown.Toggle>
+
+                <Dropdown.Menu>
+  <Dropdown.Item as={NavLink} to="/thong-tin-ca-nhan">
+    <i className="bi bi-person me-2"></i>
+    Thông tin cá nhân
+  </Dropdown.Item>
+
+  <Dropdown.Item as={NavLink} to="/my-tickets">
+    <i className="bi bi-ticket-perforated me-2"></i>
+    Vé của tôi
+  </Dropdown.Item>
+{/* ===== ADMIN ONLY ===== */}
+{isAdmin && (
+  <>
+    <Dropdown.Divider />
+    <Dropdown.Item
+      as={NavLink}
+      to="/admin"
+    >
+      <i className="bi bi-shield-lock me-2"></i>
+      Quản lý hệ thống
+    </Dropdown.Item>
+  </>
+)}
+
+  <Dropdown.Divider />
+
+  <Dropdown.Item onClick={handleLogout}>
+    <i className="bi bi-box-arrow-right me-2"></i>
+    Đăng xuất
+  </Dropdown.Item>
+</Dropdown.Menu>
+
+              </Dropdown>
+            ) : (
+              <>
+                <Button
+                  variant="outline-light"
+                  onClick={() => navigate("/dang-nhap")}
+                >
+                  Đăng nhập
+                </Button>
+
+                <Button
+                  variant="primary"
+                  className="pill px-3"
+                  onClick={() => navigate("/dang-ky")}
+                >
+                  Đăng ký
+                </Button>
+              </>
+            )}
+          </div>
+        </Navbar.Collapse>
+      </Container>
+    </Navbar>
+  );
+}
