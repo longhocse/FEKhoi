@@ -1,91 +1,205 @@
-import { useEffect, useState } from "react";
-import {
-  Container,
-  Row,
-  Col,
-  Card,
-  Table,
-  Badge,
-  Spinner
-} from "react-bootstrap";
-import {
-  PeopleFill,
-  Truck,
-  GeoAltFill,
-  CashStack
-} from "react-bootstrap-icons";
+import { Container, Row, Col, Card, Table, Spinner, Alert } from "react-bootstrap";
+import { useState, useEffect } from "react";
+import axios from "axios";
+import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
 
 export default function AdminDashboard() {
-  const [stats, setStats] = useState({
-    totalUsers: 0,
-    totalPartners: 0,
-    totalTrips: 0,
-    revenue: 0
-  });
-
+  const [dashboardData, setDashboardData] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
 
   useEffect(() => {
-    fetch("http://localhost:5000/api/admin/dashboard")
-      .then(res => res.json())
-      .then(data => {
-        setStats({
-          totalUsers: data.totalUsers || 0,
-          totalPartners: data.totalPartners || 0,
-          totalTrips: data.totalTrips || 0,
-          revenue: data.revenue || 0
-        });
-        setLoading(false);
-      })
-      .catch(err => {
-        console.error("Lỗi lấy dashboard:", err);
-        setLoading(false);
-      });
-  }, []);
+  const fetchDashboard = async () => {
+    try {
+      console.log("🔄 Đang gọi API dashboard...");
+      
+      // Log URL đang gọi
+      const apiUrl = 'http://localhost:5000/api/admin/dashboard';
+      console.log("📌 API URL:", apiUrl);
+      
+      const response = await axios.get(apiUrl);
+      
+      console.log("✅ Response:", response);
+      console.log("✅ Data:", response.data);
+      
+      if (response.data.success) {
+        setDashboardData(response.data.data);
+      } else {
+        setError("Server trả về lỗi: " + (response.data.error || "Không xác định"));
+      }
+    } catch (err) {
+      console.error("❌ Chi tiết lỗi:", err);
+      
+      if (err.code === 'ECONNREFUSED') {
+        setError("Không thể kết nối đến server. Kiểm tra backend đã chạy chưa?");
+      } else if (err.response) {
+        // Server trả về lỗi
+        setError(`Lỗi ${err.response.status}: ${err.response.data.error || err.response.statusText}`);
+      } else if (err.request) {
+        // Không nhận được response
+        setError("Không nhận được phản hồi từ server");
+      } else {
+        setError(err.message);
+      }
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  fetchDashboard();
+}, []);
+
+  if (loading) {
+    return (
+      <Container className="py-5 text-center">
+        <Spinner animation="border" variant="primary" />
+        <p className="mt-3">Đang tải dữ liệu...</p>
+      </Container>
+    );
+  }
+
+  if (error) {
+    return (
+      <Container className="py-5">
+        <Alert variant="danger">
+          <Alert.Heading>Lỗi!</Alert.Heading>
+          <p>{error}</p>
+        </Alert>
+      </Container>
+    );
+  }
+
+  if (!dashboardData) {
+    return (
+      <Container className="py-5">
+        <Alert variant="warning">Không có dữ liệu</Alert>
+      </Container>
+    );
+  }
+
+  const stats = [
+    { 
+      title: 'Người dùng', 
+      value: dashboardData.totalUsers || 0, 
+      icon: 'bi-people', 
+      color: 'primary',
+      bgColor: '#e6f2ff'
+    },
+    { 
+      title: 'Nhà xe', 
+      value: dashboardData.totalPartners || 0, 
+      icon: 'bi-truck', 
+      color: 'success',
+      bgColor: '#e6ffe6'
+    },
+    { 
+      title: 'Chuyến xe', 
+      value: dashboardData.totalTrips || 0, 
+      icon: 'bi-bus-front', 
+      color: 'info',
+      bgColor: '#e6f9ff'
+    },
+    { 
+      title: 'Doanh thu', 
+      value: (dashboardData.totalRevenue || 0).toLocaleString() + 'đ', 
+      icon: 'bi-cash-stack', 
+      color: 'warning',
+      bgColor: '#fff3e6'
+    },
+    { 
+      title: 'Vé đã bán', 
+      value: dashboardData.totalTickets || 0, 
+      icon: 'bi-ticket-perforated', 
+      color: 'danger',
+      bgColor: '#ffe6e6'
+    },
+  ];
 
   return (
-    <Container className="mt-4">
+    <Container fluid className="py-4">
+      <h2 className="mb-4">Dashboard</h2>
+      
+      {/* Stats Cards */}
+      <Row className="g-4 mb-4">
+        {stats.map((stat, index) => (
+          <Col key={index} md={6} lg={4} xl={3}>
+            <Card className="shadow-sm h-100 border-0">
+              <Card.Body>
+                <div className="d-flex justify-content-between align-items-center">
+                  <div>
+                    <h6 className="text-muted mb-2">{stat.title}</h6>
+                    <h3 className="mb-0 fw-bold">{stat.value}</h3>
+                  </div>
+                  <div 
+                    style={{ 
+                      backgroundColor: stat.bgColor,
+                      width: '60px',
+                      height: '60px',
+                      borderRadius: '12px',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center'
+                    }}
+                  >
+                    <i className={`bi ${stat.icon} fs-1 text-${stat.color}`}></i>
+                  </div>
+                </div>
+              </Card.Body>
+            </Card>
+          </Col>
+        ))}
+      </Row>
 
-      {/* ===== STATS CARDS ===== */}
-      <Row className="mb-4">
-        <Col md={3}>
-          <Card className="shadow-sm border-0 text-center">
+      {/* Recent Data */}
+      <Row className="g-4">
+        <Col md={6}>
+          <Card className="shadow-sm">
+            <Card.Header className="bg-white">
+              <h5 className="mb-0">Người dùng mới nhất</h5>
+            </Card.Header>
             <Card.Body>
-              <PeopleFill size={30} className="text-primary mb-2" />
-              <h4>{loading ? <Spinner size="sm" /> : stats.totalUsers}</h4>
-              <p className="text-muted">Người dùng</p>
+              <Table hover responsive>
+                <thead>
+                  <tr>
+                    <th>Tên</th>
+                    <th>Email</th>
+                    <th>Vai trò</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr>
+                    <td colSpan="3" className="text-center text-muted">
+                      Đang phát triển...
+                    </td>
+                  </tr>
+                </tbody>
+              </Table>
             </Card.Body>
           </Card>
         </Col>
 
-        <Col md={3}>
-          <Card className="shadow-sm border-0 text-center">
+        <Col md={6}>
+          <Card className="shadow-sm">
+            <Card.Header className="bg-white">
+              <h5 className="mb-0">Chuyến xe sắp khởi hành</h5>
+            </Card.Header>
             <Card.Body>
-              <Truck size={30} className="text-success mb-2" />
-              <h4>{loading ? <Spinner size="sm" /> : stats.totalPartners}</h4>
-              <p className="text-muted">Nhà xe</p>
-            </Card.Body>
-          </Card>
-        </Col>
-
-        <Col md={3}>
-          <Card className="shadow-sm border-0 text-center">
-            <Card.Body>
-              <GeoAltFill size={30} className="text-warning mb-2" />
-              <h4>{loading ? <Spinner size="sm" /> : stats.totalTrips}</h4>
-              <p className="text-muted">Chuyến xe</p>
-            </Card.Body>
-          </Card>
-        </Col>
-
-        <Col md={3}>
-          <Card className="shadow-sm border-0 text-center">
-            <Card.Body>
-              <CashStack size={30} className="text-danger mb-2" />
-              <h4>
-                {loading ? <Spinner size="sm" /> : stats.revenue.toLocaleString()} đ
-              </h4>
-              <p className="text-muted">Doanh thu</p>
+              <Table hover responsive>
+                <thead>
+                  <tr>
+                    <th>Tuyến</th>
+                    <th>Giờ</th>
+                    <th>Giá</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr>
+                    <td colSpan="3" className="text-center text-muted">
+                      Đang phát triển...
+                    </td>
+                  </tr>
+                </tbody>
+              </Table>
             </Card.Body>
           </Card>
         </Col>
@@ -118,6 +232,15 @@ export default function AdminDashboard() {
         </Card.Body>
       </Card>
 
+      {/* Debug info - có thể xóa sau */}
+      <Card className="mt-4 bg-light">
+        <Card.Body>
+          <h6>Debug Info:</h6>
+          <pre className="mb-0 small">
+            {JSON.stringify(dashboardData, null, 2)}
+          </pre>
+        </Card.Body>
+      </Card>
     </Container>
   );
 }

@@ -1,6 +1,6 @@
 // src/partner/PartnerDashboard.jsx
 import { useNavigate } from "react-router-dom";
-import "./partner.css";
+import "../styles/partner.css";
 
 export default function PartnerDashboard() {
   const navigate = useNavigate();

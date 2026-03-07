@@ -1,4 +1,4 @@
-import "./partner.css";
+import "../styles/partner.css";
 
 export default function CreateTrip() {
   return (

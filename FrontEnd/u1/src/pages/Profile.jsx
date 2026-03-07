@@ -184,7 +184,6 @@ export default function Profile() {
                     {user.phone && <p className="text-muted mb-0">{user.phone}</p>}
                   </div>
                 </div>
-
                 <div className="row">
                   <div className="col-md-6 mb-3">
                     <div className="fw-semibold">Ngày tham gia:</div>
