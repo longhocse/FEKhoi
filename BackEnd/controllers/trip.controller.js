@@ -7,17 +7,23 @@ exports.getTrips = async (req, res) => {
         const pool = await poolPromise;
 
         const result = await pool.request().query(`
-      SELECT 
-        t.id,
-        t.fromStation,
-        t.toStation,
-        t.startTime,
-        t.price,
-        v.name AS vehicleName
-      FROM Trips t
-      LEFT JOIN Vehicles v ON t.vehicleId = v.id
-      ORDER BY t.startTime DESC
-    `);
+        SELECT 
+            t.id,
+            sFrom.name AS fromStation,
+            sTo.name AS toStation,
+            t.startTime,
+            t.price,
+            t.estimatedDuration,
+            v.name AS vehicleName,
+            (SELECT TOP 1 imageUrl 
+             FROM ImageVehicles 
+             WHERE vehicleId = v.id AND isPrimary = 1) AS imageUrl
+        FROM Trips t
+        JOIN Stations sFrom ON t.fromStationId = sFrom.id
+        JOIN Stations sTo ON t.toStationId = sTo.id
+        LEFT JOIN Vehicles v ON t.vehicleId = v.id
+        ORDER BY t.startTime DESC
+        `);
 
         res.json({
             success: true,
@@ -40,21 +46,24 @@ exports.getAllTrips = async (req, res) => {
         const pool = await poolPromise;
 
         const result = await pool.request().query(`
-      SELECT 
-        t.id,
-        sFrom.name as fromStation,
-        sTo.name as toStation,
-        t.startTime,
-        t.price,
-        t.estimatedDuration,
-        v.name as vehicleName,
-        pc.name as companyName
-      FROM Trips t
-      JOIN Stations sFrom ON t.fromStationId = sFrom.id
-      JOIN Stations sTo ON t.toStationId = sTo.id
-      JOIN Vehicles v ON t.vehicleId = v.id
-      JOIN PassengerCarCompanies pc ON v.partnerId = pc.id
-    `);
+        SELECT 
+            t.id,
+            sFrom.name as fromStation,
+            sTo.name as toStation,
+            t.startTime,
+            t.price,
+            t.estimatedDuration,
+            v.name as vehicleName,
+            pc.name as companyName,
+            (SELECT TOP 1 imageUrl 
+             FROM ImageVehicles 
+             WHERE vehicleId = v.id AND isPrimary = 1) AS imageUrl
+        FROM Trips t
+        JOIN Stations sFrom ON t.fromStationId = sFrom.id
+        JOIN Stations sTo ON t.toStationId = sTo.id
+        JOIN Vehicles v ON t.vehicleId = v.id
+        JOIN PassengerCarCompanies pc ON v.partnerId = pc.id
+        `);
 
         res.json({
             success: true,
@@ -114,18 +123,22 @@ exports.searchTrips = async (req, res) => {
         const pool = await poolPromise;
 
         const result = await pool.request().query(`
-      SELECT 
-        t.id,
-        sFrom.name as fromStation,
-        sTo.name as toStation,
-        t.startTime,
-        t.price,
-        t.estimatedDuration
-      FROM Trips t
-      JOIN Stations sFrom ON t.fromStationId = sFrom.id
-      JOIN Stations sTo ON t.toStationId = sTo.id
-      WHERE t.isActive = 1
-    `);
+        SELECT 
+            t.id,
+            sFrom.name as fromStation,
+            sTo.name as toStation,
+            t.startTime,
+            t.price,
+            t.estimatedDuration,
+            (SELECT TOP 1 imageUrl 
+             FROM ImageVehicles iv
+             JOIN Vehicles v ON iv.vehicleId = v.id
+             WHERE v.id = t.vehicleId AND iv.isPrimary = 1) AS imageUrl
+        FROM Trips t
+        JOIN Stations sFrom ON t.fromStationId = sFrom.id
+        JOIN Stations sTo ON t.toStationId = sTo.id
+        WHERE t.isActive = 1
+        `);
 
         let filtered = result.recordset;
 
@@ -159,27 +172,26 @@ exports.getPopularTrips = async (req, res) => {
         const pool = await poolPromise;
 
         const result = await pool.request().query(`
-      SELECT TOP 6
-        t.id,
-        sFrom.name as fromStation,
-        sTo.name as toStation,
-        t.price,
-        t.startTime,
-        t.estimatedDuration
-      FROM Trips t
-      JOIN Stations sFrom ON t.fromStationId = sFrom.id
-      JOIN Stations sTo ON t.toStationId = sTo.id
-      WHERE t.isActive = 1
-      ORDER BY t.startTime
-    `);
+SELECT TOP 8
+    t.id,
+    s1.name AS fromStation,
+    s2.name AS toStation,
+    t.startTime,
+    t.price,
+    t.estimatedDuration,
+    t.imageUrl
+FROM Trips t
+JOIN Stations s1 ON t.fromStationId = s1.id
+JOIN Stations s2 ON t.toStationId = s2.id
+WHERE t.isActive = 1
+ORDER BY t.startTime
+`);
 
-        res.json({
-            success: true,
-            data: result.recordset
-        });
+        res.json(result.recordset);
 
-    } catch (err) {
-        res.status(500).json({ error: err.message });
+    } catch (error) {
+        console.error("Error fetching popular trips:", error);
+        res.status(500).json({ message: "Server error" });
     }
 };
 
@@ -201,24 +213,27 @@ exports.getTripById = async (req, res) => {
         const tripResult = await pool.request()
             .input("id", sql.Int, id)
             .query(`
-        SELECT 
-          t.id,
-          sFrom.name as fromStation,
-          sTo.name as toStation,
-          t.startTime,
-          t.price,
-          t.estimatedDuration,
-          v.id as vehicleId,
-          v.name as vehicleName,
-          v.type as vehicleType,
-          pc.name as companyName
-        FROM Trips t
-        JOIN Stations sFrom ON t.fromStationId = sFrom.id
-        JOIN Stations sTo ON t.toStationId = sTo.id
-        JOIN Vehicles v ON t.vehicleId = v.id
-        JOIN PassengerCarCompanies pc ON v.partnerId = pc.id
-        WHERE t.id = @id AND t.isActive = 1
-      `);
+SELECT 
+  t.id,
+  sFrom.name as fromStation,
+  sTo.name as toStation,
+  t.startTime,
+  t.price,
+  t.estimatedDuration,
+  v.id as vehicleId,
+  v.name as vehicleName,
+  v.type as vehicleType,
+  pc.name as companyName,
+  (SELECT TOP 1 imageUrl 
+   FROM ImageVehicles 
+   WHERE vehicleId = v.id AND isPrimary = 1) AS imageUrl
+FROM Trips t
+JOIN Stations sFrom ON t.fromStationId = sFrom.id
+JOIN Stations sTo ON t.toStationId = sTo.id
+JOIN Vehicles v ON t.vehicleId = v.id
+JOIN PassengerCarCompanies pc ON v.partnerId = pc.id
+WHERE t.id = @id AND t.isActive = 1
+`);
 
         if (tripResult.recordset.length === 0) {
             return res.status(404).json({

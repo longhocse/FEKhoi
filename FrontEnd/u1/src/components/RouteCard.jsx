@@ -3,7 +3,7 @@ import { useNavigate } from "react-router-dom";
 
 export default function RouteCard({ item }) {
   const navigate = useNavigate();
-  
+
   // Debug: xem dữ liệu nhận được
   console.log('RouteCard nhận item:', item);
 
@@ -13,25 +13,30 @@ export default function RouteCard({ item }) {
   const price = item.price || 0;
   const companyName = item.companyName || item.company || 'Nhà xe BUSGO';
   const vehicleName = item.vehicleName || item.vehicle || 'Xe khách';
-  const imageUrl = item.image || item.vehicleImage || '/images/default-bus.jpg';
+  const imageUrl =
+    item.imageUrl ||
+    item.image ||
+    item.vehicleImage ||
+    "/images/default-bus.jpg";
   const availableSeats = item.availableSeats || item.seatsAvailable || 0;
 
   return (
     <Card className="soft-card h-100 overflow-hidden">
       {/* Ảnh xe */}
-      <div 
-        style={{ 
+      <div
+        style={{
           height: 140,
-          background: `linear-gradient(135deg, #667eea 0%, #764ba2 100%)`,
-          backgroundImage: imageUrl ? `url(${imageUrl})` : 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
-          backgroundSize: 'cover',
-          backgroundPosition: 'center',
-          position: 'relative'
+          backgroundImage: imageUrl
+            ? `url(${imageUrl})`
+            : "linear-gradient(135deg, #667eea 0%, #764ba2 100%)",
+          backgroundSize: "cover",
+          backgroundPosition: "center",
+          position: "relative",
         }}
       >
         {availableSeats < 10 && (
-          <Badge 
-            bg="warning" 
+          <Badge
+            bg="warning"
             text="dark"
             style={{
               position: 'absolute',
@@ -68,13 +73,13 @@ export default function RouteCard({ item }) {
             </div>
           </div>
           <Button
-  variant="outline-primary"
-  size="sm"
-  className="pill px-3"
-  onClick={() => navigate(`/tuyen-xe/${item.id}`)} // Sửa thành id
->
-  Chi tiết
-</Button>  
+            variant="outline-primary"
+            size="sm"
+            className="pill px-3"
+            onClick={() => navigate(`/tuyen-xe/${item.id}`)} // Sửa thành id
+          >
+            Chi tiết
+          </Button>
         </div>
       </Card.Body>
     </Card>

@@ -24,7 +24,7 @@ export const TripProvider = ({ children }) => {
         try {
             setLoading(true);
             const res = await axios.get("http://localhost:5000/api/trips/popular");
-            setPopularTrips(res.data.data);   // sửa tại đây
+            setPopularTrips(res.data);   // sửa tại đây
         } catch (error) {
             console.error("Lỗi load trip:", error);
         } finally {
@@ -55,11 +55,6 @@ export const TripProvider = ({ children }) => {
             setLoading(false);
         }
     };
-
-    // Tự động gọi API khi filters thay đổi
-    useEffect(() => {
-        fetchTrips();
-    }, [filters]);
 
     return (
         <TripContext.Provider

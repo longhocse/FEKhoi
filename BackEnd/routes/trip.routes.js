@@ -12,7 +12,7 @@ const {
 } = require("../controllers/trip.controller");
 
 
-router.get("/trips", getTrips);
+router.get("/", getTrips);
 router.get("/all", getAllTrips);
 router.get("/simple", getSimpleTrips);
 router.get("/search", searchTrips);

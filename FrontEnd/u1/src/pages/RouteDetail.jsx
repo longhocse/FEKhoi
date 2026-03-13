@@ -12,51 +12,51 @@ export default function RouteDetail() {
   const [selectedSeat, setSelectedSeat] = useState(null);
 
   // Thêm useEffect kiểm tra ID
-useEffect(() => {
-  if (id) {
-    fetchTripDetail();
-  } else {
-    setError('Không có ID chuyến xe');
-    setLoading(false);
-  }
-}, [id]);
+  useEffect(() => {
+    if (id) {
+      fetchTripDetail();
+    } else {
+      setError('Không có ID chuyến xe');
+      setLoading(false);
+    }
+  }, [id]);
 
-const fetchTripDetail = async () => {
-  try {
-    setLoading(true);
-    console.log("🔄 Đang lấy chi tiết chuyến xe ID:", id);
-    
-    const response = await axios.get(`http://localhost:5000/api/trips/${id}`);
-    
-    console.log("✅ Chi tiết chuyến xe:", response.data);
-    
-    if (response.data.success) {
-      setTrip(response.data.data);
-    } else {
-      setError(response.data.error || 'Không tìm thấy chuyến xe');
+  const fetchTripDetail = async () => {
+    try {
+      setLoading(true);
+      console.log("🔄 Đang lấy chi tiết chuyến xe ID:", id);
+
+      const response = await axios.get(`http://localhost:5000/api/trips/${id}`);
+
+      console.log("✅ Chi tiết chuyến xe:", response.data);
+
+      if (response.data.success) {
+        setTrip(response.data.data);
+      } else {
+        setError(response.data.error || 'Không tìm thấy chuyến xe');
+      }
+    } catch (err) {
+      console.error("❌ Lỗi chi tiết:", err);
+      if (err.response?.status === 404) {
+        setError('Không tìm thấy chuyến xe với ID này');
+      } else {
+        setError(err.message);
+      }
+    } finally {
+      setLoading(false);
     }
-  } catch (err) {
-    console.error("❌ Lỗi chi tiết:", err);
-    if (err.response?.status === 404) {
-      setError('Không tìm thấy chuyến xe với ID này');
-    } else {
-      setError(err.message);
-    }
-  } finally {
-    setLoading(false);
-  }
-};
+  };
 
   const handleBookTicket = (seatId) => {
     if (!seatId) {
       alert('Vui lòng chọn ghế');
       return;
     }
-    navigate(`/dat-ve/${id}`, { 
-      state: { 
+    navigate(`/dat-ve/${id}`, {
+      state: {
         trip: trip,
-        selectedSeat: seatId 
-      } 
+        selectedSeat: seatId
+      }
     });
   };
 
@@ -116,8 +116,8 @@ const fetchTripDetail = async () => {
 
   return (
     <Container className="py-4">
-      <Button 
-        variant="link" 
+      <Button
+        variant="link"
         className="mb-3 text-decoration-none"
         onClick={() => navigate(-1)}
       >
@@ -128,6 +128,15 @@ const fetchTripDetail = async () => {
       <Row>
         <Col lg={8}>
           <Card className="shadow-sm mb-4">
+
+            <Card.Img
+              variant="top"
+              src={trip.imageUrl || "https://images.unsplash.com/photo-1509749837427-ac94a2553d0e"}
+              style={{
+                height: "300px",
+                objectFit: "cover"
+              }}
+            />
             <Card.Header className="bg-white">
               <h4 className="mb-0">Chi tiết chuyến xe</h4>
             </Card.Header>
@@ -180,12 +189,12 @@ const fetchTripDetail = async () => {
                     <Badge bg="danger" className="me-2">Đã đặt</Badge>
                     <Badge bg="secondary">Bảo trì</Badge>
                   </div>
-                  
+
                   {/* Hiển thị ghế theo tầng */}
                   {[1, 2].map(floor => {
                     const floorSeats = trip.seats.filter(s => s.floor === floor);
                     if (floorSeats.length === 0) return null;
-                    
+
                     return (
                       <div key={floor} className="mb-4">
                         <h6 className="mb-3">Tầng {floor}</h6>
@@ -263,8 +272,8 @@ const fetchTripDetail = async () => {
               <div className="mb-3">
                 <h6 className="text-muted mb-2">Ghế đã chọn</h6>
                 <p className="fw-bold">
-                  {selectedSeat ? 
-                    trip.seats?.find(s => s.id === selectedSeat)?.seatName || `Ghế ${selectedSeat}` 
+                  {selectedSeat ?
+                    trip.seats?.find(s => s.id === selectedSeat)?.seatName || `Ghế ${selectedSeat}`
                     : 'Chưa chọn ghế'}
                 </p>
               </div>

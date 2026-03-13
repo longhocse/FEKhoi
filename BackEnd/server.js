@@ -3,7 +3,7 @@ const express = require("express");
 const cors = require("cors");
 const { poolPromise } = require("./config/db");
 
-const authRoutes2 = require("./routes/authRoutes");
+const authRoutes = require("./routes/authRoutes");
 
 
 
@@ -24,7 +24,7 @@ app.use(express.json());
 
 // gọi routes
 app.use("/api/trips", tripRoutes);
-app.use("/api/auth", authRoutes2);
+app.use("/api/auth", authRoutes);
 
 
 app.use("/api/users", userRoutes);
