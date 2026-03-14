@@ -9,6 +9,7 @@ import MainLayout from "./components/MainLayout";
 
 // ===== Pages khách =====
 import Home from "./pages/Home";
+import RoutesPage from "./pages/Routes";
 import RouteDetail from "./pages/RouteDetail";
 import Login from "./pages/Login";
 import Register from "./pages/Register";
@@ -67,8 +68,8 @@ export default function App() {
               <Route path="/tuyen-xe/:id" element={<RouteDetail />} />
               <Route path="/dang-nhap" element={<Login />} />
               <Route path="/dang-ky" element={<Register />} />
-              <Route path="/chon-ghe" element={<SeatSelection />} />
-              <Route path="/thanh-toan" element={<Payment />} />
+              <Route path="/chon-ghe/:id" element={<SeatSelection />} />
+              <Route path="/payment" element={<Payment />} />
 
               <Route
                 path="/thong-tin-ca-nhan"

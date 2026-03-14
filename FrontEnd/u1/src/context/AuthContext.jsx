@@ -35,13 +35,18 @@ export const AuthProvider = ({ children }) => {
     const data = await res.json();
 
     if (!res.ok) {
-      throw new Error(data.message || "Đăng nhập thất bại");
+      throw new Error(data.message);
     }
 
-    setUser(data);
-    localStorage.setItem("user", JSON.stringify(data));
+    // 🔥 LƯU TOKEN
+    localStorage.setItem("token", data.token);
 
-    return data;
+    // 🔥 LƯU USER
+    localStorage.setItem("user", JSON.stringify(data.user));
+
+    setUser(data.user);
+
+    return data.user;
   };
 
   /* ================= UPDATE PROFILE (CALL API) ================= */
@@ -118,6 +123,7 @@ export const AuthProvider = ({ children }) => {
   const logout = () => {
     setUser(null);
     localStorage.removeItem("user");
+    localStorage.removeItem("token");
     window.location.href = "/dang-nhap";
   };
 

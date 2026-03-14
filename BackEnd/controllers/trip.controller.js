@@ -279,3 +279,64 @@ WHERE t.id = @id AND t.isActive = 1
         });
     }
 };
+
+// ================= BOOK TICKET =================
+exports.bookTicket = async (req, res) => {
+    try {
+
+        const { tripId, seatId } = req.body;
+        const userId = req.user.id;
+
+        const pool = await poolPromise;
+
+        // lấy giá vé
+        const trip = await pool.request()
+            .input("tripId", sql.Int, tripId)
+            .query(`
+                SELECT price FROM Trips WHERE id = @tripId
+            `);
+
+        const price = trip.recordset[0].price;
+
+        // kiểm tra ghế
+        const check = await pool.request()
+            .input("tripId", sql.Int, tripId)
+            .input("seatId", sql.Int, seatId)
+            .query(`
+                SELECT * FROM Tickets
+                WHERE tripId = @tripId
+                AND seatId = @seatId
+                AND status IN ('BOOKED','PAID')
+            `);
+
+        if (check.recordset.length > 0) {
+            return res.json({
+                success: false,
+                message: "Ghế đã được đặt"
+            });
+        }
+
+        // tạo vé mới
+        await pool.request()
+            .input("userId", sql.Int, userId)
+            .input("tripId", sql.Int, tripId)
+            .input("seatId", sql.Int, seatId)
+            .input("totalAmount", sql.Decimal(10, 2), price)
+            .query(`
+        INSERT INTO Tickets (userId, tripId, seatId, totalAmount, status)
+        VALUES (@userId, @tripId, @seatId, @totalAmount, 'BOOKED')
+    `);
+
+        res.json({
+            success: true,
+            message: "Đặt vé thành công"
+        });
+
+    } catch (err) {
+        console.error(err);
+        res.status(500).json({
+            success: false,
+            message: "Lỗi server"
+        });
+    }
+};

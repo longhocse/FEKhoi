@@ -2,6 +2,7 @@ import { Container, Row, Col, Card, Badge, Button, Spinner, Alert } from "react-
 import { useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import axios from "axios";
+import SeatLayout from "../components/SeatLayout";
 
 export default function RouteDetail() {
   const { id } = useParams();
@@ -49,13 +50,14 @@ export default function RouteDetail() {
 
   const handleBookTicket = (seatId) => {
     if (!seatId) {
-      alert('Vui lòng chọn ghế');
+      alert("Vui lòng chọn ghế");
       return;
     }
-    navigate(`/dat-ve/${id}`, {
+
+    navigate("/payment", {
       state: {
         trip: trip,
-        selectedSeat: seatId
+        seatId: seatId
       }
     });
   };
@@ -128,15 +130,6 @@ export default function RouteDetail() {
       <Row>
         <Col lg={8}>
           <Card className="shadow-sm mb-4">
-
-            <Card.Img
-              variant="top"
-              src={trip.imageUrl || "https://images.unsplash.com/photo-1509749837427-ac94a2553d0e"}
-              style={{
-                height: "300px",
-                objectFit: "cover"
-              }}
-            />
             <Card.Header className="bg-white">
               <h4 className="mb-0">Chi tiết chuyến xe</h4>
             </Card.Header>
@@ -182,44 +175,17 @@ export default function RouteDetail() {
               <h5 className="mb-0">Chọn ghế</h5>
             </Card.Header>
             <Card.Body>
-              {trip.seats && trip.seats.length > 0 ? (
-                <>
-                  <div className="mb-3">
-                    <Badge bg="success" className="me-2">Còn trống</Badge>
-                    <Badge bg="danger" className="me-2">Đã đặt</Badge>
-                    <Badge bg="secondary">Bảo trì</Badge>
-                  </div>
+              <div className="mb-3">
+                <Badge bg="success" className="me-2">Còn trống</Badge>
+                <Badge bg="danger" className="me-2">Đã đặt</Badge>
+                <Badge bg="secondary">Bảo trì</Badge>
+              </div>
 
-                  {/* Hiển thị ghế theo tầng */}
-                  {[1, 2].map(floor => {
-                    const floorSeats = trip.seats.filter(s => s.floor === floor);
-                    if (floorSeats.length === 0) return null;
-
-                    return (
-                      <div key={floor} className="mb-4">
-                        <h6 className="mb-3">Tầng {floor}</h6>
-                        <Row className="g-2">
-                          {floorSeats.map((seat) => (
-                            <Col key={seat.id} xs={3} sm={2}>
-                              <Button
-                                variant={seat.status === 'AVAILABLE' ? 'outline-success' : 'secondary'}
-                                className="w-100 mb-2"
-                                disabled={seat.status !== 'AVAILABLE'}
-                                onClick={() => setSelectedSeat(seat.id)}
-                                active={selectedSeat === seat.id}
-                              >
-                                {seat.seatName}
-                              </Button>
-                            </Col>
-                          ))}
-                        </Row>
-                      </div>
-                    );
-                  })}
-                </>
-              ) : (
-                <p className="text-muted text-center py-3">Không có thông tin ghế</p>
-              )}
+              <SeatLayout
+                seats={trip.seats}
+                selectedSeat={selectedSeat}
+                setSelectedSeat={setSelectedSeat}
+              />
             </Card.Body>
           </Card>
 

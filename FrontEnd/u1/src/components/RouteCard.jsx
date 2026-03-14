@@ -3,7 +3,6 @@ import { useNavigate } from "react-router-dom";
 
 export default function RouteCard({ item }) {
   const navigate = useNavigate();
-
   // Debug: xem dữ liệu nhận được
   console.log('RouteCard nhận item:', item);
 

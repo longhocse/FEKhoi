@@ -1,4 +1,5 @@
 const userModel = require("../models/userModel");
+const jwt = require("jsonwebtoken");
 
 /* ================= LOGIN ================= */
 exports.login = async (req, res) => {
@@ -15,13 +16,22 @@ exports.login = async (req, res) => {
             return res.status(400).json({ message: "Sai tài khoản hoặc mật khẩu" });
         }
 
+        const token = jwt.sign(
+            { id: user.id, email: user.email, role: user.role },
+            process.env.JWT_SECRET,
+            { expiresIn: "1d" }
+        );
+
         res.json({
-            id: user.id,
-            name: user.name,
-            email: user.email,
-            phone: user.phone,
-            role: user.role,
-            createdAt: user.createdAt
+            user: {
+                id: user.id,
+                name: user.name,
+                email: user.email,
+                phone: user.phone,
+                role: user.role,
+                createdAt: user.createdAt
+            },
+            token
         });
 
     } catch (error) {

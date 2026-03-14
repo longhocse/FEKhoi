@@ -1,22 +1,14 @@
-// routes/trip.routes.js
 const express = require('express');
 const router = express.Router();
+const tripController = require("../controllers/trip.controller");
+const authMiddleware = require("../middleware/authMiddleware");
 
-const {
-  getTrips,
-  getAllTrips,
-  getSimpleTrips,
-  searchTrips,
-  getPopularTrips,
-  getTripById
-} = require("../controllers/trip.controller");
-
-
-router.get("/", getTrips);
-router.get("/all", getAllTrips);
-router.get("/simple", getSimpleTrips);
-router.get("/search", searchTrips);
-router.get("/popular", getPopularTrips);
-router.get("/:id", getTripById);
+router.get("/trips", tripController.getTrips);
+router.get("/all", tripController.getAllTrips);
+router.get("/simple", tripController.getSimpleTrips);
+router.get("/search", tripController.searchTrips);
+router.get("/popular", tripController.getPopularTrips);
+router.get("/:id", tripController.getTripById);
+router.post("/book", authMiddleware, tripController.bookTicket);
 
 module.exports = router;

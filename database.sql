@@ -254,11 +254,36 @@ INSERT INTO Trips (
         estimatedDuration
     )
 VALUES (1, 2, 1, '2026-03-10 08:00:00', 350000, 900);
-INSERT INTO Seats (vehicleId, name, floor, type)
-VALUES (1, 'A1', 1, 'VIP'),
-    (1, 'A2', 1, 'VIP'),
-    (1, 'B1', 1, 'NORMAL'),
-    (1, 'B2', 1, 'NORMAL');
+INSERT INTO Seats (name, vehicleId, floor, type, status)
+VALUES
+('A1',1,1,'VIP','AVAILABLE'),
+('A2',1,1,'VIP','AVAILABLE'),
+('A3',1,1,'VIP','AVAILABLE'),
+('A4',1,1,'VIP','AVAILABLE'),
+('B1',1,1,'NORMAL','AVAILABLE'),
+('B2',1,1,'NORMAL','AVAILABLE'),
+('B3',1,1,'NORMAL','AVAILABLE'),
+('B4',1,1,'NORMAL','AVAILABLE'),
+('C1',1,1,'NORMAL','AVAILABLE'),
+('C2',1,1,'NORMAL','AVAILABLE'),
+('C3',1,1,'NORMAL','AVAILABLE'),
+('C4',1,1,'NORMAL','AVAILABLE'),
+('D1',1,1,'NORMAL','AVAILABLE'),
+('D2',1,1,'NORMAL','AVAILABLE'),
+('D3',1,1,'NORMAL','AVAILABLE'),
+('D4',1,1,'NORMAL','AVAILABLE'),
+('E1',1,1,'NORMAL','AVAILABLE'),
+('E2',1,1,'NORMAL','AVAILABLE'),
+('E3',1,1,'NORMAL','AVAILABLE'),
+('E4',1,1,'NORMAL','AVAILABLE'),
+('F1',1,1,'NORMAL','AVAILABLE'),
+('F2',1,1,'NORMAL','AVAILABLE'),
+('F3',1,1,'NORMAL','AVAILABLE'),
+('F4',1,1,'NORMAL','AVAILABLE'),
+('G1',1,1,'NORMAL','AVAILABLE'),
+('G2',1,1,'NORMAL','AVAILABLE'),
+('G3',1,1,'NORMAL','AVAILABLE'),
+('G4',1,1,'NORMAL','AVAILABLE');
 INSERT INTO Transactions (walletId, amount, type, status, description)
 VALUES (
         2,
@@ -916,12 +941,32 @@ WHILE @VehicleCounter <= 10 BEGIN -- Tầng 1
 INSERT INTO Seats (vehicleId, name, floor, type, status)
 VALUES (@VehicleCounter, 'A1', 1, 'VIP', 'AVAILABLE'),
     (@VehicleCounter, 'A2', 1, 'VIP', 'AVAILABLE'),
+    (@VehicleCounter, 'A3', 1, 'VIP', 'AVAILABLE'),
+    (@VehicleCounter, 'A4', 1, 'VIP', 'AVAILABLE'),
     (@VehicleCounter, 'B1', 1, 'NORMAL', 'AVAILABLE'),
     (@VehicleCounter, 'B2', 1, 'NORMAL', 'AVAILABLE'),
+    (@VehicleCounter, 'B3', 1, 'NORMAL', 'AVAILABLE'),
+    (@VehicleCounter, 'B4', 1, 'NORMAL', 'AVAILABLE'),
     (@VehicleCounter, 'C1', 1, 'NORMAL', 'AVAILABLE'),
     (@VehicleCounter, 'C2', 1, 'NORMAL', 'AVAILABLE'),
+    (@VehicleCounter, 'C3', 1, 'NORMAL', 'AVAILABLE'),
+    (@VehicleCounter, 'C4', 1, 'NORMAL', 'AVAILABLE'),
     (@VehicleCounter, 'D1', 1, 'NORMAL', 'AVAILABLE'),
-    (@VehicleCounter, 'D2', 1, 'NORMAL', 'AVAILABLE');
+    (@VehicleCounter, 'D2', 1, 'NORMAL', 'AVAILABLE'),
+    (@VehicleCounter, 'D3', 1, 'NORMAL', 'AVAILABLE'),
+    (@VehicleCounter, 'D4', 1, 'NORMAL', 'AVAILABLE'),
+    (@VehicleCounter, 'E1', 1, 'NORMAL', 'AVAILABLE'),
+    (@VehicleCounter, 'E2', 1, 'NORMAL', 'AVAILABLE'),
+    (@VehicleCounter, 'E3', 1, 'NORMAL', 'AVAILABLE'),
+    (@VehicleCounter, 'E4', 1, 'NORMAL', 'AVAILABLE'),
+    (@VehicleCounter, 'F1', 1, 'NORMAL', 'AVAILABLE'),
+    (@VehicleCounter, 'F2', 1, 'NORMAL', 'AVAILABLE'),
+    (@VehicleCounter, 'F3', 1, 'NORMAL', 'AVAILABLE'),
+    (@VehicleCounter, 'F4', 1, 'NORMAL', 'AVAILABLE'),
+    (@VehicleCounter, 'G1', 1, 'NORMAL', 'AVAILABLE'),
+    (@VehicleCounter, 'G2', 1, 'NORMAL', 'AVAILABLE'),
+    (@VehicleCounter, 'G3', 1, 'NORMAL', 'AVAILABLE'),
+    (@VehicleCounter, 'G4', 1, 'NORMAL', 'AVAILABLE');
 -- Nếu xe có 2 tầng (SLEEPER hoặc COUPLE)
 IF @VehicleCounter IN (3, 5, 7, 9) BEGIN
 INSERT INTO Seats (vehicleId, name, floor, type, status)
@@ -1601,3 +1646,5 @@ SELECT *
 FROM Seats;
 SELECT *
 FROM ImageVehicles;
+select *
+from Tickets;
