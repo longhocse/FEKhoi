@@ -9,7 +9,6 @@ import MainLayout from "./components/MainLayout";
 
 // ===== Pages khách =====
 import Home from "./pages/Home";
-import RoutesPage from "./pages/Routes";
 import RouteDetail from "./pages/RouteDetail";
 import Login from "./pages/Login";
 import Register from "./pages/Register";
