@@ -1,128 +1,342 @@
-import "../styles/partner.css";
+import { useState, useEffect } from "react";
+import axios from "axios";
+import { useAuth } from "../context/AuthContext";
+import "../styles/createTrip.css";
+
+import { Container, Card, Row, Col, Form, Button } from "react-bootstrap";
 
 export default function CreateTrip() {
+
+  const { user } = useAuth();
+
+  const [stations, setStations] = useState([]);
+  const [vehicles, setVehicles] = useState([]);
+
+  const [seats, setSeats] = useState([]);
+
+  const [form, setForm] = useState({
+    fromStationId: "",
+    toStationId: "",
+    startDate: "",
+    startTime: "",
+    arrivalTime: "",
+    price: "",
+    vehicleId: "",
+    imageUrl: ""
+  });
+
+  useEffect(() => {
+    fetchVehicles();
+    fetchStations();
+  }, []);
+
+  useEffect(() => {
+    if (form.vehicleId) {
+      fetchSeats(form.vehicleId);
+    }
+  }, [form.vehicleId]);
+
+  const fetchSeats = async (vehicleId) => {
+    const res = await axios.get(
+      `http://localhost:5000/api/partner/vehicles/${vehicleId}/seats`
+    );
+
+    setSeats(res.data);
+  };
+
+  const fetchStations = async () => {
+    const res = await axios.get("http://localhost:5000/api/partner/stations");
+    setStations(res.data);
+  };
+
+  const fetchVehicles = async () => {
+    const res = await axios.get(
+      `http://localhost:5000/api/partner/vehicles/${user.id}`
+    );
+    setVehicles(res.data);
+  };
+
+  const handleChange = (e) => {
+    setForm({
+      ...form,
+      [e.target.name]: e.target.value
+    });
+  };
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+
+    let startDateTime = new Date(`${form.startDate}T${form.startTime}`);
+    let arrivalDateTime = new Date(`${form.startDate}T${form.arrivalTime}`);
+
+    if (arrivalDateTime <= startDateTime) {
+      arrivalDateTime.setDate(arrivalDateTime.getDate() + 1);
+    }
+
+    await axios.post("http://localhost:5000/api/partner/trips", {
+      fromStationId: form.fromStationId,
+      toStationId: form.toStationId,
+      startTime: startDateTime,
+      arrivalTime: arrivalDateTime,
+      price: form.price,
+      vehicleId: form.vehicleId,
+      imageUrl: form.imageUrl
+    });
+
+    alert("Tạo chuyến thành công");
+
+    setForm({
+      fromStationId: "",
+      toStationId: "",
+      startDate: "",
+      startTime: "",
+      arrivalTime: "",
+      price: "",
+      vehicleId: "",
+      imageUrl: ""
+    });
+  };
+
+  const floor1Seats = seats
+    .filter(seat => seat.floor === 1)
+    .sort((a, b) => a.name.localeCompare(b.name));
+
+  const floor2Seats = seats
+    .filter(seat => seat.floor === 2)
+    .sort((a, b) => a.name.localeCompare(b.name));
+
+
   return (
-    <div className="partner-content">
-      {/* ===== HEADER ===== */}
-      <div className="create-trip-header">
-        <h1>🚌 Tạo chuyến xe mới</h1>
-        <p>Điền thông tin chi tiết để tạo một chuyến xe khách liên tỉnh</p>
-      </div>
 
-      {/* ===== FORM ===== */}
-      <div className="create-trip-form">
-        {/* ===== ROUTE INFO ===== */}
-        <div className="form-card">
-          <h3>📍 Thông tin tuyến đường</h3>
-          <div className="form-grid">
-            <div>
-              <label>Điểm xuất phát *</label>
-              <input placeholder="Ví dụ: Hà Nội" />
-            </div>
-            <div>
-              <label>Điểm đến *</label>
-              <input placeholder="Ví dụ: Hải Phòng" />
-            </div>
-          </div>
-        </div>
+    <Container className="create-trip-container">
 
-        {/* ===== TIME INFO ===== */}
-        <div className="form-card">
-          <h3>⏰ Thông tin thời gian</h3>
-          <div className="form-grid">
-            <div>
-              <label>Ngày khởi hành *</label>
-              <input type="date" />
-            </div>
-            <div>
-              <label>Giờ khởi hành *</label>
-              <input type="time" />
-            </div>
-            <div>
-              <label>Thời gian đến dự kiến *</label>
-              <input type="time" />
-            </div>
-          </div>
-        </div>
+      <h2 className="page-title">
+        🚌 Tạo chuyến xe mới
+      </h2>
 
-        {/* ===== SERVICES ===== */}
-        <div className="form-card">
-          <h3>🍹 Dịch vụ trên xe</h3>
-          <div className="service-grid">
-            {[
-              "📶 WiFi miễn phí",
-              "❄️ Điều hòa",
-              "🔌 Sạc điện thoại",
-              "🛏️ Chăn gối",
-              "💧 Nước uống",
-              "🍪 Đồ ăn nhẹ",
-              "🚻 Nhà vệ sinh",
-              "📺 TV / Giải trí",
-            ].map((s) => (
-              <label key={s} className="service-item">
-                <input type="checkbox" /> {s}
-              </label>
-            ))}
-          </div>
-        </div>
+      <Form onSubmit={handleSubmit}>
 
-        {/* ===== PRICE ===== */}
-        <div className="form-card">
-          <h3>💰 Giá vé</h3>
-          <div className="form-grid">
-            <div>
-              <label>Giá vé mỗi hành khách (VND) *</label>
-              <input placeholder="Ví dụ: 250000" />
-            </div>
-          </div>
-        </div>
+        {/* IMAGE */}
+        <Card className="trip-card">
+          <Card.Body>
 
-        {/* ===== BUS INFO ===== */}
-        <div className="form-card">
-          <h3>🚍 Thông tin xe</h3>
-          <div className="form-grid">
-            <div>
-              <label>Loại xe *</label>
-              <select>
-                <option>Chọn loại xe</option>
-                <option>Giường nằm</option>
-                <option>Limousine</option>
-                <option>Ghế ngồi</option>
-              </select>
-            </div>
-            <div>
-              <label>Tình trạng xe *</label>
-              <select>
-                <option>Chọn tình trạng</option>
-                <option>Mới</option>
-                <option>Đang hoạt động</option>
-              </select>
-            </div>
-            <div>
-              <label>Biển số xe *</label>
-              <input placeholder="Ví dụ: 29A-12345" />
-            </div>
-            <div>
-              <label>Số ghế *</label>
-              <input placeholder="Ví dụ: 40" />
-            </div>
-          </div>
+            <Card.Title>🖼 Ảnh chuyến xe</Card.Title>
 
-          <div style={{ marginTop: 16 }}>
-            <label>Mô tả thêm (tuỳ chọn)</label>
-            <textarea
-              rows={3}
-              placeholder="Thông tin bổ sung về xe, tài xế, chính sách..."
+            <Form.Control
+              type="text"
+              name="imageUrl"
+              placeholder="Paste image link"
+              value={form.imageUrl}
+              onChange={handleChange}
             />
-          </div>
+
+            {form.imageUrl && (
+              <img
+                src={form.imageUrl}
+                alt="preview"
+                className="trip-preview"
+              />
+            )}
+
+          </Card.Body>
+        </Card>
+
+
+        {/* ROUTE */}
+        <Card className="trip-card">
+          <Card.Body>
+
+            <Card.Title>📍 Tuyến đường</Card.Title>
+
+            <Row>
+
+              <Col md={6}>
+                <Form.Label>Điểm đi</Form.Label>
+                <Form.Select
+                  name="fromStationId"
+                  value={form.fromStationId}
+                  onChange={handleChange}
+                  required
+                >
+                  <option value="">Chọn điểm đi</option>
+                  {stations.map(s => (
+                    <option key={s.id} value={s.id}>
+                      {s.name}
+                    </option>
+                  ))}
+                </Form.Select>
+              </Col>
+
+              <Col md={6}>
+                <Form.Label>Điểm đến</Form.Label>
+                <Form.Select
+                  name="toStationId"
+                  value={form.toStationId}
+                  onChange={handleChange}
+                  required
+                >
+                  <option value="">Chọn điểm đến</option>
+                  {stations.map(s => (
+                    <option key={s.id} value={s.id}>
+                      {s.name}
+                    </option>
+                  ))}
+                </Form.Select>
+              </Col>
+
+            </Row>
+
+          </Card.Body>
+        </Card>
+
+
+        {/* TIME */}
+        <Card className="trip-card">
+          <Card.Body>
+
+            <Card.Title>⏰ Thời gian chuyến xe</Card.Title>
+
+            <Row>
+
+              <Col md={4}>
+                <Form.Label>Ngày khởi hành</Form.Label>
+                <Form.Control
+                  type="date"
+                  name="startDate"
+                  value={form.startDate}
+                  onChange={handleChange}
+                  required
+                />
+              </Col>
+
+              <Col md={4}>
+                <Form.Label>Giờ khởi hành</Form.Label>
+                <Form.Control
+                  type="time"
+                  name="startTime"
+                  value={form.startTime}
+                  onChange={handleChange}
+                  required
+                />
+              </Col>
+
+              <Col md={4}>
+                <Form.Label>Giờ đến nơi</Form.Label>
+                <Form.Control
+                  type="time"
+                  name="arrivalTime"
+                  value={form.arrivalTime}
+                  onChange={handleChange}
+                  required
+                />
+              </Col>
+
+            </Row>
+
+            <p className="time-hint">
+              ⏱ Thời gian di chuyển sẽ được hệ thống tự động tính.
+            </p>
+
+          </Card.Body>
+        </Card>
+
+
+        {/* PRICE */}
+        <Card className="trip-card">
+          <Card.Body>
+
+            <Card.Title>💰 Giá vé</Card.Title>
+
+            <Form.Control
+              type="number"
+              name="price"
+              value={form.price}
+              onChange={handleChange}
+              placeholder="Ví dụ: 250000"
+              required
+            />
+
+          </Card.Body>
+        </Card>
+
+
+        {/* VEHICLE */}
+        <Card className="trip-card">
+          <Card.Body>
+
+            <Card.Title>🚍 Xe sử dụng</Card.Title>
+
+            <Form.Select
+              name="vehicleId"
+              value={form.vehicleId}
+              onChange={handleChange}
+              required
+            >
+              <option value="">Chọn xe</option>
+
+              {vehicles.map(v => (
+                <option key={v.id} value={v.id}>
+                  {v.name} - {v.licensePlate}
+                </option>
+              ))}
+
+            </Form.Select>
+
+          </Card.Body>
+        </Card>
+        <Card className="trip-card">
+          <Card.Body>
+
+            <Card.Title>Seat Layout Preview</Card.Title>
+
+            {/* FLOOR 1 */}
+            {floor1Seats.length > 0 && (
+              <>
+                <h5 className="floor-title">Tầng 1</h5>
+
+                <div className="seat-grid">
+                  {floor1Seats.map(seat => (
+                    <div
+                      key={seat.id}
+                      className={`seat ${seat.type.toLowerCase()}`}
+                    >
+                      {seat.name}
+                    </div>
+                  ))}
+                </div>
+              </>
+            )}
+
+            {/* FLOOR 2 */}
+            {floor2Seats.length > 0 && (
+              <>
+                <h5 className="floor-title">Tầng 2</h5>
+
+                <div className="seat-grid">
+                  {floor2Seats.map(seat => (
+                    <div
+                      key={seat.id}
+                      className={`seat ${seat.type.toLowerCase()}`}
+                    >
+                      {seat.name}
+                    </div>
+                  ))}
+                </div>
+              </>
+            )}
+
+          </Card.Body>
+        </Card>
+
+        <div className="submit-area">
+          <Button type="submit" className="create-btn">
+            Tạo chuyến xe
+          </Button>
         </div>
 
-        {/* ===== ACTION ===== */}
-        <div className="form-actions">
-          <button className="btn-secondary">Hủy</button>
-          <button className="btn-primary">Tạo chuyến xe</button>
-        </div>
-      </div>
-    </div>
+      </Form>
+
+    </Container>
+
   );
 }

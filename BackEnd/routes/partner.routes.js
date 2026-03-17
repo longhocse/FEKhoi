@@ -1,7 +1,6 @@
 const express = require("express");
 const router = express.Router();
-const { pool, poolConnect } = require("../config/db");
-
+const tripController = require("../controllers/trip.controller");
 // ===== GET VEHICLES =====
 router.get("/vehicles", async (req, res) => {
   try {
@@ -25,6 +24,8 @@ router.get("/trips", async (req, res) => {
     res.json([]);
   }
 });
+
+router.get("/trips/:partnerId", tripController.getTripsByPartner);
 
 // ===== SETTINGS =====
 router.get("/settings", (req, res) => {

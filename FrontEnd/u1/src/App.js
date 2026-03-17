@@ -115,6 +115,7 @@ export default function App() {
               <Route path="trips" element={<PartnerTrips />} />
               <Route path="vehicles" element={<PartnerVehicles />} />
               <Route path="settings" element={<PartnerSettings />} />
+              <Route path="create-trip" element={<CreateTrip />} />
             </Route>
 
             <Route path="/dang-nhap-nha-xe" element={<PartnerLogin />} />

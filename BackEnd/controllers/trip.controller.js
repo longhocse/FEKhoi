@@ -280,6 +280,42 @@ WHERE t.id = @id AND t.isActive = 1
     }
 };
 
+
+exports.getTripsByPartner = async (req, res) => {
+    try {
+        const { partnerId } = req.params;
+        const pool = await poolPromise;
+
+        const result = await pool.request()
+            .input("partnerId", sql.Int, partnerId)
+            .query(`
+        SELECT 
+          t.id,
+          sFrom.name + N' → ' + sTo.name AS routeName,
+          v.name AS vehicleName,
+          t.startTime,
+          t.price,
+          CASE 
+            WHEN t.isActive = 1 THEN 'ACTIVE'
+            ELSE 'INACTIVE'
+          END AS status
+        FROM Trips t
+        JOIN Stations sFrom ON t.fromStationId = sFrom.id
+        JOIN Stations sTo ON t.toStationId = sTo.id
+        JOIN Vehicles v ON t.vehicleId = v.id
+        WHERE v.partnerId = @partnerId
+        ORDER BY t.startTime DESC
+      `);
+
+        res.json(result.recordset);
+
+    } catch (err) {
+        console.error("GET trips error:", err);
+        res.status(500).json({ message: "Server error" });
+    }
+};
+
+
 // ================= BOOK TICKET =================
 exports.bookTicket = async (req, res) => {
     try {

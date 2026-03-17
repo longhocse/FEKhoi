@@ -1,9 +1,15 @@
 import React, { useEffect, useState } from "react";
 import axios from "axios";
+import { Container, Card, Table, Button, Badge } from "react-bootstrap";
+import "../styles/PartnerTrips.css";
+import { useAuth } from "../context/AuthContext";
+import { useNavigate } from "react-router-dom";
 
 export default function PartnerTrips() {
   const [trips, setTrips] = useState([]);
-  const partnerId = 2; // test
+  const navigate = useNavigate();
+  const { user } = useAuth();
+  const partnerId = user?.id;
 
   useEffect(() => {
     fetchTrips();
@@ -21,92 +27,67 @@ export default function PartnerTrips() {
   };
 
   return (
-    <div style={{ padding: 30 }}>
-      <div style={cardStyle}>
-        <div style={headerStyle}>
-          <h2>🚌 Danh sách chuyến xe</h2>
-          <button style={buttonStyle}>+ Thêm chuyến</button>
-        </div>
+    <Container fluid className="page-bg p-4">
 
-        {trips.length === 0 ? (
-          <div style={emptyStyle}>
-            🚫 Chưa có chuyến nào
+      <Card className="shadow-sm border-0">
+        <Card.Body>
+
+          <div className="d-flex justify-content-between align-items-center mb-4">
+            <h4 className="title">🚌 Danh sách chuyến xe</h4>
+
+            <Button
+              className="btn-add"
+              onClick={() => navigate("/doi-tac/create-trip")}
+            >
+              + Thêm chuyến
+            </Button>
           </div>
-        ) : (
-          <table style={tableStyle}>
-            <thead>
-              <tr>
-                <th>Tuyến</th>
-                <th>Xe</th>
-                <th>Khởi hành</th>
-                <th>Giá</th>
-                <th>Trạng thái</th>
-              </tr>
-            </thead>
-            <tbody>
-              {trips.map((trip) => (
-                <tr key={trip.id}>
-                  <td>{trip.routeName}</td>
-                  <td>{trip.vehicleName}</td>
-                  <td>
-                    {new Date(trip.departureTime).toLocaleString()}
-                  </td>
-                  <td>
-                    {trip.price.toLocaleString()} đ
-                  </td>
-                  <td>
-                    <span style={badgeStyle}>
-                      {trip.status}
-                    </span>
-                  </td>
+
+          {trips.length === 0 ? (
+            <div className="text-center text-muted py-5">
+              🚫 Chưa có chuyến nào
+            </div>
+          ) : (
+            <Table hover responsive>
+              <thead className="table-head">
+                <tr>
+                  <th>Tuyến</th>
+                  <th>Xe</th>
+                  <th>Khởi hành</th>
+                  <th>Giá</th>
+                  <th>Trạng thái</th>
                 </tr>
-              ))}
-            </tbody>
-          </table>
-        )}
-      </div>
-    </div>
+              </thead>
+
+              <tbody>
+                {trips.map((trip) => (
+                  <tr key={trip.id}>
+                    <td>{trip.routeName}</td>
+
+                    <td>{trip.vehicleName}</td>
+
+                    <td>
+                      {new Date(trip.startTime).toLocaleString()}
+                    </td>
+
+                    <td className="price">
+                      {trip.price.toLocaleString()} đ
+                    </td>
+
+                    <td>
+                      <Badge className="status-badge">
+                        {trip.status}
+                      </Badge>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+
+            </Table>
+          )}
+        </Card.Body>
+      </Card>
+
+    </Container>
   );
 }
-
-const cardStyle = {
-  background: "#fff",
-  padding: 20,
-  borderRadius: 12,
-  boxShadow: "0 5px 20px rgba(0,0,0,0.08)",
-};
-
-const headerStyle = {
-  display: "flex",
-  justifyContent: "space-between",
-  alignItems: "center",
-  marginBottom: 20,
-};
-
-const buttonStyle = {
-  background: "#2563eb",
-  color: "#fff",
-  border: "none",
-  padding: "10px 16px",
-  borderRadius: 8,
-  cursor: "pointer",
-};
-
-const tableStyle = {
-  width: "100%",
-  borderCollapse: "collapse",
-};
-
-const badgeStyle = {
-  background: "#16a34a",
-  color: "#fff",
-  padding: "4px 10px",
-  borderRadius: 20,
-  fontSize: 12,
-};
-
-const emptyStyle = {
-  padding: 30,
-  textAlign: "center",
-  color: "#888",
-};

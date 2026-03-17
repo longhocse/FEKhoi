@@ -1,8 +1,15 @@
 import { useEffect, useState } from "react";
 import axios from "axios";
+import { useAuth } from "../context/AuthContext";
+import "../styles/PartnerVehicles.css";
 
 export default function PartnerVehicles() {
+
+  const { user } = useAuth();
+  const partnerId = user?.id;
+
   const [vehicles, setVehicles] = useState([]);
+
   const [form, setForm] = useState({
     name: "",
     licensePlate: "",
@@ -10,22 +17,25 @@ export default function PartnerVehicles() {
     numberOfFloors: 1
   });
 
-  const partnerId = 2; // partner trong DB của bạn là id = 2
-
-  useEffect(() => {
-    fetchVehicles();
-  }, []);
-
   const fetchVehicles = async () => {
     try {
+
       const res = await axios.get(
         `http://localhost:5000/api/partner/vehicles/${partnerId}`
       );
+
       setVehicles(res.data);
+
     } catch (err) {
       console.error("Lỗi lấy danh sách xe:", err);
     }
   };
+
+  useEffect(() => {
+    if (partnerId) {
+      fetchVehicles();
+    }
+  }, [partnerId]);
 
   const handleChange = (e) => {
     setForm({ ...form, [e.target.name]: e.target.value });
@@ -35,29 +45,32 @@ export default function PartnerVehicles() {
     e.preventDefault();
 
     try {
+
       await axios.post("http://localhost:5000/api/partner/vehicles", {
         ...form,
         partnerId
       });
 
       fetchVehicles();
+
       setForm({
         name: "",
         licensePlate: "",
         type: "",
         numberOfFloors: 1
       });
+
     } catch (err) {
       console.error("Lỗi thêm xe:", err);
     }
   };
 
   return (
-    <div style={{ padding: "20px" }}>
+    <div className="vehicles-page">
       <h2>🚍 Đội xe của tôi</h2>
 
-      {/* FORM */}
-      <form onSubmit={handleAddVehicle} style={{ marginBottom: 30 }}>
+      <form onSubmit={handleAddVehicle} className="vehicle-form">
+
         <input
           name="name"
           placeholder="Tên xe"
@@ -90,29 +103,20 @@ export default function PartnerVehicles() {
         />
 
         <button type="submit">Thêm xe</button>
+
       </form>
 
-      {/* DANH SÁCH XE */}
       {vehicles.length === 0 ? (
         <p>Chưa có xe nào.</p>
       ) : (
         vehicles.map((vehicle) => (
-          <div
-            key={vehicle.id}
-            style={{
-              border: "1px solid #ddd",
-              padding: 15,
-              marginBottom: 15,
-              borderRadius: 8,
-            }}
-          >
+          <div key={vehicle.id} className="vehicle-card">
             <h4>🚐 {vehicle.name}</h4>
             <p>Biển số: {vehicle.licensePlate}</p>
             <p>Loại xe: {vehicle.type}</p>
             <p>Số tầng: {vehicle.numberOfFloors}</p>
             <p>
-              Trạng thái:{" "}
-              {vehicle.isActive ? "Hoạt động" : "Ngưng hoạt động"}
+              Trạng thái: {vehicle.isActive ? "Hoạt động" : "Ngưng hoạt động"}
             </p>
           </div>
         ))

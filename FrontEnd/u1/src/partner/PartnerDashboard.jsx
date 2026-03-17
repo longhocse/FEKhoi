@@ -1,6 +1,6 @@
 // src/partner/PartnerDashboard.jsx
 import { useNavigate } from "react-router-dom";
-import "../styles/partner.css";
+import "../styles/PartnerDashboard.css";
 
 export default function PartnerDashboard() {
   const navigate = useNavigate();
@@ -44,7 +44,7 @@ export default function PartnerDashboard() {
           <span className="view-all">Xem tất cả</span>
         </div>
 
-        <table>
+        <table className="dashboard-table">
           <thead>
             <tr>
               <th>Mã xe</th>

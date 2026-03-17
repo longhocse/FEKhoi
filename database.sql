@@ -1648,3 +1648,81 @@ SELECT *
 FROM ImageVehicles;
 select *
 from Tickets;
+
+CREATE OR ALTER TRIGGER trg_CreateSeatsForVehicle
+ON Vehicles
+AFTER INSERT
+AS
+BEGIN
+PRINT 'Trigger running'
+SET NOCOUNT ON;
+
+-- FLOOR 1
+INSERT INTO Seats (vehicleId, name, floor, type, status)
+SELECT
+i.id,
+seat.name,
+1,
+seat.type,
+'AVAILABLE'
+FROM inserted i
+CROSS JOIN (
+VALUES
+('A1','VIP'),
+('A2','VIP'),
+('A3','VIP'),
+('A4','VIP'),
+('B1','NORMAL'),
+('B2','NORMAL'),
+('B3','NORMAL'),
+('B4','NORMAL'),
+('C1','NORMAL'),
+('C2','NORMAL'),
+('C3','NORMAL'),
+('C4','NORMAL'),
+('D1','NORMAL'),
+('D2','NORMAL'),
+('D3','NORMAL'),
+('D4','NORMAL')
+) seat(name,type);
+
+
+-- FLOOR 2
+INSERT INTO Seats (vehicleId, name, floor, type, status)
+SELECT
+i.id,
+seat.name,
+2,
+'NORMAL',
+'AVAILABLE'
+FROM inserted i
+CROSS JOIN (
+VALUES
+('E1'),
+('E2'),
+('F1'),
+('F2')
+) seat(name)
+WHERE i.numberOfFloors = 2;
+
+END
+
+INSERT INTO Vehicles
+(name, licensePlate, type, numberOfFloors, partnerId)
+VALUES
+(N'Test Bus2','99A-99997','VIP',2,2)
+
+
+SELECT TOP 1 * 
+FROM Vehicles
+ORDER BY id DESC
+
+SELECT *
+FROM Seats
+WHERE vehicleId = 20
+
+
+SELECT
+t.name,
+OBJECT_NAME(t.parent_id) AS table_name
+FROM sys.triggers t

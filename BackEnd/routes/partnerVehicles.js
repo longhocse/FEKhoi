@@ -6,7 +6,12 @@ const { sql, poolPromise } = require("../config/db");
 // ================= GET VEHICLES =================
 router.get("/vehicles/:partnerId", async (req, res) => {
   try {
-    const { partnerId } = req.params;
+
+    const partnerId = parseInt(req.params.partnerId); // convert sang number
+
+    if (isNaN(partnerId)) {
+      return res.status(400).json({ message: "partnerId phải là số" });
+    }
 
     const pool = await poolPromise;
 
@@ -16,10 +21,27 @@ router.get("/vehicles/:partnerId", async (req, res) => {
       .query("SELECT * FROM Vehicles WHERE partnerId = @partnerId");
 
     res.json(result.recordset);
+
   } catch (err) {
     console.error("GET vehicles error:", err);
     res.status(500).json({ message: err.message });
   }
+});
+
+router.get("/vehicles/:id/seats", async (req, res) => {
+
+  const pool = await poolPromise;
+
+  const result = await pool.request()
+    .input("vehicleId", sql.Int, req.params.id)
+    .query(`
+      SELECT id, name, floor, type, status
+      FROM Seats
+      WHERE vehicleId = @vehicleId
+      ORDER BY floor, name
+    `);
+
+  res.json(result.recordset);
 });
 
 // ================= ADD VEHICLE =================
