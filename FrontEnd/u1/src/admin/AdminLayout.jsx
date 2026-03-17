@@ -16,32 +16,34 @@ export default function AdminLayout() {
 
       {/* ===== SIDEBAR ===== */}
       <aside className="admin-sidebar">
-        <h2 className="logo">🚌 BusGo Admin</h2>
+  <h2 className="logo">🚌 BusGo Admin</h2>
 
-        <NavLink to="/admin" end>
-          📊 Dashboard
-        </NavLink>
+  <div className="menu">
+    <NavLink to="/admin" end>
+      📊 Dashboard
+    </NavLink>
 
-        <NavLink to="/admin/users">
-          👤 Người dùng
-        </NavLink>
+    <NavLink to="/admin/users">
+      👤 Người dùng
+    </NavLink>
 
-        <NavLink to="/admin/partners">
-          🏢 Quản lý nhà xe
-        </NavLink>
+    <NavLink to="/admin/nha-xe">
+      🏢 Nhà xe
+    </NavLink>
 
-        <NavLink to="/admin/bookings">
-          🎫 Quản lý vé
-        </NavLink>
+    <NavLink to="/admin/quan-ly-ve">
+      🎫 Quản lý vé
+    </NavLink>
 
-        <NavLink to="/admin/settings">
-          ⚙️ Cài đặt
-        </NavLink>
+    <NavLink to="/admin/settings">
+      ⚙️ Cài đặt
+    </NavLink>
+  </div>
 
-        <button className="logout-btn" onClick={handleLogout}>
-          🚪 Đăng xuất
-        </button>
-      </aside>
+  <button className="logout-btn" onClick={handleLogout}>
+    🚪 Đăng xuất
+  </button>
+</aside>
 
       {/* ===== CONTENT ===== */}
       <main className="admin-content">

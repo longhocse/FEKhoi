@@ -1,12 +1,18 @@
 import { Container, Row, Col, Card, Button } from "react-bootstrap";
 import SearchBox from "../components/SearchBox";
 import RouteCard from "../components/RouteCard";
-//import { popularRoutes } from "../data/mockRoutes";
 import { useNavigate } from "react-router-dom";
+import { useEffect, useState } from "react";
+import axios from "axios";
+import { useTrip } from "../context/TripContext";
 
 export default function Home() {
   const navigate = useNavigate();
-  const popularRoutes = [];
+  const { popularTrips, loading, fetchPopularTrips } = useTrip();
+  useEffect(() => {
+    fetchPopularTrips();
+  }, []);
+
   return (
     <>
       {/* HERO */}
@@ -63,17 +69,21 @@ export default function Home() {
         </div>
 
         <Row className="g-3">
-          {popularRoutes.length === 0 ? (
-  <Col>
-    <div className="text-muted">Chưa có tuyến đường nào.</div>
-  </Col>
-) : (
-  popularRoutes.map((r) => (
-    <Col key={r.id} lg={3} md={6}>
-      <RouteCard item={r} />
-    </Col>
-  ))
-)}
+          {loading ? (
+            <div className="text-center py-4">
+              Đang tải dữ liệu...
+            </div>
+          ) : popularTrips.length === 0 ? (
+            <div className="text-center py-4">
+              Chưa có tuyến nào
+            </div>
+          ) : (
+            popularTrips.map((r) => (
+              <Col key={r.id} lg={3} md={6}>
+                <RouteCard item={r} />
+              </Col>
+            ))
+          )}
         </Row>
 
         {/* ƯU ĐÃI */}
