@@ -1,0 +1,32 @@
+.page-bg {
+  background: #FFF8F0;
+  min-height: 100vh;
+}
+
+.title {
+  color: #004E89;
+  font-weight: 600;
+}
+
+.btn-add {
+  background: #FF6B35;
+  border: none;
+}
+
+.btn-add:hover {
+  background: #e85a27;
+}
+
+.table-head {
+  background: #004E89;
+  color: white;
+}
+
+.price {
+  color: #FF6B35;
+  font-weight: bold;
+}
+
+.status-badge {
+  background: #004E89;
+}
