@@ -316,6 +316,8 @@ exports.getTripsByPartner = async (req, res) => {
 };
 
 
+
+
 // ================= BOOK TICKET =================
 exports.bookTicket = async (req, res) => {
     try {

@@ -174,10 +174,12 @@ export default function Profile() {
             ) : (
               <div className="profile-info">
                 <div className="d-flex align-items-center mb-4">
-                  <div className="profile-avatar bg-primary-custom text-white rounded-circle d-flex align-items-center justify-content-center me-4"
-                    style={{ width: 80, height: 80, fontSize: '2rem' }}>
-                    {user.name.charAt(0).toUpperCase()}
-                  </div>
+                  <img
+                    src={`https://ui-avatars.com/api/?name=${encodeURIComponent(user.name)}&background=0D8ABC&color=fff&size=128`}
+                    alt="avatar"
+                    className="profile-avatar bg-primary-custom text-white rounded-circle d-flex align-items-center justify-content-center me-4"
+                    style={{ width: 80, height: 80, objectFit: "cover" }}
+                  />
                   <div>
                     <h4 className="mb-1">{user.name}</h4>
                     <p className="text-muted mb-0">{user.email}</p>
@@ -248,18 +250,6 @@ export default function Profile() {
               <Button variant="outline-primary" className="text-start">
                 <i className="bi bi-ticket-perforated me-2"></i>
                 Vé của tôi
-              </Button>
-              <Button variant="outline-primary" className="text-start">
-                <i className="bi bi-heart me-2"></i>
-                Tuyến yêu thích
-              </Button>
-              <Button variant="outline-primary" className="text-start">
-                <i className="bi bi-bell me-2"></i>
-                Thông báo
-              </Button>
-              <Button variant="outline-primary" className="text-start">
-                <i className="bi bi-shield-check me-2"></i>
-                Bảo mật
               </Button>
               <Button
                 variant="outline-danger"

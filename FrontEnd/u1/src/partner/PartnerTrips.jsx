@@ -26,6 +26,19 @@ export default function PartnerTrips() {
     }
   };
 
+  const handleDelete = async (id) => {
+    if (!window.confirm("Bạn có chắc muốn xóa chuyến này không?")) return;
+
+    try {
+      await axios.put(`http://localhost:5000/api/partner/trips/delete/${id}`);
+
+      // reload lại list
+      fetchTrips();
+    } catch (err) {
+      console.error(err);
+    }
+  };
+
   return (
     <Container fluid className="page-bg p-4">
 
@@ -51,17 +64,21 @@ export default function PartnerTrips() {
             <Table hover responsive>
               <thead className="table-head">
                 <tr>
+                  <th>ID</th>
                   <th>Tuyến</th>
                   <th>Xe</th>
                   <th>Khởi hành</th>
                   <th>Giá</th>
                   <th>Trạng thái</th>
+                  <th>Hành động</th>
                 </tr>
               </thead>
 
               <tbody>
                 {trips.map((trip) => (
                   <tr key={trip.id}>
+                    <td>{trip.id}</td>
+
                     <td>{trip.routeName}</td>
 
                     <td>{trip.vehicleName}</td>
@@ -75,9 +92,37 @@ export default function PartnerTrips() {
                     </td>
 
                     <td>
-                      <Badge className="status-badge">
+                      <Badge
+                        bg={trip.status === "INACTIVE" ? "danger" : "success"}
+                      >
                         {trip.status}
                       </Badge>
+                    </td>
+                    <td>
+                      <Button
+                        size="sm"
+                        variant="warning"
+                        className="me-2"
+                        onClick={() => navigate(`/doi-tac/edit-trip/${trip.id}`)}
+                      >
+                        ✏️ Sửa
+                      </Button>
+
+                      <Button
+                        size="sm"
+                        variant="danger"
+                        onClick={() => handleDelete(trip.id)}
+                      >
+                        🗑️ Xóa
+                      </Button>
+
+                      <Button
+                        size="sm"
+                        variant="info"
+                        onClick={() => navigate(`/doi-tac/trip-seats/${trip.id}`)}
+                      >
+                        🎫 Ghế
+                      </Button>
                     </td>
                   </tr>
                 ))}

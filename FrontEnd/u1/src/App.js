@@ -29,6 +29,7 @@ import CreateTrip from "./partner/CreateTrip";
 import PartnerTrips from "./partner/PartnerTrips";
 import PartnerVehicles from "./partner/PartnerVehicles";
 import PartnerSettings from "./partner/PartnerSettings";
+import TripSeats from "./partner/TripSeats";
 
 // ===== Pages admin =====
 import AdminLayout from "./admin/AdminLayout";
@@ -113,9 +114,11 @@ export default function App() {
             >
               <Route index element={<PartnerDashboard />} />
               <Route path="trips" element={<PartnerTrips />} />
+              <Route path="edit-trip/:id" element={<CreateTrip />} />
               <Route path="vehicles" element={<PartnerVehicles />} />
               <Route path="settings" element={<PartnerSettings />} />
               <Route path="create-trip" element={<CreateTrip />} />
+              <Route path="trip-seats/:tripId" element={<TripSeats />} />
             </Route>
 
             <Route path="/dang-nhap-nha-xe" element={<PartnerLogin />} />
