@@ -22,6 +22,7 @@ exports.getTrips = async (req, res) => {
         JOIN Stations sFrom ON t.fromStationId = sFrom.id
         JOIN Stations sTo ON t.toStationId = sTo.id
         LEFT JOIN Vehicles v ON t.vehicleId = v.id
+        WHERE t.isActive = 1
         ORDER BY t.startTime DESC
         `);
 
@@ -63,6 +64,8 @@ exports.getAllTrips = async (req, res) => {
         JOIN Stations sTo ON t.toStationId = sTo.id
         JOIN Vehicles v ON t.vehicleId = v.id
         JOIN PassengerCarCompanies pc ON v.partnerId = pc.id
+        WHERE t.isActive = 1
+        ORDER BY t.startTime DESC
         `);
 
         res.json({
@@ -72,10 +75,13 @@ exports.getAllTrips = async (req, res) => {
         });
 
     } catch (err) {
-        res.status(500).json({ error: err.message });
+        console.error("Lỗi getAllTrips:", err);
+        res.status(500).json({
+            success: false,
+            error: err.message
+        });
     }
 };
-
 
 // ================= SIMPLE LIST =================
 exports.getSimpleTrips = async (req, res) => {
@@ -262,17 +268,35 @@ WHERE t.id = @id AND t.isActive = 1
         LEFT JOIN Tickets tk ON s.id = tk.seatId AND tk.tripId = @tripId
         WHERE s.vehicleId = @vehicleId
         ORDER BY s.floor, s.name
-      `);
+        `);
+
+        // Lấy điểm dừng
+        const pointsResult = await pool.request()
+            .input("tripId", sql.Int, id)
+            .query(`
+        SELECT 
+            tp.id,
+            p.address as stopPoint,
+            tp.arrivalTime,
+            tp.departureTime,
+            tp.stopDuration
+        FROM TimePoints tp
+        JOIN Points p ON tp.pointId = p.id
+        WHERE tp.tripId = @tripId
+        ORDER BY tp.arrivalTime
+        `);
 
         res.json({
             success: true,
             data: {
                 ...trip,
-                seats: seatsResult.recordset
+                seats: seatsResult.recordset,
+                timePoints: pointsResult.recordset
             }
         });
 
     } catch (err) {
+        console.error("Lỗi getTripById:", err);
         res.status(500).json({
             success: false,
             error: err.message
@@ -322,59 +346,121 @@ exports.getTripsByPartner = async (req, res) => {
 exports.bookTicket = async (req, res) => {
     try {
 
-        const { tripId, seatId } = req.body;
+        const { tripId, seatId, paymentMethod } = req.body;
         const userId = req.user.id;
 
         const pool = await poolPromise;
 
-        // lấy giá vé
-        const trip = await pool.request()
-            .input("tripId", sql.Int, tripId)
+        // Kiểm tra ghế đã được đặt chưa
+        const checkSeat = await pool.request()
+            .input('tripId', sql.Int, tripId)
+            .input('seatId', sql.Int, seatId)
             .query(`
-                SELECT price FROM Trips WHERE id = @tripId
+                SELECT id FROM Tickets 
+                WHERE tripId = @tripId AND seatId = @seatId 
+                AND status IN ('BOOKED', 'PAID')
             `);
 
-        const price = trip.recordset[0].price;
-
-        // kiểm tra ghế
-        const check = await pool.request()
-            .input("tripId", sql.Int, tripId)
-            .input("seatId", sql.Int, seatId)
-            .query(`
-                SELECT * FROM Tickets
-                WHERE tripId = @tripId
-                AND seatId = @seatId
-                AND status IN ('BOOKED','PAID')
-            `);
-
-        if (check.recordset.length > 0) {
-            return res.json({
+        if (checkSeat.recordset.length > 0) {
+            return res.status(400).json({
                 success: false,
                 message: "Ghế đã được đặt"
             });
         }
 
-        // tạo vé mới
+        // Lấy giá vé
+        const tripResult = await pool.request()
+            .input('tripId', sql.Int, tripId)
+            .query('SELECT price FROM Trips WHERE id = @tripId');
+
+        if (tripResult.recordset.length === 0) {
+            return res.status(404).json({
+                success: false,
+                message: "Không tìm thấy chuyến xe"
+            });
+        }
+
+        const price = tripResult.recordset[0].price;
+        let transactionId = null;
+
+        // Nếu thanh toán bằng ví, trừ tiền
+        if (paymentMethod === 'WALLET') {
+            // Lấy thông tin ví
+            const walletResult = await pool.request()
+                .input('userId', sql.Int, userId)
+                .query('SELECT id, balance FROM Wallets WHERE userId = @userId');
+
+            if (walletResult.recordset.length === 0) {
+                return res.status(400).json({
+                    success: false,
+                    message: "Không tìm thấy ví"
+                });
+            }
+
+            const wallet = walletResult.recordset[0];
+
+            if (wallet.balance < price) {
+                return res.status(400).json({
+                    success: false,
+                    message: "Số dư không đủ"
+                });
+            }
+
+            // Trừ tiền trong ví
+            await pool.request()
+                .input('walletId', sql.Int, wallet.id)
+                .input('amount', sql.Decimal(10, 2), price)
+                .query(`
+                    UPDATE Wallets 
+                    SET balance = balance - @amount 
+                    WHERE id = @walletId
+                `);
+
+            // Tạo giao dịch
+            const transResult = await pool.request()
+                .input('walletId', sql.Int, wallet.id)
+                .input('amount', sql.Decimal(10, 2), price)
+                .input('type', sql.VarChar(20), 'PAYMENT')
+                .input('status', sql.VarChar(20), 'SUCCESS')
+                .input('description', sql.NVarChar(255), `Thanh toán vé chuyến xe #${tripId}`)
+                .query(`
+                    INSERT INTO Transactions (walletId, amount, type, status, description, createdAt)
+                    OUTPUT INSERTED.id
+                    VALUES (@walletId, @amount, @type, @status, @description, GETDATE())
+                `);
+
+            transactionId = transResult.recordset[0].id;
+        }
+
+        // Tạo vé
         await pool.request()
-            .input("userId", sql.Int, userId)
-            .input("tripId", sql.Int, tripId)
-            .input("seatId", sql.Int, seatId)
-            .input("totalAmount", sql.Decimal(10, 2), price)
+            .input('userId', sql.Int, userId)
+            .input('tripId', sql.Int, tripId)
+            .input('seatId', sql.Int, seatId)
+            .input('totalAmount', sql.Decimal(10, 2), price)
+            .input('paymentMethod', sql.VarChar(20), paymentMethod)
+            .input('transactionId', sql.Int, transactionId)
+            .input('status', sql.VarChar(20), paymentMethod === 'WALLET' ? 'PAID' : 'BOOKED')
             .query(`
-        INSERT INTO Tickets (userId, tripId, seatId, totalAmount, status)
-        VALUES (@userId, @tripId, @seatId, @totalAmount, 'BOOKED')
-    `);
+                INSERT INTO Tickets (userId, tripId, seatId, totalAmount, paymentMethod, transactionId, status, bookedAt)
+                VALUES (@userId, @tripId, @seatId, @totalAmount, @paymentMethod, @transactionId, @status, GETDATE())
+            `);
+
+        // Cập nhật trạng thái ghế
+        await pool.request()
+            .input('seatId', sql.Int, seatId)
+            .query(`UPDATE Seats SET status = 'BOOKED' WHERE id = @seatId`);
 
         res.json({
             success: true,
-            message: "Đặt vé thành công"
+            message: paymentMethod === 'WALLET' ? 'Đặt vé và thanh toán thành công' : 'Đặt vé thành công'
         });
 
     } catch (err) {
-        console.error(err);
+        console.error('Lỗi đặt vé:', err);
         res.status(500).json({
             success: false,
-            message: "Lỗi server"
+            message: err.message
         });
     }
 };

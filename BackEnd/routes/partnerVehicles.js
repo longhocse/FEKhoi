@@ -21,7 +21,6 @@ router.get("/vehicles/:partnerId", async (req, res) => {
       .query("SELECT * FROM Vehicles WHERE partnerId = @partnerId");
 
     res.json(result.recordset);
-
   } catch (err) {
     console.error("GET vehicles error:", err);
     res.status(500).json({ message: err.message });

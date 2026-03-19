@@ -45,21 +45,18 @@ export default function PartnerVehicles() {
     e.preventDefault();
 
     try {
-
       await axios.post("http://localhost:5000/api/partner/vehicles", {
         ...form,
         partnerId
       });
 
       fetchVehicles();
-
       setForm({
         name: "",
         licensePlate: "",
         type: "",
         numberOfFloors: 1
       });
-
     } catch (err) {
       console.error("Lỗi thêm xe:", err);
     }

@@ -63,12 +63,19 @@ app.get("/api/test", (req, res) => {
 
 const partnerRoutes = require("./routes/partner.routes");
 const partnerVehiclesRoutes = require("./routes/partnerVehicles");
+const partnerTripsRoutes = require("./routes/partnerTrips");
 
 app.use("/api/partner", partnerRoutes);
 app.use("/api/partner", partnerVehiclesRoutes);
-
-const partnerTripsRoutes = require("./routes/partnerTrips");
 app.use("/api/partner", partnerTripsRoutes);
+
+const walletRoutes = require('./routes/wallet.routes');
+const ticketRoutes = require('./routes/ticket.routes');
+const refundRoutes = require('./routes/refund.routes');
+
+app.use('/api/wallets', walletRoutes);
+app.use('/api/tickets', ticketRoutes);
+app.use('/api/refunds', refundRoutes);
 
 app.get("/", (req, res) => {
   res.send("Backend is running 🚀");
