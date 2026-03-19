@@ -2,17 +2,20 @@ import { useState, useEffect } from "react";
 import axios from "axios";
 import { useAuth } from "../context/AuthContext";
 import "../styles/createTrip.css";
+import { useParams, useNavigate } from "react-router-dom";
 
 import { Container, Card, Row, Col, Form, Button } from "react-bootstrap";
 
 export default function CreateTrip() {
-
+  const navigate = useNavigate();
   const { user } = useAuth();
 
   const [stations, setStations] = useState([]);
   const [vehicles, setVehicles] = useState([]);
 
   const [seats, setSeats] = useState([]);
+  const { id } = useParams();
+  const isEdit = !!id;
 
   const [form, setForm] = useState({
     fromStationId: "",
@@ -28,7 +31,11 @@ export default function CreateTrip() {
   useEffect(() => {
     fetchVehicles();
     fetchStations();
-  }, []);
+
+    if (isEdit) {
+      fetchTripDetail();
+    }
+  }, [id]);
 
   useEffect(() => {
     if (form.vehicleId) {
@@ -63,6 +70,34 @@ export default function CreateTrip() {
     });
   };
 
+  const fetchTripDetail = async () => {
+    try {
+      const res = await axios.get(
+        `http://localhost:5000/api/partner/trips/detail/${id}`
+      );
+
+      const trip = res.data;
+
+      const start = new Date(trip.startTime);
+      const arrival = new Date(trip.arrivalTime);
+
+      setForm({
+        fromStationId: trip.fromStationId,
+        toStationId: trip.toStationId,
+        startDate: start.toISOString().slice(0, 10),
+        startTime: start.toTimeString().slice(0, 5),
+        arrivalTime: arrival.toTimeString().slice(0, 5),
+        price: trip.price,
+        vehicleId: trip.vehicleId,
+        imageUrl: trip.imageUrl || ""
+      });
+
+    } catch (err) {
+      console.error(err);
+    }
+  };
+
+
   const handleSubmit = async (e) => {
     e.preventDefault();
 
@@ -73,28 +108,40 @@ export default function CreateTrip() {
       arrivalDateTime.setDate(arrivalDateTime.getDate() + 1);
     }
 
-    await axios.post("http://localhost:5000/api/partner/trips", {
-      fromStationId: form.fromStationId,
-      toStationId: form.toStationId,
-      startTime: startDateTime,
-      arrivalTime: arrivalDateTime,
-      price: form.price,
-      vehicleId: form.vehicleId,
-      imageUrl: form.imageUrl
-    });
+    try {
+      if (isEdit) {
+        // UPDATE
+        await axios.put(
+          `http://localhost:5000/api/partner/trips/detail/${id}`,
+          {
+            ...form,
+            startTime: startDateTime,
+            arrivalTime: arrivalDateTime
+          }
+        );
 
-    alert("Tạo chuyến thành công");
+        alert("Cập nhật thành công!");
 
-    setForm({
-      fromStationId: "",
-      toStationId: "",
-      startDate: "",
-      startTime: "",
-      arrivalTime: "",
-      price: "",
-      vehicleId: "",
-      imageUrl: ""
-    });
+        navigate("/doi-tac/trips");
+      } else {
+        // CREATE
+        await axios.post(
+          "http://localhost:5000/api/partner/trips",
+          {
+            ...form,
+            startTime: startDateTime,
+            arrivalTime: arrivalDateTime
+          }
+        );
+
+        alert("Tạo chuyến thành công!");
+        navigate("/doi-tac/trips");
+      }
+
+
+    } catch (err) {
+      console.error(err);
+    }
   };
 
   const floor1Seats = seats
@@ -111,7 +158,7 @@ export default function CreateTrip() {
     <Container className="create-trip-container">
 
       <h2 className="page-title">
-        🚌 Tạo chuyến xe mới
+        {isEdit ? "✏️ Chỉnh sửa chuyến xe" : "🚌 Tạo chuyến xe mới"}
       </h2>
 
       <Form onSubmit={handleSubmit}>
@@ -330,7 +377,7 @@ export default function CreateTrip() {
 
         <div className="submit-area">
           <Button type="submit" className="create-btn">
-            Tạo chuyến xe
+            {isEdit ? "💾 Cập nhật" : "Tạo chuyến xe"}
           </Button>
         </div>
 

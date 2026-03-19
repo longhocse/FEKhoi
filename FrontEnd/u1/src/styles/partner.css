@@ -2,18 +2,21 @@
 .partner-layout {
   display: flex;
   min-height: 100vh;
-  background: #f5f7fb;
+  /* layout tối thiểu full màn hình */
 }
 
-/* SIDEBAR */
 .partner-sidebar {
   width: 240px;
-  height: 100vh;
   background: linear-gradient(180deg, #1e3a8a, #2563eb);
   padding: 20px;
   display: flex;
   flex-direction: column;
   color: white;
+}
+
+.partner-content {
+  flex: 1;
+  padding: 20px;
 }
 
 .partner-sidebar .logo {
@@ -36,7 +39,7 @@
 }
 
 .partner-sidebar a:hover {
-  background: rgba(255,255,255,0.15);
+  background: rgba(255, 255, 255, 0.15);
   color: white;
 }
 
@@ -47,7 +50,6 @@
 }
 
 .logout-btn {
-  margin-top: auto;
   padding: 12px;
   border: none;
   border-radius: 10px;

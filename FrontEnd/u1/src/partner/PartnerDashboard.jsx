@@ -1,9 +1,42 @@
 // src/partner/PartnerDashboard.jsx
 import { useNavigate } from "react-router-dom";
 import "../styles/PartnerDashboard.css";
+import { useEffect, useState } from "react";
+import { Container, Card, Table, Button, Badge } from "react-bootstrap";
+import axios from "axios";
+import { useAuth } from "../context/AuthContext";
+
 
 export default function PartnerDashboard() {
+  const [trips, setTrips] = useState([]);
   const navigate = useNavigate();
+  const { user } = useAuth();
+  const partnerId = user?.id;
+  const [currentPage, setCurrentPage] = useState(1);
+  const tripsPerPage = 4;
+  const totalPages = Math.ceil(trips.length / tripsPerPage);
+
+
+  const indexOfLastTrip = currentPage * tripsPerPage;
+  const indexOfFirstTrip = indexOfLastTrip - tripsPerPage;
+  const currentTrips = trips.slice(indexOfFirstTrip, indexOfLastTrip);
+
+
+  useEffect(() => {
+    fetchTrips();
+  }, []);
+
+  const fetchTrips = async () => {
+    try {
+      const res = await axios.get(
+        `http://localhost:5000/api/partner/trips/${partnerId}`
+      );
+      setTrips(res.data);
+    } catch (err) {
+      console.error(err);
+    }
+  };
+
 
   return (
     <div className="partner-page">
@@ -11,14 +44,17 @@ export default function PartnerDashboard() {
       <div className="stat-grid">
         <div
           className="stat-card orange"
-          onClick={() => navigate("/doi-tac/tao-chuyen-xe")}
+          onClick={() => navigate("/doi-tac/create-trip")}
         >
           <h4>Tạo chuyến xe</h4>
           <p>Lên lịch chuyến mới</p>
           <span>Bắt đầu ngay →</span>
         </div>
 
-        <div className="stat-card blue">
+        <div
+          className="stat-card blue"
+          onClick={() => navigate("/thong-tin-ca-nhan")}
+        >
           <h4>Thông tin doanh nghiệp</h4>
           <p>Cập nhật thông tin nhà xe</p>
           <span>Chỉnh sửa →</span>
@@ -29,19 +65,12 @@ export default function PartnerDashboard() {
           <p>Quản lý doanh thu</p>
           <span>View Wallet →</span>
         </div>
-
-        <div className="stat-card purple">
-          <h4>Báo cáo & Phân tích</h4>
-          <p>Doanh số & thống kê</p>
-          <span>Xem dữ liệu →</span>
-        </div>
       </div>
 
       {/* ===== TABLE ===== */}
       <div className="table-card">
         <div className="table-header">
           <h3>Chuyến khởi hành gần đây</h3>
-          <span className="view-all">Xem tất cả</span>
         </div>
 
         <table className="dashboard-table">
@@ -49,37 +78,63 @@ export default function PartnerDashboard() {
             <tr>
               <th>Mã xe</th>
               <th>Tuyến đường</th>
-              <th>Thời gian</th>
+              <th>Thời gian xuất phát</th>
               <th>Trạng thái</th>
             </tr>
           </thead>
           <tbody>
-            <tr>
-              <td>B-1024</td>
-              <td>Đà Nẵng → Hồ Chí Minh</td>
-              <td>08:00</td>
-              <td>
-                <span className="badge success">Departed</span>
-              </td>
-            </tr>
-            <tr>
-              <td>B-2055</td>
-              <td>Hà Nội → Hồ Chí Minh</td>
-              <td>09:30</td>
-              <td>
-                <span className="badge warning">Boarding</span>
-              </td>
-            </tr>
-            <tr>
-              <td>B-1088</td>
-              <td>Hồ Chí Minh → Huế</td>
-              <td>11:00</td>
-              <td>
-                <span className="badge info">Scheduled</span>
-              </td>
-            </tr>
+            {currentTrips.map((trip) => (
+              <tr key={trip.id}>
+                <td>{trip.routeName}</td>
+
+                <td>{trip.vehicleName}</td>
+
+                <td>
+                  {trip.startTime
+                    ? new Date(trip.startTime).toLocaleString()
+                    : "N/A"}
+                </td>
+
+                <td>
+                  {trip.price
+                    ? trip.price.toLocaleString() + " đ"
+                    : "0 đ"}
+                </td>
+
+                <td>
+                  <Badge className="status-badge">
+                    {trip.status}
+                  </Badge>
+                </td>
+              </tr>
+            ))}
           </tbody>
         </table>
+        <div className="pagination">
+          <button
+            disabled={currentPage === 1}
+            onClick={() => setCurrentPage(currentPage - 1)}
+          >
+            Prev
+          </button>
+
+          {[...Array(totalPages)].map((_, i) => (
+            <button
+              key={i}
+              className={currentPage === i + 1 ? "active" : ""}
+              onClick={() => setCurrentPage(i + 1)}
+            >
+              {i + 1}
+            </button>
+          ))}
+
+          <button
+            disabled={currentPage === totalPages}
+            onClick={() => setCurrentPage(currentPage + 1)}
+          >
+            Next
+          </button>
+        </div>
       </div>
     </div>
   );

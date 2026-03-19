@@ -20,7 +20,7 @@ export default function PartnerLayout() {
 
         {/* Trang chính */}
         <NavLink to="/">
-          🏠 Trang chính
+          🏠 Trang chủ
         </NavLink>
 
         {/* Dashboard */}

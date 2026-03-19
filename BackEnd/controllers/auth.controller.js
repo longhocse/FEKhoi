@@ -1,4 +1,6 @@
 const { poolPromise, sql } = require("../config/db");
+const jwt = require("jsonwebtoken");
+
 
 exports.login = async (req, res) => {
   const { email, password } = req.body;
@@ -29,13 +31,20 @@ exports.login = async (req, res) => {
       return res.status(403).json({ message: "Tài khoản đã bị khóa" });
     }
 
+    const token = jwt.sign(
+      { id: user.id, email: user.email, role: user.role },
+      process.env.JWT_SECRET,
+      { expiresIn: "1d" }
+    );
+
     res.json({
       user: {
         id: user.id,
         name: user.name,
         email: user.email,
         role: user.role
-      }
+      },
+      token
     });
 
   } catch (err) {
