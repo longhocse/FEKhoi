@@ -90,6 +90,7 @@ export default function App() {
                 <Route path="/dang-ky" element={<Register />} />
                 <Route path="/chon-ghe" element={<SeatSelection />} />
                 <Route path="/thanh-toan" element={<Payment />} />
+                <Route path="/chon-ghe/:id" element={<SeatSelection />} />
 
                 {/* Routes yêu cầu đăng nhập */}
                 <Route

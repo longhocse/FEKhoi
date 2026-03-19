@@ -1,7 +1,10 @@
 const express = require('express');
 const router = express.Router();
 const ticketController = require('../controllers/ticket.controller');
-const authMiddleware = require('../middleware/authMiddleware'); // SỬA: auth.middleware thay vì authMiddleware
+const authMiddleware = require('../middleware/authMiddleware');
+
+// Kiểm tra xem controller có tồn tại không
+console.log('🎫 ticketController:', Object.keys(ticketController));
 
 // Lấy danh sách vé của user hiện tại
 router.get('/my-tickets', authMiddleware, ticketController.getMyTickets);

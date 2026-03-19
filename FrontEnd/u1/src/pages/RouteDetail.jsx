@@ -2,7 +2,6 @@ import { Container, Row, Col, Card, Badge, Button, Spinner, Alert } from "react-
 import { useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import axios from "axios";
-import SeatLayout from "../components/SeatLayout";
 
 export default function RouteDetail() {
   const { id } = useParams();
@@ -10,7 +9,6 @@ export default function RouteDetail() {
   const [trip, setTrip] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
-  const [selectedSeat, setSelectedSeat] = useState(null);
 
   useEffect(() => {
     if (id) {
@@ -26,12 +24,10 @@ export default function RouteDetail() {
       setLoading(true);
       console.log("🔄 Đang lấy chi tiết chuyến xe ID:", id);
 
-      // Sửa endpoint API
       const response = await axios.get(`http://localhost:5000/api/trips/${id}`);
 
       console.log("✅ Chi tiết chuyến xe:", response.data);
 
-      // Xử lý response
       if (response.data.success) {
         setTrip(response.data.data);
       } else if (response.data.data) {
@@ -52,46 +48,20 @@ export default function RouteDetail() {
   };
 
   const handleSelectSeats = () => {
-    if (!selectedSeat) {
-      alert("Vui lòng chọn ghế");
-      return;
-    }
-
-    console.log("🪑 Ghế được chọn:", selectedSeat);
-    console.log("🚌 Trip data:", trip);
-
-    // Tìm thông tin ghế đầy đủ
-    const seatInfo = trip.seats?.find(s => s.id === selectedSeat);
-
-    // Dữ liệu gửi sang SeatSelection
-    const tripData = {
-      id: trip.id,
-      fromStation: trip.fromStation,
-      toStation: trip.toStation,
-      startTime: trip.startTime,
-      price: trip.price,
-      companyName: trip.companyName,
-      vehicleName: trip.vehicleName,
-      estimatedDuration: trip.estimatedDuration,
-      seats: trip.seats || []
-    };
-
-    console.log("📦 Dữ liệu gửi sang SeatSelection:", tripData);
-
-    // Chuyển đến trang chọn ghế
-    navigate('/chon-ghe', {
-      state: {
-        trip: tripData,
-        selectedSeat: selectedSeat,
-        seatInfo: seatInfo
-      }
-    });
+    // Chuyển đến trang chọn ghế với ID chuyến xe
+    navigate(`/chon-ghe/${trip.id}`);
   };
 
   const formatDate = (dateString) => {
     if (!dateString) return 'N/A';
     const date = new Date(dateString);
-    return date.toLocaleString('vi-VN');
+    return date.toLocaleString('vi-VN', {
+      hour: '2-digit',
+      minute: '2-digit',
+      day: '2-digit',
+      month: '2-digit',
+      year: 'numeric'
+    });
   };
 
   const formatPrice = (price) => {
@@ -149,6 +119,7 @@ export default function RouteDetail() {
 
       <Row>
         <Col lg={8}>
+          {/* Thông tin chuyến xe */}
           <Card className="shadow-sm mb-4">
             <Card.Header className="bg-white">
               <h4 className="mb-0">Chi tiết chuyến xe</h4>
@@ -162,8 +133,8 @@ export default function RouteDetail() {
                     <small className="text-muted">{trip.fromProvince} - {trip.toProvince}</small>
                   </div>
                   <div className="mb-3">
-                    <h6 className="text-muted mb-1">Thời gian</h6>
-                    <p className="mb-0">{formatDate(trip.startTime)}</p>
+                    <h6 className="text-muted mb-1">Thời gian khởi hành</h6>
+                    <p className="fw-bold mb-0">{formatDate(trip.startTime)}</p>
                     <small className="text-muted">
                       Thời gian dự kiến: {Math.floor(trip.estimatedDuration / 60)} giờ {trip.estimatedDuration % 60} phút
                     </small>
@@ -186,26 +157,6 @@ export default function RouteDetail() {
                   </div>
                 </Col>
               </Row>
-            </Card.Body>
-          </Card>
-
-          {/* Danh sách ghế */}
-          <Card className="shadow-sm mb-4">
-            <Card.Header className="bg-white">
-              <h5 className="mb-0">Chọn ghế</h5>
-            </Card.Header>
-            <Card.Body>
-              <div className="mb-3">
-                <Badge bg="success" className="me-2">Còn trống</Badge>
-                <Badge bg="danger" className="me-2">Đã đặt</Badge>
-                <Badge bg="secondary">Bảo trì</Badge>
-              </div>
-
-              <SeatLayout
-                seats={trip.seats || []}
-                selectedSeat={selectedSeat}
-                setSelectedSeat={setSelectedSeat}
-              />
             </Card.Body>
           </Card>
 
@@ -242,6 +193,7 @@ export default function RouteDetail() {
         </Col>
 
         <Col lg={4}>
+          {/* Card đặt vé - chỉ có nút chọn ghế */}
           <Card className="shadow-sm sticky-top" style={{ top: '20px' }}>
             <Card.Header className="bg-white">
               <h5 className="mb-0">Đặt vé</h5>
@@ -256,22 +208,25 @@ export default function RouteDetail() {
                 <h4 className="text-primary">{formatPrice(trip.price)}</h4>
               </div>
               <div className="mb-3">
-                <h6 className="text-muted mb-2">Ghế đã chọn</h6>
-                <p className="fw-bold">
-                  {selectedSeat ?
-                    trip.seats?.find(s => s.id === selectedSeat)?.seatName || `Ghế ${selectedSeat}`
-                    : 'Chưa chọn ghế'}
-                </p>
+                <h6 className="text-muted mb-2">Thời gian</h6>
+                <p>{formatDate(trip.startTime)}</p>
+              </div>
+              <div className="mb-3">
+                <h6 className="text-muted mb-2">Nhà xe</h6>
+                <p>{trip.companyName}</p>
               </div>
               <Button
                 variant="primary"
                 size="lg"
                 className="w-100"
-                disabled={!selectedSeat}
                 onClick={handleSelectSeats}
               >
+                <i className="bi bi-calendar-check me-2"></i>
                 Chọn ghế
               </Button>
+              <small className="text-muted d-block text-center mt-2">
+                Bạn sẽ được chuyển đến trang chọn ghế
+              </small>
             </Card.Body>
           </Card>
         </Col>
