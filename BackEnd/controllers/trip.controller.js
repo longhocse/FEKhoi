@@ -125,6 +125,7 @@ exports.getSimpleTrips = async (req, res) => {
 // ================= SEARCH =================
 exports.searchTrips = async (req, res) => {
     try {
+        console.log("API /search CALLED");
         const { from, to } = req.query;
         const pool = await poolPromise;
 
@@ -144,6 +145,7 @@ exports.searchTrips = async (req, res) => {
         JOIN Stations sFrom ON t.fromStationId = sFrom.id
         JOIN Stations sTo ON t.toStationId = sTo.id
         WHERE t.isActive = 1
+          AND t.startTime > GETDATE()
         `);
 
         let filtered = result.recordset;
@@ -178,20 +180,21 @@ exports.getPopularTrips = async (req, res) => {
         const pool = await poolPromise;
 
         const result = await pool.request().query(`
-SELECT TOP 8
-    t.id,
-    s1.name AS fromStation,
-    s2.name AS toStation,
-    t.startTime,
-    t.price,
-    t.estimatedDuration,
-    t.imageUrl
-FROM Trips t
-JOIN Stations s1 ON t.fromStationId = s1.id
-JOIN Stations s2 ON t.toStationId = s2.id
-WHERE t.isActive = 1
-ORDER BY t.startTime
-`);
+            SELECT TOP 8
+                t.id,
+                s1.name AS fromStation,
+                s2.name AS toStation,
+                t.startTime,
+                t.price,
+                t.estimatedDuration,
+                t.imageUrl
+            FROM Trips t
+            JOIN Stations s1 ON t.fromStationId = s1.id
+            JOIN Stations s2 ON t.toStationId = s2.id
+            WHERE t.isActive = 1
+              AND t.startTime > GETDATE()
+            ORDER BY t.startTime ASC
+        `);
 
         res.json(result.recordset);
 
@@ -200,7 +203,6 @@ ORDER BY t.startTime
         res.status(500).json({ message: "Server error" });
     }
 };
-
 
 // ================= TRIP DETAIL =================
 exports.getTripById = async (req, res) => {

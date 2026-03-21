@@ -7,11 +7,12 @@ const { sql, poolPromise } = require('../config/db');
 router.get('/search', async (req, res) => {
   try {
     const { from, to, date } = req.query;
-    
+
     console.log('Tìm kiếm:', { from, to, date });
 
     const pool = await poolPromise;
-    
+    const request = pool.request();
+
     let query = `
       SELECT 
         t.id,
@@ -24,6 +25,7 @@ router.get('/search', async (req, res) => {
         t.startTime,
         t.price,
         t.estimatedDuration,
+        t.imageUrl, -- ✅ thêm dòng này
         v.name as vehicleName,
         v.type as vehicleType,
         v.description as vehicleDescription,
@@ -31,7 +33,9 @@ router.get('/search', async (req, res) => {
         pc.phone as companyPhone,
         pc.logo as companyLogo,
         (SELECT COUNT(*) FROM Seats WHERE vehicleId = v.id AND status = 'AVAILABLE') as availableSeats,
-        (SELECT TOP 1 imageUrl FROM ImageVehicles WHERE vehicleId = v.id AND isPrimary = 1) as vehicleImage
+        (SELECT TOP 1 imageUrl 
+         FROM ImageVehicles 
+         WHERE vehicleId = v.id AND isPrimary = 1) as vehicleImage
       FROM Trips t
       JOIN Stations sFrom ON t.fromStationId = sFrom.id
       JOIN Stations sTo ON t.toStationId = sTo.id
@@ -39,39 +43,47 @@ router.get('/search', async (req, res) => {
       JOIN PassengerCarCompanies pc ON v.partnerId = pc.id
       WHERE t.isActive = 1
     `;
-    
-    const request = pool.request();
-    
-    if (from) {
-      query += ` AND (sFrom.name LIKE '%' + @from + '%' OR sFrom.province LIKE '%' + @from + '%' OR sFrom.address LIKE '%' + @from + '%')`;
-      request.input('from', sql.NVarChar, `%${from}%`);
-    }
-    
-    if (to) {
-      query += ` AND (sTo.name LIKE '%' + @to + '%' OR sTo.province LIKE '%' + @to + '%' OR sTo.address LIKE '%' + @to + '%')`;
-      request.input('to', sql.NVarChar, `%${to}%`);
-    }
-    
+
     if (date) {
       query += ` AND CAST(t.startTime AS DATE) = @date`;
       request.input('date', sql.Date, date);
+    } else {
+      query += ` AND t.startTime > GETDATE()`;
     }
-    
-    query += ` ORDER BY t.startTime`;
-    
+
+    if (from) {
+      query += ` AND (
+        sFrom.name LIKE @from 
+        OR sFrom.province LIKE @from 
+        OR sFrom.address LIKE @from
+      )`;
+      request.input('from', sql.NVarChar, `%${from}%`);
+    }
+
+    if (to) {
+      query += ` AND (
+        sTo.name LIKE @to 
+        OR sTo.province LIKE @to 
+        OR sTo.address LIKE @to
+      )`;
+      request.input('to', sql.NVarChar, `%${to}%`);
+    }
+
+    query += ` ORDER BY t.startTime ASC`;
+
     const result = await request.query(query);
-    
+
     res.json({
       success: true,
       count: result.recordset.length,
       data: result.recordset
     });
-    
+
   } catch (err) {
     console.error('Lỗi tìm kiếm:', err);
-    res.status(500).json({ 
-      success: false, 
-      error: err.message 
+    res.status(500).json({
+      success: false,
+      error: err.message
     });
   }
 });
@@ -80,7 +92,7 @@ router.get('/search', async (req, res) => {
 router.get('/suggestions', async (req, res) => {
   try {
     const { keyword } = req.query;
-    
+
     if (!keyword || keyword.length < 2) {
       return res.json([]);
     }
@@ -104,7 +116,7 @@ router.get('/suggestions', async (req, res) => {
         WHERE province LIKE @keyword
         ORDER BY value
       `);
-    
+
     res.json(result.recordset);
   } catch (err) {
     res.status(500).json({ error: err.message });
