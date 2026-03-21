@@ -16,7 +16,15 @@ export default function Home() {
   return (
     <>
       {/* HERO */}
-      <div className="hero py-5">
+      <div
+        className="hero py-5"
+        style={{
+          backgroundImage: "url('/assets/bus-bg.jpg')",
+          backgroundSize: "cover",
+          backgroundPosition: "center",
+          backgroundRepeat: "no-repeat"
+        }}
+      >
         <Container>
           <Row className="align-items-center g-4">
             <Col lg={7} className="text-white">

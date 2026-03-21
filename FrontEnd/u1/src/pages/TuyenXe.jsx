@@ -2,10 +2,12 @@ import { Container, Row, Col, Form, Card, Spinner, Alert } from "react-bootstrap
 import { useSearchParams, useLocation } from "react-router-dom";
 import RouteCard from "../components/RouteCard";
 import { useState, useEffect } from "react";
+import SearchBox from "../components/SearchBox";
 import axios from "axios";
 
 export default function TuyenXe() {
   const [searchParams] = useSearchParams();
+  const location = useLocation();
   const [routes, setRoutes] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -22,19 +24,27 @@ export default function TuyenXe() {
       try {
         setLoading(true);
 
-        console.log("Gọi API tìm kiếm với params:", { from: fromQ, to: toQ, date: dateQ });
+        // Nếu có kết quả từ state thì dùng, không thì gọi API
+        if (location.state?.searchResults) {
+          console.log("Dùng dữ liệu từ state:", location.state.searchResults);
+          setRoutes(location.state.searchResults);
+        } else {
+          // Gọi API tìm kiếm
+          console.log("Gọi API tìm kiếm với params:", { from: fromQ, to: toQ, date: dateQ });
 
-        const response = await axios.get('http://localhost:5000/api/search', {
-          params: {
-            from: fromQ,
-            to: toQ,
-            date: dateQ
-          }
-        });
+          const response = await axios.get('http://localhost:5000/api/search', {
+            params: {
+              from: fromQ,
+              to: toQ,
+              date: dateQ
+            }
+          });
 
-        setRoutes(response.data.data || []);
+          console.log("Kết quả từ API:", response.data);
+          setRoutes(response.data.data || []);
+        }
+
         setError(null);
-
       } catch (err) {
         console.error("Lỗi khi tải dữ liệu:", err);
         setError("Không thể tải dữ liệu từ server. Vui lòng thử lại sau.");
@@ -44,7 +54,7 @@ export default function TuyenXe() {
     };
 
     fetchRoutes();
-  }, [fromQ, toQ, dateQ]);
+  }, [fromQ, toQ, dateQ, location.state]);
 
   // Lọc theo giá (client-side filter)
   const filteredRoutes = minPrice
@@ -74,6 +84,13 @@ export default function TuyenXe() {
   return (
     <Container className="py-4">
       <h3 className="section-title mb-3">Kết quả tìm kiếm</h3>
+      <div className="mb-4">
+        <SearchBox
+          defaultFrom={fromQ}
+          defaultTo={toQ}
+          defaultDate={dateQ}
+        />
+      </div>
 
       {/* Hiển thị thông tin tìm kiếm */}
       {(fromQ || toQ || dateQ) && (
