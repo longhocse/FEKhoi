@@ -350,9 +350,23 @@ export default function MyTickets() {
                     </div>
                   </Card.Body>
 
-                  {/* Thêm nút yêu cầu hoàn tiền cho vé đã thanh toán và chưa có yêu cầu */}
+
                   {ticket.status === 'PAID' && !refundStatus && (
                     <Card.Footer className="bg-white border-0 pb-3">
+
+                      {/* NÚT TRACKING */}
+                      {(ticket.status === 'PAID' || ticket.status === 'BOOKED') && (
+                        <Button
+                          variant="outline-primary"
+                          size="sm"
+                          className="w-100"
+                          onClick={() => navigate(`/tracking/${ticket.tripId}`)}
+                        >
+                          <i className="bi bi-geo-alt me-2"></i>
+                          Theo dõi hành trình
+                        </Button>
+                      )}
+                      {/* Thêm nút yêu cầu hoàn tiền cho vé đã thanh toán và chưa có yêu cầu */}
                       <Button
                         variant="outline-warning"
                         size="sm"

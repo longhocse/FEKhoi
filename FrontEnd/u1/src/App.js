@@ -14,7 +14,6 @@ import Wallet from './pages/Wallet';
 
 // ===== Pages khách =====
 import Home from "./pages/Home";
-import RoutesPage from "./pages/Routes";
 import RouteDetail from "./pages/RouteDetail";
 import Login from "./pages/Login";
 import Register from "./pages/Register";
@@ -28,6 +27,7 @@ import { TripProvider } from "./context/TripContext";
 import AdminCompanies from './pages/AdminCompanies';
 import AdminTickets from "./pages/AdminTickets";
 import AdminRefundManagement from './pages/admin/AdminRefundManagement';
+import TrackingPage from "./pages/TrackingPage";
 
 // ===== Wallet Pages =====
 import WalletPage from './pages/Wallet';
@@ -92,6 +92,7 @@ export default function App() {
                 <Route path="/chon-ghe" element={<SeatSelection />} />
                 <Route path="/thanh-toan" element={<Payment />} />
                 <Route path="/chon-ghe/:id" element={<SeatSelection />} />
+                <Route path="/tracking/:tripId" element={<TrackingPage />} />
 
                 {/* Routes yêu cầu đăng nhập */}
                 <Route

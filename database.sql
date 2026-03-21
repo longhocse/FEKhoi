@@ -1726,3 +1726,145 @@ SELECT
 t.name,
 OBJECT_NAME(t.parent_id) AS table_name
 FROM sys.triggers t
+
+SELECT * FROM Trips WHERE id = 47;
+
+INSERT INTO TimePoints (
+    tripId,
+    pointId,
+    arrivalTime,
+    departureTime,
+    stopDuration
+)
+VALUES 
+-- Đi qua các điểm miền Trung
+(47, 2, '09:30:00', '09:45:00', 15),   -- Thanh Hóa
+(47, 3, '12:00:00', '12:15:00', 15),   -- Vinh
+(47, 4, '14:30:00', '14:45:00', 15),   -- Hà Tĩnh
+(47, 5, '17:00:00', '17:15:00', 15),   -- Đồng Hới
+(47, 6, '19:30:00', '19:45:00', 15),   -- Đông Hà
+(47, 7, '21:30:00', '21:45:00', 15);   -- Huế
+
+SELECT tp.*, p.address
+FROM TimePoints tp
+JOIN Points p ON tp.pointId = p.id
+WHERE tp.tripId = 47
+ORDER BY tp.arrivalTime;
+
+DECLARE @TripId INT;
+DECLARE @Now DATETIME = GETDATE();
+
+INSERT INTO Trips (
+    fromStationId,
+    toStationId,
+    vehicleId,
+    startTime,
+    price,
+    estimatedDuration,
+    imageUrl,
+    isActive
+)
+VALUES (
+    1,  -- Hà Nội
+    3,  -- Đà Nẵng
+    1,
+    DATEADD(HOUR, -2, @Now), -- khởi hành cách đây 2 tiếng
+    350000,
+    900,
+    '/images/trips/live-tracking.jpg',
+    1
+);
+
+SET @TripId = SCOPE_IDENTITY();
+
+DECLARE 
+    @pThanhHoa INT,
+    @pVinh INT,
+    @pHaTinh INT,
+    @pDongHoi INT,
+    @pDongHa INT,
+    @pHue INT;
+
+SELECT @pThanhHoa = id FROM Points WHERE address = N'Thanh Hóa';
+SELECT @pVinh = id FROM Points WHERE address = N'Vinh';
+SELECT @pHaTinh = id FROM Points WHERE address = N'Hà Tĩnh';
+SELECT @pDongHoi = id FROM Points WHERE address = N'Đồng Hới';
+SELECT @pDongHa = id FROM Points WHERE address = N'Đông Hà';
+SELECT @pHue = id FROM Points WHERE address = N'Huế';
+
+
+INSERT INTO TimePoints (
+    tripId,
+    pointId,
+    arrivalTime,
+    departureTime,
+    stopDuration
+)
+VALUES
+-- ĐÃ ĐI QUA
+(@TripId, @pThanhHoa, CAST(DATEADD(HOUR, -1, @Now) AS TIME), CAST(DATEADD(MINUTE, -45, @Now) AS TIME), 15),
+
+-- ĐANG GẦN / SẮP TỚI
+(@TripId, @pVinh, CAST(DATEADD(MINUTE, 30, @Now) AS TIME), CAST(DATEADD(MINUTE, 45, @Now) AS TIME), 15),
+
+-- CHƯA ĐẾN
+(@TripId, @pHaTinh, CAST(DATEADD(HOUR, 2, @Now) AS TIME), CAST(DATEADD(HOUR, 2, @Now) AS TIME), 15),
+(@TripId, @pDongHoi, CAST(DATEADD(HOUR, 4, @Now) AS TIME), CAST(DATEADD(HOUR, 4, @Now) AS TIME), 15),
+(@TripId, @pDongHa, CAST(DATEADD(HOUR, 6, @Now) AS TIME), CAST(DATEADD(HOUR, 6, @Now) AS TIME), 15),
+(@TripId, @pHue, CAST(DATEADD(HOUR, 8, @Now) AS TIME), CAST(DATEADD(HOUR, 8, @Now) AS TIME), 15);
+
+
+SELECT 
+    p.address,
+    tp.arrivalTime,
+    tp.departureTime,
+    CASE 
+        WHEN CAST(GETDATE() AS TIME) < tp.arrivalTime THEN 'UPCOMING'
+        WHEN CAST(GETDATE() AS TIME) BETWEEN tp.arrivalTime AND tp.departureTime THEN 'STOPPING'
+        ELSE 'PASSED'
+    END AS status
+FROM TimePoints tp
+JOIN Points p ON tp.pointId = p.id
+WHERE tp.tripId = @TripId
+ORDER BY tp.arrivalTime;
+
+INSERT INTO Transactions (walletId, amount, type, status, description)
+VALUES (
+    (SELECT id FROM Wallets WHERE userId = 2),
+    350000,
+    'PAYMENT',
+    'SUCCESS',
+    N'Test tracking trip 50'
+);
+
+INSERT INTO Tickets (
+    userId,
+    tripId,
+    seatId,
+    totalAmount,
+    paymentMethod,
+    transactionId,
+    status
+)
+VALUES (
+    2,          -- userId (partner)
+    50,         -- tripId
+    1,          -- seatId (thay bằng seat bạn lấy được)
+    350000,
+    'WALLET',
+    (SELECT TOP 1 id FROM Transactions ORDER BY id DESC),
+    'PAID'
+);
+
+INSERT INTO TicketPassengers (
+    ticketId,
+    fullName,
+    phoneNumber,
+    email
+)
+VALUES (
+    (SELECT TOP 1 id FROM Tickets ORDER BY id DESC),
+    N'Test User 2',
+    '0900000999',
+    'test2@busgo.vn'
+);

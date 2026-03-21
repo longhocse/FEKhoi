@@ -2,8 +2,10 @@
 import { Container, Card, Form, Button, Row, Col, Alert, Tab, Tabs } from "react-bootstrap";
 import { useAuth } from "../context/AuthContext";
 import { useState } from "react";
+import { useNavigate } from "react-router-dom";
 
 export default function Profile() {
+  const navigate = useNavigate();
   const { user, updateProfile, logout, changePassword } = useAuth();
   const [editMode, setEditMode] = useState(false);
   const [formData, setFormData] = useState({
@@ -247,7 +249,11 @@ export default function Profile() {
           <Card className="soft-card p-4">
             <h5 className="mb-3">Tài khoản của bạn</h5>
             <div className="d-grid gap-2">
-              <Button variant="outline-primary" className="text-start">
+              <Button
+                variant="outline-primary"
+                className="text-start"
+                onClick={() => navigate("/ve-cua-toi")}
+              >
                 <i className="bi bi-ticket-perforated me-2"></i>
                 Vé của tôi
               </Button>
