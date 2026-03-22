@@ -1654,56 +1654,43 @@ ON Vehicles
 AFTER INSERT
 AS
 BEGIN
-PRINT 'Trigger running'
-SET NOCOUNT ON;
+    PRINT 'Trigger running'
+    SET NOCOUNT ON;
 
--- FLOOR 1
-INSERT INTO Seats (vehicleId, name, floor, type, status)
-SELECT
-i.id,
-seat.name,
-1,
-seat.type,
-'AVAILABLE'
-FROM inserted i
-CROSS JOIN (
-VALUES
-('A1','VIP'),
-('A2','VIP'),
-('A3','VIP'),
-('A4','VIP'),
-('B1','NORMAL'),
-('B2','NORMAL'),
-('B3','NORMAL'),
-('B4','NORMAL'),
-('C1','NORMAL'),
-('C2','NORMAL'),
-('C3','NORMAL'),
-('C4','NORMAL'),
-('D1','NORMAL'),
-('D2','NORMAL'),
-('D3','NORMAL'),
-('D4','NORMAL')
-) seat(name,type);
+    -- FLOOR 1 (14 ghế đầu)
+    INSERT INTO Seats (vehicleId, name, floor, type, status)
+    SELECT
+        i.id,
+        seat.name,
+        1,
+        seat.type,
+        'AVAILABLE'
+    FROM inserted i
+    CROSS JOIN (
+        VALUES
+        ('A1','VIP'), ('A2','VIP'), ('A3','VIP'), ('A4','VIP'),
+        ('B1','NORMAL'), ('B2','NORMAL'), ('B3','NORMAL'), ('B4','NORMAL'),
+        ('C1','NORMAL'), ('C2','NORMAL'), ('C3','NORMAL'), ('C4','NORMAL'),
+        ('D1','NORMAL'), ('D2','NORMAL')
+    ) seat(name,type);
 
-
--- FLOOR 2
-INSERT INTO Seats (vehicleId, name, floor, type, status)
-SELECT
-i.id,
-seat.name,
-2,
-'NORMAL',
-'AVAILABLE'
-FROM inserted i
-CROSS JOIN (
-VALUES
-('E1'),
-('E2'),
-('F1'),
-('F2')
-) seat(name)
-WHERE i.numberOfFloors = 2;
+    -- FLOOR 2 (14 ghế còn lại)
+    INSERT INTO Seats (vehicleId, name, floor, type, status)
+    SELECT
+        i.id,
+        seat.name,
+        2,
+        seat.type,
+        'AVAILABLE'
+    FROM inserted i
+    CROSS JOIN (
+        VALUES
+        ('D3','NORMAL'), ('D4','NORMAL'),
+        ('E1','NORMAL'), ('E2','NORMAL'), ('E3','NORMAL'), ('E4','NORMAL'),
+        ('F1','NORMAL'), ('F2','NORMAL'), ('F3','NORMAL'), ('F4','NORMAL'),
+        ('G1','NORMAL'), ('G2','NORMAL'), ('G3','NORMAL'), ('G4','NORMAL')
+    ) seat(name,type)
+    WHERE i.numberOfFloors = 2;
 
 END
 

@@ -104,7 +104,7 @@
     margin-bottom: 20px;
 }
 
-.seat {
+/* .seat {
     padding: 10px;
     text-align: center;
     border-radius: 8px;
@@ -114,11 +114,11 @@
 
 .seat.normal {
     background: #e3f2fd;
-}
+} */
 
-.seat.vip {
+/* .seat.vip {
     background: #fff3cd;
-}
+} */
 
 .floor-title {
     margin-top: 15px;

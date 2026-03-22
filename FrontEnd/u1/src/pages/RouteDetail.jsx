@@ -71,6 +71,27 @@ export default function RouteDetail() {
     }).format(price || 0);
   };
 
+
+  const formatTimeOnly = (timeString) => {
+    if (!timeString) return 'N/A';
+
+    // Nếu backend trả "HH:mm:ss"
+    if (typeof timeString === 'string' && timeString.length <= 8) {
+      return timeString.slice(0, 5);
+    }
+
+    const date = new Date(timeString);
+
+    if (isNaN(date)) return timeString;
+
+    return date.toLocaleTimeString('vi-VN', {
+      hour: '2-digit',
+      minute: '2-digit',
+      hour12: false,
+      timeZone: 'Asia/Ho_Chi_Minh'
+    });
+  };
+
   if (loading) {
     return (
       <Container className="py-5 text-center">
@@ -176,7 +197,7 @@ export default function RouteDetail() {
                         <div>
                           <div className="fw-bold">{point.stopPoint}</div>
                           <div className="small text-muted">
-                            Đến: {point.arrivalTime} - Đi: {point.departureTime}
+                            Đến: {formatTimeOnly(point.arrivalTime)} - Đi: {formatTimeOnly(point.departureTime)}
                           </div>
                           <div className="small text-muted">
                             Dừng: {point.stopDuration} phút
@@ -193,7 +214,9 @@ export default function RouteDetail() {
 
         <Col lg={4}>
           {/* Card đặt vé - chỉ có nút chọn ghế */}
-          <Card className="shadow-sm sticky-top" style={{ top: '20px' }}>
+          <Card
+            className="shadow-sm"
+          >
             <Card.Header className="bg-white">
               <h5 className="mb-0">Đặt vé</h5>
             </Card.Header>

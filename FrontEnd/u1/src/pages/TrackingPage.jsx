@@ -32,10 +32,23 @@ L.Icon.Default.mergeOptions({
         "https://unpkg.com/leaflet@1.9.3/dist/images/marker-shadow.png",
 });
 
-// 🚍 icon xe bus
+// icon xe bus
 const busIcon = new L.Icon({
-    iconUrl: "https://cdn-icons-png.flaticon.com/512/61/61231.png",
-    iconSize: [32, 32],
+    iconUrl: "/assets/bus.png",
+    iconSize: [40, 40],
+    iconAnchor: [20, 20],
+});
+
+const startIcon = new L.Icon({
+    iconUrl: "https://maps.google.com/mapfiles/ms/icons/green-dot.png",
+    iconSize: [35, 35],
+    iconAnchor: [17, 35],
+});
+
+const endIcon = new L.Icon({
+    iconUrl: "https://maps.google.com/mapfiles/ms/icons/red-dot.png",
+    iconSize: [35, 35],
+    iconAnchor: [17, 35],
 });
 
 export default function TrackingPage() {
@@ -44,18 +57,6 @@ export default function TrackingPage() {
     const [loading, setLoading] = useState(true);
 
     const API_URL = "http://localhost:5000/api/trips";
-
-    const locations = {
-        "Điểm xuất phát": [21.0285, 105.8542], // ví dụ Hà Nội
-        "Thanh Hóa": [19.8067, 105.7852],
-        "Vinh": [18.6796, 105.6813],
-        "Hà Tĩnh": [18.3559, 105.8877],
-        "Đồng Hới": [17.4689, 106.6223],
-        "Đông Hà": [16.8163, 107.1003],
-        "Huế": [16.4637, 107.5909],
-    };
-
-    const points = Object.keys(locations);
 
     useEffect(() => {
         const fetchTracking = async () => {
@@ -74,60 +75,36 @@ export default function TrackingPage() {
         return () => clearInterval(interval);
     }, [tripId]);
 
-    // 🧠 tính vị trí marker
+    // 🧠 marker position theo route
     const getMarkerPosition = () => {
-        if (!tracking) return locations["Thanh Hóa"];
+        if (!tracking || !tracking.points || tracking.points.length === 0)
+            return [18.5, 106.5];
 
+        // 🚍 đang di chuyển
         if (tracking.status === "MOVING") {
-            const from = locations[tracking.from];
-            const to = locations[tracking.to];
+            const { from, to, progress } = tracking;
 
-            if (!from || !to) {
-                console.warn("Invalid location:", tracking.from, tracking.to);
-                return locations["Thanh Hóa"]; // fallback
-            }
-
-            const lat = from[0] + (to[0] - from[0]) * tracking.progress;
-            const lng = from[1] + (to[1] - from[1]) * tracking.progress;
+            const lat = from.lat + (to.lat - from.lat) * progress;
+            const lng = from.lng + (to.lng - from.lng) * progress;
 
             return [lat, lng];
         }
 
+        // 🚏 đang dừng
         if (tracking.status === "STOPPING") {
-            return locations[tracking.at] || locations["Thanh Hóa"];
+            return [tracking.at.lat, tracking.at.lng];
         }
 
-        return locations["Thanh Hóa"];
-    };
+        // 🏁 đã tới nơi
+        if (tracking.status === "ARRIVED") {
+            return [tracking.at.lat, tracking.at.lng];
+        }
 
-    console.log("tracking:", tracking);
+        // ⏳ chưa chạy
+        return [tracking.points[0].lat, tracking.points[0].lng];
+    };
 
     const markerPosition = getMarkerPosition();
-
-    // 🧠 trạng thái timeline
-    const getPointStatus = (point) => {
-        if (!tracking) return "pending";
-
-        if (tracking.status === "STOPPING" && tracking.at === point) {
-            return "current";
-        }
-
-        if (
-            tracking.status === "MOVING" &&
-            (tracking.from === point || tracking.to === point)
-        ) {
-            return "current";
-        }
-
-        if (
-            tracking.from &&
-            points.indexOf(point) < points.indexOf(tracking.from)
-        ) {
-            return "done";
-        }
-
-        return "pending";
-    };
 
     if (loading) {
         return (
@@ -137,35 +114,57 @@ export default function TrackingPage() {
         );
     }
 
-    if (!tracking) {
+    if (!tracking || !tracking.points) {
         return <Alert variant="danger">Không có dữ liệu tracking</Alert>;
     }
 
+    const points = tracking.points;
+    const sortedPoints = [...tracking.points].sort(
+        (a, b) => new Date(a.arrivalTime) - new Date(b.arrivalTime)
+    );
     return (
         <Container className="mt-4">
             <Row>
-                {/* 🗺️ MAP */}
+                {/* MAP */}
                 <Col md={7}>
                     <Card className="shadow rounded-4 overflow-hidden">
                         <MapContainer
-                            center={[18.5, 106.5]}
+                            center={[points[0].lat, points[0].lng]}
                             zoom={6}
                             style={{ height: "500px", width: "100%" }}
                         >
-                            <TileLayer
-                                url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
-                            />
+                            <TileLayer url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png" />
 
                             {/* route */}
-                            <Polyline positions={Object.values(locations)} />
+                            <Polyline positions={sortedPoints.map(p => [p.lat, p.lng])} />
 
-                            {/* xe */}
+                            {/* START */}
+                            <Marker
+                                position={[sortedPoints[0].lat, sortedPoints[0].lng]}
+                                icon={startIcon}
+                            />
+
+                            {/* END */}
+                            <Marker
+                                position={[
+                                    sortedPoints[sortedPoints.length - 1].lat,
+                                    sortedPoints[sortedPoints.length - 1].lng
+                                ]}
+                                icon={endIcon}
+                            />
+
+                            {/* intermediate points */}
+                            {sortedPoints.slice(1, -1).map((p, index) => (
+                                <Marker key={index} position={[p.lat, p.lng]} />
+                            ))}
+
+                            {/* 🚍 bus */}
                             <Marker position={markerPosition} icon={busIcon} />
                         </MapContainer>
                     </Card>
                 </Col>
 
-                {/* 📍 INFO */}
+                {/* INFO */}
                 <Col md={5}>
                     <Card className="shadow-lg p-4 rounded-4">
                         <h4 className="mb-3">🚍 Theo dõi hành trình</h4>
@@ -176,7 +175,7 @@ export default function TrackingPage() {
                         {tracking.status === "MOVING" && (
                             <>
                                 <p className="fw-semibold">
-                                    {tracking.from} → {tracking.to}
+                                    {tracking.from.name} → {tracking.to.name}
                                 </p>
                                 <ProgressBar
                                     now={tracking.progress * 100}
@@ -188,21 +187,31 @@ export default function TrackingPage() {
                             </>
                         )}
 
-                        {tracking.status === "NOT_STARTED" && (
-                            <Alert variant="warning">Xe chưa khởi hành</Alert>
-                        )}
-
-                        {tracking.status === "ARRIVED" && (
-                            <Alert variant="success">Xe đã đến nơi</Alert>
-                        )}
-
                         {/* timeline */}
                         <div className="mt-3">
                             <h6>📍 Lộ trình</h6>
 
                             <div className="timeline">
-                                {points.map((p, index) => {
-                                    const status = getPointStatus(p);
+                                {sortedPoints.map((p, index) => {
+                                    let status = "pending";
+
+                                    // 🟢 đã qua
+                                    if (
+                                        tracking.status === "ARRIVED" ||
+                                        (tracking.from && index < points.findIndex(pt => pt.name === tracking.from.name))
+                                    ) {
+                                        status = "done";
+                                    }
+
+                                    // 🔵 đang dừng
+                                    if (tracking.status === "STOPPING" && tracking.at?.name === p.name) {
+                                        status = "current";
+                                    }
+
+                                    // 🚍 đang di chuyển (highlight điểm đang tới)
+                                    if (tracking.status === "MOVING" && tracking.to?.name === p.name) {
+                                        status = "current";
+                                    }
 
                                     return (
                                         <div key={index} className="timeline-item mb-3">
@@ -216,11 +225,22 @@ export default function TrackingPage() {
                                             />
 
                                             <div className="ms-3">
-                                                <span className="fw-semibold">{p}</span>
+                                                <span className="fw-semibold">
+                                                    {index === 0 && "🚏 "}
+                                                    {index === points.length - 1 && "🏁 "}
+                                                    {p.name}
+                                                </span>
 
+                                                {/* time */}
+                                                <div className="text-muted small">
+                                                    {new Date(p.arrivalTime).toLocaleTimeString()} -{" "}
+                                                    {new Date(p.departureTime).toLocaleTimeString()}
+                                                </div>
+
+                                                {/* badge */}
                                                 {status === "current" && (
                                                     <Badge bg="primary" className="ms-2">
-                                                        Hiện tại
+                                                        {tracking.status === "MOVING" ? "Đang tới" : "Hiện tại"}
                                                     </Badge>
                                                 )}
 
@@ -239,18 +259,15 @@ export default function TrackingPage() {
                 </Col>
             </Row>
 
-            {/* CSS */}
             <style>
                 {`
                 .timeline {
                     border-left: 3px solid #dee2e6;
                     padding-left: 20px;
                 }
-
                 .timeline-item {
                     position: relative;
                 }
-
                 .timeline-dot {
                     width: 14px;
                     height: 14px;
