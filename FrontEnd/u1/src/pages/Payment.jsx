@@ -1,4 +1,4 @@
-import { Container, Card, Row, Col, Form, Button, Badge, Spinner } from "react-bootstrap";
+import { Container, Card, Row, Col, Form, Button, Badge, Spinner, InputGroup } from "react-bootstrap";
 import { useNavigate, useLocation } from "react-router-dom";
 import { useState, useEffect } from "react";
 import axios from "axios";
@@ -12,7 +12,25 @@ export default function Payment() {
   const [wallet, setWallet] = useState(null);
   const [walletLoading, setWalletLoading] = useState(false);
 
-  const { trip, seatId, seatName, totalAmount } = location.state || {};
+  // State cho discount
+  const [discountCode, setDiscountCode] = useState("");
+  const [appliedDiscount, setAppliedDiscount] = useState(null);
+  const [discountLoading, setDiscountLoading] = useState(false);
+  const [discountError, setDiscountError] = useState("");
+
+  // Lấy dữ liệu từ location.state hoặc localStorage
+  const { trip, seatId, seatName, totalAmount, seats, quantity } = location.state || {};
+
+  // Kiểm tra xem có phải đặt nhiều ghế không
+  const isMultipleSeats = seats && seats.length > 0;
+  const displaySeats = isMultipleSeats ? seats : [{ id: seatId, name: seatName }];
+  const displayQuantity = isMultipleSeats ? quantity || seats.length : 1;
+  const displayTotalAmount = isMultipleSeats ? totalAmount : (totalAmount || trip?.price || 0);
+
+  // Tính tổng tiền sau giảm giá
+  const finalTotalAmount = appliedDiscount
+    ? displayTotalAmount - appliedDiscount.discountAmount
+    : displayTotalAmount;
 
   // Lấy thông tin ví
   useEffect(() => {
@@ -40,7 +58,7 @@ export default function Payment() {
 
   useEffect(() => {
     // Kiểm tra nếu không có dữ liệu từ state
-    if (!trip || !seatId) {
+    if (!trip || (!seatId && !seats)) {
       // Thử lấy từ localStorage
       const savedBooking = localStorage.getItem('currentBooking');
       if (savedBooking) {
@@ -52,9 +70,45 @@ export default function Payment() {
         }
       }
     } else {
-      setTripData({ trip, seatId, seatName, totalAmount });
+      setTripData({ trip, seatId, seatName, totalAmount, seats, quantity });
     }
-  }, [trip, seatId, seatName, totalAmount]);
+  }, [trip, seatId, seatName, totalAmount, seats, quantity]);
+
+  // Áp dụng mã giảm giá
+  const handleApplyDiscount = async () => {
+    if (!discountCode.trim()) {
+      setDiscountError("Vui lòng nhập mã giảm giá");
+      return;
+    }
+
+    try {
+      setDiscountLoading(true);
+      setDiscountError("");
+
+      const response = await axios.post(
+        "http://localhost:5000/api/admin/promotions/apply",
+        { code: discountCode, orderAmount: displayTotalAmount },
+        { headers: { Authorization: `Bearer ${localStorage.getItem("token")}` } }
+      );
+
+      if (response.data.success) {
+        setAppliedDiscount(response.data.data);
+        setDiscountError("");
+      } else {
+        setDiscountError(response.data.message || "Mã giảm giá không hợp lệ");
+      }
+    } catch (err) {
+      setDiscountError(err.response?.data?.message || "Có lỗi xảy ra, vui lòng thử lại");
+    } finally {
+      setDiscountLoading(false);
+    }
+  };
+
+  // Xóa mã giảm giá
+  const handleRemoveDiscount = () => {
+    setAppliedDiscount(null);
+    setDiscountCode("");
+  };
 
   // Nếu không có dữ liệu
   if (!tripData) {
@@ -87,6 +141,10 @@ export default function Payment() {
     );
   }
 
+  // Xác định số lượng ghế và tổng tiền
+  const finalQuantity = tripData.quantity || (tripData.seats ? tripData.seats.length : 1);
+  const originalTotalAmount = tripData.totalAmount || (tripData.trip?.price * finalQuantity);
+
   const handlePayment = async () => {
     try {
       setLoading(true);
@@ -109,24 +167,41 @@ export default function Payment() {
           alert("Ví đang bị khóa, không thể thanh toán");
           return;
         }
-        if (wallet.balance < tripData.totalAmount) {
+        if (wallet.balance < finalTotalAmount) {
           alert(`Số dư không đủ. Số dư hiện tại: ${formatCurrency(wallet.balance)}`);
           return;
         }
       }
 
+      // Xác định endpoint và body request dựa trên số lượng ghế
+      const isMultiple = tripData.seats && tripData.seats.length > 0;
+      const endpoint = isMultiple ? "http://localhost:5000/api/trips/book-multiple" : "http://localhost:5000/api/trips/book";
+
+      let requestBody;
+      if (isMultiple) {
+        requestBody = {
+          tripId: tripData.trip.id,
+          seatIds: tripData.seats.map(s => s.id),
+          paymentMethod: method === 'wallet' ? 'WALLET' : method === 'qr' ? 'BANKING' : 'CASH',
+          discountCode: appliedDiscount?.promotion?.code || null
+        };
+      } else {
+        requestBody = {
+          tripId: tripData.trip.id,
+          seatId: tripData.seatId,
+          paymentMethod: method === 'wallet' ? 'WALLET' : method === 'qr' ? 'BANKING' : 'CASH',
+          discountCode: appliedDiscount?.promotion?.code || null
+        };
+      }
+
       // Gọi API đặt vé
-      const res = await fetch("http://localhost:5000/api/trips/book", {
+      const res = await fetch(endpoint, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
           Authorization: `Bearer ${token}`
         },
-        body: JSON.stringify({
-          tripId: tripData.trip.id,
-          seatId: tripData.seatId,
-          paymentMethod: method === 'wallet' ? 'WALLET' : method === 'qr' ? 'BANKING' : 'CASH'
-        })
+        body: JSON.stringify(requestBody)
       });
 
       const data = await res.json();
@@ -136,11 +211,26 @@ export default function Payment() {
         localStorage.removeItem('currentBooking');
 
         // Thông báo thành công
+        let message = "";
         if (method === "wallet") {
-          alert(`Đặt vé thành công! Đã trừ ${formatCurrency(tripData.totalAmount)} từ ví của bạn.`);
+          if (isMultiple) {
+            message = `Đặt thành công ${finalQuantity} vé! Đã trừ ${formatCurrency(finalTotalAmount)} từ ví của bạn.`;
+          } else {
+            message = `Đặt vé thành công! Đã trừ ${formatCurrency(finalTotalAmount)} từ ví của bạn.`;
+          }
         } else {
-          alert("Đặt vé thành công!");
+          if (isMultiple) {
+            message = `Đặt thành công ${finalQuantity} vé!`;
+          } else {
+            message = "Đặt vé thành công!";
+          }
         }
+
+        if (appliedDiscount) {
+          message += ` Đã áp dụng mã ${appliedDiscount.promotion.code}, tiết kiệm ${formatCurrency(appliedDiscount.discountAmount)}.`;
+        }
+
+        alert(message);
 
         // Chuyển đến trang vé của tôi
         navigate("/ve-cua-toi");
@@ -165,7 +255,15 @@ export default function Payment() {
     }).format(amount);
   };
 
-  const displayAmount = tripData.totalAmount || tripData.trip?.price || 250000;
+  const displayAmount = finalTotalAmount;
+
+  // Lấy danh sách tên ghế để hiển thị
+  const getSeatNames = () => {
+    if (tripData.seats && tripData.seats.length > 0) {
+      return tripData.seats.map(s => s.name).join(', ');
+    }
+    return tripData.seatName || tripData.seatId;
+  };
 
   return (
     <Container className="py-4" style={{ maxWidth: 800 }}>
@@ -287,13 +385,84 @@ export default function Payment() {
         </div>
       </Card>
 
+      {/* Phần nhập mã giảm giá */}
+      <Card className="soft-card mb-4 p-4">
+        <h5 className="mb-3">
+          <i className="bi bi-tag-fill me-2 text-warning"></i>
+          Mã giảm giá
+        </h5>
+
+        {appliedDiscount ? (
+          <div className="bg-success bg-opacity-10 p-3 rounded">
+            <div className="d-flex justify-content-between align-items-center">
+              <div>
+                <Badge bg="success" className="mb-1">Đã áp dụng</Badge>
+                <div className="fw-bold">Mã: {appliedDiscount.promotion.code}</div>
+                <div className="text-success">
+                  Giảm {appliedDiscount.promotion.discountType === 'PERCENT'
+                    ? `${appliedDiscount.promotion.discountValue}%`
+                    : formatCurrency(appliedDiscount.promotion.discountValue)}
+                  {appliedDiscount.promotion.discountType === 'PERCENT' && appliedDiscount.promotion.maxDiscount &&
+                    ` (tối đa ${formatCurrency(appliedDiscount.promotion.maxDiscount)})`}
+                </div>
+                <div className="text-muted small mt-1">
+                  Tiết kiệm: {formatCurrency(appliedDiscount.discountAmount)}
+                </div>
+              </div>
+              <Button
+                variant="outline-danger"
+                size="sm"
+                onClick={handleRemoveDiscount}
+              >
+                <i className="bi bi-x-lg"></i> Xóa
+              </Button>
+            </div>
+          </div>
+        ) : (
+          <InputGroup>
+            <Form.Control
+              type="text"
+              placeholder="Nhập mã giảm giá"
+              value={discountCode}
+              onChange={(e) => setDiscountCode(e.target.value.toUpperCase())}
+              disabled={discountLoading}
+            />
+            <Button
+              variant="outline-primary"
+              onClick={handleApplyDiscount}
+              disabled={discountLoading || !discountCode.trim()}
+            >
+              {discountLoading ? <Spinner size="sm" /> : "Áp dụng"}
+            </Button>
+          </InputGroup>
+        )}
+        {discountError && (
+          <div className="text-danger small mt-2">{discountError}</div>
+        )}
+      </Card>
+
       {/* Tổng tiền */}
-      <Card className="soft-card mt-4 p-4 bg-light">
+      <Card className="soft-card p-4 bg-light">
         <div className="text-center">
           <div className="text-muted small">Tổng tiền</div>
+          {appliedDiscount && (
+            <div className="text-muted small text-decoration-line-through">
+              {formatCurrency(originalTotalAmount)}
+            </div>
+          )}
           <div className="display-4 fw-bold text-primary-custom">
             {formatCurrency(displayAmount)}
           </div>
+          {appliedDiscount && (
+            <div className="text-success small mt-1">
+              Đã tiết kiệm {formatCurrency(appliedDiscount.discountAmount)}
+            </div>
+          )}
+          {finalQuantity > 1 && (
+            <div className="text-muted small mt-1">
+              ({finalQuantity} vé × {formatCurrency(tripData.trip?.price)})
+            </div>
+          )}
         </div>
       </Card>
 
@@ -316,7 +485,7 @@ export default function Payment() {
             </div>
           </div>
           <Badge bg="light" text="dark" className="border p-2">
-            {formatCurrency(displayAmount)}
+            {formatCurrency(originalTotalAmount)}
           </Badge>
         </div>
 
@@ -329,7 +498,7 @@ export default function Payment() {
             </div>
           </div>
           <Badge bg="info" className="p-2">
-            Ghế: {tripData.seatName || tripData.seatId}
+            {finalQuantity > 1 ? `${finalQuantity} ghế` : 'Ghế'} : {getSeatNames()}
           </Badge>
         </div>
       </Card>

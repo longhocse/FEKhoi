@@ -12,6 +12,7 @@ router.get("/search", tripController.searchTrips);
 router.get("/popular", tripController.getPopularTrips);
 router.get("/:id", tripController.getTripById);
 router.post("/book", authMiddleware, tripController.bookTicket);
+router.post("/book-multiple", authMiddleware, tripController.bookMultipleTickets);
 router.get('/fake-tracking/:tripId', async (req, res) => {
     try {
         const tripId = req.params.tripId;

@@ -7,13 +7,41 @@ exports.getMyTickets = async (req, res) => {
   try {
     console.log('📌 getMyTickets - userId:', req.user.id);
 
-    const tickets = await Ticket.getByUserId(req.user.id);
+    const pool = await poolPromise;
 
-    console.log(`✅ Tìm thấy ${tickets.length} vé`);
+    const result = await pool.request()
+      .input('userId', sql.Int, req.user.id)
+      .query(`
+            SELECT 
+                tk.id,
+                tk.totalAmount,
+                tk.status,
+                tk.paymentMethod,
+                tk.bookedAt,
+                t.id AS tripId,
+                t.startTime,
+                sFrom.name AS fromStation,
+                sTo.name AS toStation,
+                pc.id AS companyId,      -- THÊM DÒNG NÀY
+                pc.name AS companyName,  -- THÊM DÒNG NÀY
+                s.name AS seatName
+            FROM Tickets tk
+            JOIN Trips t ON tk.tripId = t.id
+            JOIN Stations sFrom ON t.fromStationId = sFrom.id
+            JOIN Stations sTo ON t.toStationId = sTo.id
+            JOIN Vehicles v ON t.vehicleId = v.id
+            JOIN PassengerCarCompanies pc ON v.partnerId = pc.id  -- THÊM JOIN NÀY
+            JOIN Seats s ON tk.seatId = s.id
+            WHERE tk.userId = @userId
+            ORDER BY tk.bookedAt DESC
+        `);
+
+    console.log(`✅ Tìm thấy ${result.recordset.length} vé`);
+    console.log("📌 Vé đầu tiên:", result.recordset[0]); // Log để kiểm tra
 
     res.json({
       success: true,
-      data: tickets
+      data: result.recordset
     });
   } catch (error) {
     console.error('❌ Lỗi getMyTickets:', error);
@@ -77,49 +105,85 @@ exports.getTicketById = async (req, res) => {
   }
 };
 
-// Lấy tất cả vé (admin)
+// Lấy tất cả vé (admin) - SỬA LẠI HOÀN TOÀN
 exports.getAllTickets = async (req, res) => {
   try {
-    console.log('📌 getAllTickets - admin');
+    console.log('📌 getAllTickets - admin called');
 
     const pool = await poolPromise;
+    const { status } = req.query;
 
-    const result = await pool.request().query(`
+    // Sửa lại query với INNER JOIN để đảm bảo lấy đúng dữ liệu
+    let query = `
       SELECT 
-        t.id,
-        u.name AS customerName,
-        tp.fullName AS passengerName,
-        s.name AS seatName,
-        fs.name AS fromStation,
-        ts.name AS toStation,
+        tk.id,
+        u.name as userName,
+        u.email as userEmail,
+        u.phoneNumber as userPhone,
+        tp.fullName as passengerName,
+        tp.phoneNumber as passengerPhone,
+        s.name as seatName,
+        s.type as seatType,
+        s.floor as seatFloor,
+        fs.name as fromStation,
+        ts.name as toStation,
         tr.startTime,
-        v.name AS vehicleName,
-        t.status,
-        t.paymentMethod,
-        t.totalAmount,
-        t.bookedAt
-      FROM Tickets t
-      LEFT JOIN Users u ON t.userId = u.id
-      LEFT JOIN Trips tr ON t.tripId = tr.id
-      LEFT JOIN Stations fs ON tr.fromStationId = fs.id
-      LEFT JOIN Stations ts ON tr.toStationId = ts.id
-      LEFT JOIN Vehicles v ON tr.vehicleId = v.id
-      LEFT JOIN Seats s ON t.seatId = s.id
-      LEFT JOIN TicketPassengers tp ON tp.ticketId = t.id
-      ORDER BY t.bookedAt DESC
-    `);
+        tr.price as tripPrice,
+        v.name as vehicleName,
+        pc.name as companyName,
+        tk.status,
+        tk.paymentMethod,
+        tk.totalAmount,
+        tk.bookedAt,
+        tk.transactionId,
+        tk.note
+      FROM Tickets tk
+      LEFT JOIN Users u ON tk.userId = u.id
+      LEFT JOIN TicketPassengers tp ON tk.id = tp.ticketId
+      INNER JOIN Trips tr ON tk.tripId = tr.id
+      INNER JOIN Stations fs ON tr.fromStationId = fs.id
+      INNER JOIN Stations ts ON tr.toStationId = ts.id
+      INNER JOIN Vehicles v ON tr.vehicleId = v.id
+      INNER JOIN PassengerCarCompanies pc ON v.partnerId = pc.id
+      INNER JOIN Seats s ON tk.seatId = s.id
+      WHERE 1=1
+    `;
 
-    console.log(`✅ Tìm thấy ${result.recordset.length} vé`);
+    if (status && status !== 'ALL') {
+      query += ` AND tk.status = '${status}'`;
+    }
+
+    query += ` ORDER BY tk.bookedAt DESC`;
+
+    console.log('📌 Query:', query);
+
+    const result = await pool.request().query(query);
+
+    console.log(`📌 Tìm thấy ${result.recordset.length} vé`);
+
+    // Log mẫu dữ liệu để debug
+    if (result.recordset.length > 0) {
+      console.log('📌 Mẫu dữ liệu vé đầu tiên:', {
+        id: result.recordset[0].id,
+        userName: result.recordset[0].userName,
+        fromStation: result.recordset[0].fromStation,
+        toStation: result.recordset[0].toStation,
+        seatName: result.recordset[0].seatName,
+        totalAmount: result.recordset[0].totalAmount,
+        status: result.recordset[0].status
+      });
+    }
 
     res.json({
       success: true,
       data: result.recordset
     });
-  } catch (err) {
-    console.error('❌ Lỗi getAllTickets:', err);
+
+  } catch (error) {
+    console.error('❌ Lỗi getAllTickets:', error);
     res.status(500).json({
       success: false,
-      message: "Lỗi server"
+      message: error.message
     });
   }
 };

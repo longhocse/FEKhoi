@@ -23,7 +23,6 @@ export default function TuyenXe() {
     const fetchRoutes = async () => {
       try {
         setLoading(true);
-
         // Nếu có kết quả từ state thì dùng, không thì gọi API
         if (location.state?.searchResults) {
           console.log("Dùng dữ liệu từ state:", location.state.searchResults);
@@ -31,7 +30,6 @@ export default function TuyenXe() {
         } else {
           // Gọi API tìm kiếm
           console.log("Gọi API tìm kiếm với params:", { from: fromQ, to: toQ, date: dateQ });
-
           const response = await axios.get('http://localhost:5000/api/search', {
             params: {
               from: fromQ,

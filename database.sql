@@ -173,6 +173,129 @@ CREATE TABLE TicketPassengers (
     FOREIGN KEY (ticketId) REFERENCES Tickets(id) ON DELETE CASCADE
 );
 
+-- Bảng đánh giá chuyến xe
+CREATE TABLE TripReviews (
+    id INT PRIMARY KEY IDENTITY(1,1),
+    userId INT NOT NULL,
+    tripId INT NOT NULL,
+    rating INT NOT NULL CHECK (rating BETWEEN 1 AND 5),
+    comment NVARCHAR(MAX),
+    images NVARCHAR(MAX), -- Lưu JSON hoặc đường dẫn ảnh
+    status VARCHAR(20) DEFAULT 'PENDING' CHECK (status IN ('PENDING', 'APPROVED', 'REJECTED')),
+    createdAt DATETIME DEFAULT GETDATE(),
+    updatedAt DATETIME DEFAULT GETDATE(),
+    FOREIGN KEY (userId) REFERENCES Users(id),
+    FOREIGN KEY (tripId) REFERENCES Trips(id)
+);
+
+-- Bảng đánh giá nhà xe
+CREATE TABLE CompanyReviews (
+    id INT PRIMARY KEY IDENTITY(1,1),
+    userId INT NOT NULL,
+    companyId INT NOT NULL,
+    rating INT NOT NULL CHECK (rating BETWEEN 1 AND 5),
+    comment NVARCHAR(MAX),
+    images NVARCHAR(MAX),
+    status VARCHAR(20) DEFAULT 'PENDING' CHECK (status IN ('PENDING', 'APPROVED', 'REJECTED')),
+    createdAt DATETIME DEFAULT GETDATE(),
+    updatedAt DATETIME DEFAULT GETDATE(),
+    FOREIGN KEY (userId) REFERENCES Users(id),
+    FOREIGN KEY (companyId) REFERENCES PassengerCarCompanies(id)
+);
+
+
+
+-- Tạo index
+CREATE INDEX IX_TripReviews_TripId ON TripReviews(tripId);
+CREATE INDEX IX_TripReviews_UserId ON TripReviews(userId);
+CREATE INDEX IX_CompanyReviews_CompanyId ON CompanyReviews(companyId);
+
+GO
+
+
+-- Bảng khuyến mãi (Promotions)
+CREATE TABLE Promotions (
+    id INT PRIMARY KEY IDENTITY(1,1),
+    code NVARCHAR(50) NOT NULL UNIQUE,
+    name NVARCHAR(255) NOT NULL,
+    description NVARCHAR(MAX),
+    discountType VARCHAR(20) NOT NULL CHECK (discountType IN ('PERCENT', 'FIXED')),
+    discountValue DECIMAL(10,2) NOT NULL,
+    minOrderValue DECIMAL(10,2) DEFAULT 0,
+    maxDiscount DECIMAL(10,2) NULL,
+    startDate DATETIME NOT NULL,
+    endDate DATETIME NOT NULL,
+    usageLimit INT DEFAULT 1,
+    usedCount INT DEFAULT 0,
+    isActive BIT DEFAULT 1,
+    createdAt DATETIME DEFAULT GETDATE(),
+    updatedAt DATETIME DEFAULT GETDATE()
+);
+
+-- Bảng lưu lịch sử sử dụng khuyến mãi
+CREATE TABLE PromotionUsage (
+    id INT PRIMARY KEY IDENTITY(1,1),
+    promotionId INT NOT NULL,
+    userId INT NOT NULL,
+    ticketId INT NOT NULL,
+    discountAmount DECIMAL(10,2) NOT NULL,
+    usedAt DATETIME DEFAULT GETDATE(),
+    FOREIGN KEY (promotionId) REFERENCES Promotions(id),
+    FOREIGN KEY (userId) REFERENCES Users(id),
+    FOREIGN KEY (ticketId) REFERENCES Tickets(id)
+);
+
+-- Index
+CREATE INDEX IX_Promotions_Code ON Promotions(code);
+CREATE INDEX IX_Promotions_Date ON Promotions(startDate, endDate);
+CREATE INDEX IX_PromotionUsage_UserId ON PromotionUsage(userId);
+
+
+-- Xóa bảng cũ nếu tồn tại
+DROP TABLE IF EXISTS Reports;
+
+-- Tạo bảng Reports mới (không có fromStation, toStation)
+CREATE TABLE Reports (
+    id INT PRIMARY KEY IDENTITY(1,1),
+    userId INT NOT NULL,
+    ticketId INT NULL,
+    tripId INT NULL,
+    title NVARCHAR(255) NOT NULL,
+    description NVARCHAR(MAX) NOT NULL,
+    category VARCHAR(50) NOT NULL CHECK (category IN ('TECHNICAL', 'SERVICE', 'PAYMENT', 'OTHER')),
+    status VARCHAR(20) DEFAULT 'PENDING' CHECK (status IN ('PENDING', 'PROCESSING', 'RESOLVED', 'CLOSED')),
+    adminNote NVARCHAR(MAX) NULL,
+    resolvedAt DATETIME NULL,
+    createdAt DATETIME DEFAULT GETDATE(),
+    FOREIGN KEY (userId) REFERENCES Users(id),
+    FOREIGN KEY (ticketId) REFERENCES Tickets(id),
+    FOREIGN KEY (tripId) REFERENCES Trips(id)
+);
+
+
+-- 1. Thêm cột refundPercentage
+IF NOT EXISTS (SELECT * FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_NAME = 'Refunds' AND COLUMN_NAME = 'refundPercentage')
+BEGIN
+    ALTER TABLE Refunds ADD refundPercentage INT NULL;
+    PRINT '✅ Đã thêm cột refundPercentage';
+END
+ELSE
+BEGIN
+    PRINT 'ℹ️ Cột refundPercentage đã tồn tại';
+END
+
+-- 2. Thêm cột adminNote
+IF NOT EXISTS (SELECT * FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_NAME = 'Refunds' AND COLUMN_NAME = 'adminNote')
+BEGIN
+    ALTER TABLE Refunds ADD adminNote NVARCHAR(MAX) NULL;
+    PRINT '✅ Đã thêm cột adminNote';
+END
+ELSE
+BEGIN
+    PRINT 'ℹ️ Cột adminNote đã tồn tại';
+END
+
+
 GO
 INSERT INTO Users (
         name,

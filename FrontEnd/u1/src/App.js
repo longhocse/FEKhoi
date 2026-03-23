@@ -1,7 +1,7 @@
 // src/App.js
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { AuthProvider } from "./context/AuthContext";
-import { WalletProvider } from './context/WalletProvider'; // Import đúng tên
+import { WalletProvider } from './context/WalletProvider';
 
 import { useState, useEffect } from "react";
 import { Toaster } from 'react-hot-toast';
@@ -28,6 +28,10 @@ import AdminCompanies from './pages/AdminCompanies';
 import AdminTickets from "./pages/AdminTickets";
 import AdminRefundManagement from './pages/admin/AdminRefundManagement';
 import TrackingPage from "./pages/TrackingPage";
+import TinTuc from "./pages/TinTuc";
+import LienHe from "./pages/LienHe";
+import AdminReports from './pages/admin/AdminReports';
+import AdminReviews from './pages/admin/AdminReviews';
 
 // ===== Wallet Pages =====
 import WalletPage from './pages/Wallet';
@@ -47,8 +51,13 @@ import TripSeats from "./partner/TripSeats";
 import AdminLayout from "./admin/AdminLayout";
 import AdminDashboard from "./admin/AdminDashboard";
 import AdminUsers from "./admin/AdminUsers";
-import AdminRoutes from "./admin/AdminRoutes";
 import AdminSettings from "./admin/AdminSettings";
+import AdminRoutes from './admin/AdminRoutes';
+import AdminTrips from './admin/AdminTrips';
+import AdminSeats from './admin/AdminSeats';
+import AdminPromotions from './admin/AdminPromotions';
+
+// KHÔNG IMPORT CompanyReviews VÀO ĐÂY - Nó là component con, không phải trang
 
 export default function App() {
   const [message, setMessage] = useState("");
@@ -69,7 +78,7 @@ export default function App() {
     <BrowserRouter>
       <AuthProvider>
         <TripProvider>
-          <WalletProvider> {/* WalletProvider phải nằm trong AuthProvider vì nó cần user */}
+          <WalletProvider>
             <Toaster
               position="top-right"
               toastOptions={{
@@ -90,8 +99,10 @@ export default function App() {
                 <Route path="/dang-nhap" element={<Login />} />
                 <Route path="/dang-ky" element={<Register />} />
                 <Route path="/chon-ghe" element={<SeatSelection />} />
-                <Route path="/thanh-toan" element={<Payment />} />
                 <Route path="/chon-ghe/:id" element={<SeatSelection />} />
+                <Route path="/thanh-toan" element={<Payment />} />
+                <Route path="/tin-tuc" element={<TinTuc />} />
+                <Route path="/lien-he" element={<LienHe />} />
                 <Route path="/tracking/:tripId" element={<TrackingPage />} />
 
                 {/* Routes yêu cầu đăng nhập */}
@@ -141,44 +152,47 @@ export default function App() {
                   }
                 />
 
-                <Route
-                  path="/wallet/topup"
-                  element={
-                    <PrivateRoute>
-                      <WalletTopUp />
-                    </PrivateRoute>
-                  }
-                />
-              </Route>
+  <Route
+    path="/wallet/topup"
+    element={
+      <PrivateRoute>
+        <WalletTopUp />
+      </PrivateRoute>
+    }
+  />
+              </Route >
 
-              {/* ================= ADMIN ================= */}
-              <Route
-                path="/admin"
-                element={
-                  <AdminRoute>
-                    <AdminLayout />
-                  </AdminRoute>
+    {/* ================= ADMIN ================= */ }
+    < Route
+  path = "/admin"
+  element = {
+                  < AdminRoute >
+    <AdminLayout />
+                  </AdminRoute >
                 }
               >
                 <Route index element={<AdminDashboard />} />
                 <Route path="users" element={<AdminUsers />} />
                 <Route path="routes" element={<AdminRoutes />} />
                 <Route path="settings" element={<AdminSettings />} />
-                <Route path="ve" element={<AdminTickets />} />
                 <Route path="quan-ly-ve" element={<AdminTickets />} />
                 <Route path="nha-xe" element={<AdminCompanies />} />
-                <Route path="companies" element={<AdminCompanies />} />
                 <Route path="refunds" element={<AdminRefundManagement />} />
+                <Route path="reports" element={<AdminReports />} />
+                <Route path="reviews" element={<AdminReviews />} />
+                <Route path="routes" element={<AdminRoutes />} />
+                <Route path="admin-trips" element={<AdminTrips />} />
+                <Route path="seats" element={<AdminSeats />} />
+                <Route path="promotions" element={<AdminPromotions />} />
+              </Route >
 
-              </Route>
-
-              {/* ================= PARTNER ================= */}
-              <Route
-                path="/doi-tac"
-                element={
-                  <PartnerRoute>
-                    <PartnerLayout />
-                  </PartnerRoute>
+  {/* ================= PARTNER ================= */ }
+  < Route
+path = "/doi-tac"
+element = {
+                  < PartnerRoute >
+  <PartnerLayout />
+                  </PartnerRoute >
                 }
               >
                 <Route index element={<PartnerDashboard />} />
@@ -188,7 +202,7 @@ export default function App() {
                 <Route path="settings" element={<PartnerSettings />} />
                 <Route path="create-trip" element={<CreateTrip />} />
                 <Route path="trip-seats/:tripId" element={<TripSeats />} />
-              </Route>
+              </Route >
 
               <Route path="/dang-nhap-nha-xe" element={<PartnerLogin />} />
 
@@ -210,12 +224,12 @@ export default function App() {
                 }
               />
 
-              {/* ================= 404 ================= */}
-              <Route path="*" element={<NotFound />} />
-            </Routes>
-          </WalletProvider>
-        </TripProvider>
-      </AuthProvider>
-    </BrowserRouter>
+{/* ================= 404 ================= */ }
+<Route path="*" element={<NotFound />} />
+            </Routes >
+          </WalletProvider >
+        </TripProvider >
+      </AuthProvider >
+    </BrowserRouter >
   );
 }

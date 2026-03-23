@@ -2,6 +2,7 @@ import { Container, Row, Col, Card, Badge, Button, Spinner, Alert } from "react-
 import { useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import axios from "axios";
+import CompanyReviews from '../components/CompanyReviews'; // THÊM IMPORT NÀY
 
 export default function RouteDetail() {
   const { id } = useParams();
@@ -17,6 +18,14 @@ export default function RouteDetail() {
       setLoading(false);
     }
   }, [id]);
+
+  // SỬA: Đặt console.log ở đây - sau khi trip đã có dữ liệu
+  useEffect(() => {
+    if (trip) {
+      console.log("🏢 Company ID:", trip.companyId);
+      console.log("🏢 Company Name:", trip.companyName);
+    }
+  }, [trip]);
 
   const fetchTripDetail = async () => {
     try {
@@ -47,7 +56,6 @@ export default function RouteDetail() {
   };
 
   const handleSelectSeats = () => {
-    // Chuyển đến trang chọn ghế với ID chuyến xe
     navigate(`/chon-ghe/${trip.id}`);
   };
 
@@ -182,7 +190,7 @@ export default function RouteDetail() {
 
           {/* Điểm dừng */}
           {trip.timePoints && trip.timePoints.length > 0 && (
-            <Card className="shadow-sm">
+            <Card className="shadow-sm mb-4">
               <Card.Header className="bg-white">
                 <h5 className="mb-0">Điểm dừng</h5>
               </Card.Header>
@@ -213,7 +221,6 @@ export default function RouteDetail() {
         </Col>
 
         <Col lg={4}>
-          {/* Card đặt vé - chỉ có nút chọn ghế */}
           <Card
             className="shadow-sm"
           >
@@ -253,6 +260,9 @@ export default function RouteDetail() {
           </Card>
         </Col>
       </Row>
+
+      {/* ===== ĐÁNH GIÁ NHÀ XE ===== */}
+      <CompanyReviews companyId={trip.companyId} companyName={trip.companyName} />
     </Container>
   );
 }

@@ -92,7 +92,6 @@ router.get('/search', async (req, res) => {
 router.get('/suggestions', async (req, res) => {
   try {
     const { keyword } = req.query;
-
     if (!keyword || keyword.length < 2) {
       return res.json([]);
     }
@@ -116,7 +115,6 @@ router.get('/suggestions', async (req, res) => {
         WHERE province LIKE @keyword
         ORDER BY value
       `);
-
     res.json(result.recordset);
   } catch (err) {
     res.status(500).json({ error: err.message });

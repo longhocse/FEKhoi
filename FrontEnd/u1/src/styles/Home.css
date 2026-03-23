@@ -1,0 +1,42 @@
+.text-shadow {
+    text-shadow:
+        0 2px 4px rgba(0, 0, 0, 0.5),
+        0 6px 12px rgba(0, 0, 0, 0.4);
+}
+
+.hero-overlay {
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(135deg,
+            rgba(0, 102, 153, 0.75),
+            /* xanh đậm */
+            rgba(0, 180, 216, 0.55)
+            /* xanh biển sáng */
+        );
+    z-index: 1;
+}
+
+.hero {
+    position: relative;
+    overflow: hidden;
+}
+
+.hero::before {
+    content: "";
+    position: absolute;
+    inset: 0;
+    background: rgba(12, 74, 110, 0.65);
+    /* #0C4A6E + opacity */
+    z-index: 1;
+}
+
+.hero>* {
+    position: relative;
+    z-index: 2;
+}
+
+.soft-card {
+    background: rgba(255, 255, 255, 0.95);
+    backdrop-filter: blur(6px);
+    border-radius: 16px;
+}

@@ -23,6 +23,7 @@ const Ticket = {
                         sFrom.name AS fromStation,
                         sTo.name AS toStation,
                         v.name AS vehicleName,
+                        pc.id AS companyId,
                         pc.name AS companyName,
                         s.name AS seatName,
                         s.floor AS seatFloor,

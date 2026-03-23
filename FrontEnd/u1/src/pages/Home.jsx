@@ -3,8 +3,8 @@ import SearchBox from "../components/SearchBox";
 import RouteCard from "../components/RouteCard";
 import { useNavigate } from "react-router-dom";
 import { useEffect, useState } from "react";
-import axios from "axios";
 import { useTrip } from "../context/TripContext";
+import "../styles/Home.css";
 
 export default function Home() {
   const navigate = useNavigate();
@@ -28,16 +28,19 @@ export default function Home() {
         <Container>
           <Row className="align-items-center g-4">
             <Col lg={7} className="text-white">
-              <h1 className="display-5 fw-bold">
-                Hành trình an toàn, <span>Kết nối mọi nơi</span>
+              <h1 className="display-5 fw-bold text-shadow" style={{ lineHeight: "1.3" }}>
+                Hành trình an toàn,{" "}
+                <span className="highlight-text">Kết nối mọi nơi</span>
               </h1>
-              <p className="text-white-50 mb-4">
+
+              <p className="text-white mb-4 text-shadow-soft">
                 Đặt vé xe khách trực tuyến dễ dàng, nhanh chóng cùng BUSGO.
               </p>
+
               <SearchBox />
             </Col>
 
-            <Col lg={5} className="d-none d-lg-block">
+            <Col lg={4} className="d-none d-lg-block ms-auto">
               <Card className="soft-card p-4">
                 <div className="fw-bold section-title mb-2">Ưu điểm nổi bật</div>
                 <div className="d-flex gap-3 align-items-start mb-3">

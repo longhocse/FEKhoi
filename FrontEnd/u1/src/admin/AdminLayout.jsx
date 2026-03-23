@@ -36,9 +36,38 @@ export default function AdminLayout() {
             🎫 Quản lý vé
           </NavLink>
 
-          {/* THÊM MENU REFUND - KIỂM TRA ĐƯỜNG DẪN */}
           <NavLink to="/admin/refunds" className={({ isActive }) => isActive ? "active" : ""}>
             💰 Hoàn tiền
+          </NavLink>
+
+          {/* SỬA LẠI DÒNG NÀY */}
+          <NavLink to="/admin/reports" className={({ isActive }) => isActive ? "active" : ""}>
+            <i className="bi bi-flag me-2"></i>
+             Báo cáo
+          </NavLink>
+          <NavLink to="/admin/reviews" className={({ isActive }) => isActive ? "active" : ""}>
+            <i className="bi bi-star me-2"></i>
+            Đánh giá
+          </NavLink>
+
+          <NavLink to="/admin/routes" className={({ isActive }) => isActive ? "active" : ""}>
+            <i className="bi bi-geo-alt me-2"></i>
+            Tuyến đường
+          </NavLink>
+
+          <NavLink to="/admin/admin-trips" className={({ isActive }) => isActive ? "active" : ""}>
+            <i className="bi bi-bus-front me-2"></i>
+            Chuyến xe
+          </NavLink>
+
+          <NavLink to="/admin/seats" className={({ isActive }) => isActive ? "active" : ""}>
+            <i className="bi bi-grid-3x3-gap-fill me-2"></i>
+            Quản lý ghế
+          </NavLink>
+
+          <NavLink to="/admin/promotions" className={({ isActive }) => isActive ? "active" : ""}>
+            <i className="bi bi-tag-fill me-2"></i>
+            Khuyến mãi
           </NavLink>
 
           <NavLink to="/admin/settings" className={({ isActive }) => isActive ? "active" : ""}>
