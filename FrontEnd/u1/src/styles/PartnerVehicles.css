@@ -1,0 +1,27 @@
+/* ===== VEHICLES ===== */
+
+.vehicles-page h2 {
+  margin-bottom: 20px;
+}
+
+.vehicle-form input {
+  padding: 8px;
+  margin-right: 10px;
+  border-radius: 6px;
+  border: 1px solid #ddd;
+}
+
+.vehicle-form button {
+  padding: 8px 15px;
+  background: #2d5bff;
+  color: white;
+  border: none;
+  border-radius: 6px;
+}
+
+.vehicle-card {
+  border: 1px solid #ddd;
+  padding: 15px;
+  margin-bottom: 15px;
+  border-radius: 8px;
+}
