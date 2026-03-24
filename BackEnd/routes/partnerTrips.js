@@ -1,6 +1,28 @@
 const express = require("express");
 const router = express.Router();
 const { sql, poolPromise } = require("../config/db");
+const authMiddleware = require("../middleware/authMiddleware");
+
+router.get("/tickets", authMiddleware, async (req, res) => {
+  try {
+    console.log("🔥 partnerTrips route loaded");
+    const partnerId = req.user.id;
+
+    const pool = await poolPromise;
+    const result = await pool.request()
+      .input("PartnerId", partnerId)
+      .execute("sp_GetPartnerTickets");
+
+    res.json({
+      success: true,
+      data: result.recordset
+    });
+
+  } catch (error) {
+    console.error("❌ getPartnerTickets error:", error);
+    res.status(500).json({ success: false });
+  }
+});
 
 router.put("/trips/delete/:id", async (req, res) => {
   try {
@@ -42,7 +64,7 @@ router.get("/trips/:tripId/seats", async (req, res) => {
           s.name,
           s.floor,
 
-          -- 👇 LOGIC CHÍNH
+         
           CASE 
             WHEN tk.id IS NOT NULL THEN 'BOOKED'
             ELSE s.status
@@ -51,7 +73,7 @@ router.get("/trips/:tripId/seats", async (req, res) => {
         FROM Seats s
         JOIN Trips t ON s.vehicleId = t.vehicleId
 
-        -- 👇 JOIN TICKETS
+        
         LEFT JOIN Tickets tk 
           ON tk.seatId = s.id
           AND tk.tripId = @tripId
@@ -220,8 +242,9 @@ router.get("/stations", async (req, res) => {
 
 // ================= ADD TRIP =================
 router.post("/trips", async (req, res) => {
-  try {
+  const transaction = new sql.Transaction(await poolPromise);
 
+  try {
     const {
       fromStationId,
       toStationId,
@@ -229,7 +252,8 @@ router.post("/trips", async (req, res) => {
       arrivalTime,
       price,
       vehicleId,
-      imageUrl
+      imageUrl,
+      timePoints = []
     } = req.body;
 
     if (!fromStationId || !toStationId || !startTime || !arrivalTime || !vehicleId) {
@@ -238,29 +262,56 @@ router.post("/trips", async (req, res) => {
 
     const start = new Date(startTime);
     const arrival = new Date(arrivalTime);
-
     const estimatedDuration = Math.floor((arrival - start) / 60000);
 
-    const pool = await poolPromise;
+    await transaction.begin();
 
-    await pool.request()
+    const request = new sql.Request(transaction);
+
+    // 1. Insert Trip + lấy ID
+    const tripResult = await request
       .input("fromStationId", sql.Int, fromStationId)
       .input("toStationId", sql.Int, toStationId)
       .input("vehicleId", sql.Int, vehicleId)
       .input("startTime", sql.DateTime, start)
       .input("price", sql.Decimal(10, 2), price)
       .input("estimatedDuration", sql.Int, estimatedDuration)
-      .input("imageUrl", sql.NVarChar, imageUrl)   // thêm dòng này
+      .input("imageUrl", sql.NVarChar, imageUrl)
       .query(`
         INSERT INTO Trips
         (fromStationId, toStationId, vehicleId, startTime, price, estimatedDuration, imageUrl)
+        OUTPUT INSERTED.id
         VALUES
         (@fromStationId, @toStationId, @vehicleId, @startTime, @price, @estimatedDuration, @imageUrl)
       `);
 
-    res.json({ message: "Trip created successfully" });
+    const tripId = tripResult.recordset[0].id;
+
+    // 2. Insert TimePoints
+    for (const tp of timePoints) {
+      await new sql.Request(transaction)
+        .input("tripId", sql.Int, tripId)
+        .input("pointId", sql.Int, tp.pointId)
+        .input("arrivalTime", sql.VarChar, tp.arrivalTime)
+        .input("departureTime", sql.VarChar, tp.departureTime)
+        .input("stopDuration", sql.Int, tp.stopDuration || 0)
+        .query(`
+          INSERT INTO TimePoints
+          (tripId, pointId, arrivalTime, departureTime, stopDuration)
+          VALUES
+          (@tripId, @pointId, @arrivalTime, @departureTime, @stopDuration)
+        `);
+    }
+
+    await transaction.commit();
+
+    res.json({
+      message: "Trip + TimePoints created successfully",
+      tripId
+    });
 
   } catch (err) {
+    await transaction.rollback();
     console.error(err);
     res.status(500).json(err);
   }

@@ -298,15 +298,12 @@ exports.searchTrips = async (req, res) => {
             t.startTime,
             t.price,
             t.estimatedDuration,
-            (SELECT TOP 1 imageUrl 
-             FROM ImageVehicles iv
-             JOIN Vehicles v ON iv.vehicleId = v.id
-             WHERE v.id = t.vehicleId AND iv.isPrimary = 1) AS imageUrl
+            t.imageUrl
         FROM Trips t
         JOIN Stations sFrom ON t.fromStationId = sFrom.id
         JOIN Stations sTo ON t.toStationId = sTo.id
         WHERE t.isActive = 1
-          AND t.startTime > GETDATE()
+          AND t.startTime > DATEADD(HOUR, 0, GETUTCDATE())
         `);
 
         let filtered = result.recordset;
@@ -353,7 +350,7 @@ exports.getPopularTrips = async (req, res) => {
             JOIN Stations s1 ON t.fromStationId = s1.id
             JOIN Stations s2 ON t.toStationId = s2.id
             WHERE t.isActive = 1
-              AND t.startTime > GETDATE()
+              AND t.startTime > DATEADD(HOUR, 0, GETUTCDATE())
             ORDER BY t.startTime ASC
         `);
 

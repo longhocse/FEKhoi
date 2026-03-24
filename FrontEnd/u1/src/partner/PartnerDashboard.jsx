@@ -60,10 +60,12 @@ export default function PartnerDashboard() {
           <span>Chỉnh sửa →</span>
         </div>
 
-        <div className="stat-card green">
-          <h4>Rút tiền</h4>
-          <p>Quản lý doanh thu</p>
-          <span>View Wallet →</span>
+        <div className="stat-card green"
+          onClick={() => navigate("/doi-tac/tickets")}
+        >
+          <h4>vé đã được đặt</h4>
+          <p>xem danh sách vé đã đặt</p>
+          <span>View Tickets →</span>
         </div>
       </div>
 

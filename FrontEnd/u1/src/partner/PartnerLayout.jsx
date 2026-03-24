@@ -6,6 +6,7 @@ export default function PartnerLayout() {
   const { logout } = useAuth();
   const navigate = useNavigate();
 
+
   const handleLogout = () => {
     logout();
     navigate("/dang-nhap");
@@ -13,7 +14,7 @@ export default function PartnerLayout() {
 
   return (
     <div className="partner-layout">
-      
+
       {/* SIDEBAR */}
       <aside className="partner-sidebar">
         <h2 className="logo">🚌 BusGo Partner</h2>
@@ -39,8 +40,8 @@ export default function PartnerLayout() {
         </NavLink>
 
         {/* Cài đặt */}
-        <NavLink to="settings">
-          ⚙️ Cài đặt
+        <NavLink to="tickets">
+          vé được đặt
         </NavLink>
 
         <button className="logout-btn" onClick={handleLogout}>

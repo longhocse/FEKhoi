@@ -44,7 +44,7 @@ import PartnerLayout from "./partner/PartnerLayout";
 import CreateTrip from "./partner/CreateTrip";
 import PartnerTrips from "./partner/PartnerTrips";
 import PartnerVehicles from "./partner/PartnerVehicles";
-import PartnerSettings from "./partner/PartnerSettings";
+import PartnerTicketsPage from "./partner/PartnerTicketPage";
 import TripSeats from "./partner/TripSeats";
 
 // ===== Pages admin =====
@@ -199,7 +199,7 @@ element = {
                 <Route path="trips" element={<PartnerTrips />} />
                 <Route path="edit-trip/:id" element={<CreateTrip />} />
                 <Route path="vehicles" element={<PartnerVehicles />} />
-                <Route path="settings" element={<PartnerSettings />} />
+                <Route path="tickets" element={<PartnerTicketsPage />} />
                 <Route path="create-trip" element={<CreateTrip />} />
                 <Route path="trip-seats/:tripId" element={<TripSeats />} />
               </Route >

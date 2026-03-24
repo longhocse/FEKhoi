@@ -48,7 +48,7 @@ router.get('/search', async (req, res) => {
       query += ` AND CAST(t.startTime AS DATE) = @date`;
       request.input('date', sql.Date, date);
     } else {
-      query += ` AND t.startTime > GETDATE()`;
+      query += ` AND t.startTime > DATEADD(HOUR, 0, GETUTCDATE())`;
     }
 
     if (from) {

@@ -10,7 +10,6 @@ router.get("/all", tripController.getAllTrips);
 router.get("/simple", tripController.getSimpleTrips);
 router.get("/search", tripController.searchTrips);
 router.get("/popular", tripController.getPopularTrips);
-router.get("/:id", tripController.getTripById);
 router.post("/book", authMiddleware, tripController.bookTicket);
 router.post("/book-multiple", authMiddleware, tripController.bookMultipleTickets);
 router.get('/fake-tracking/:tripId', async (req, res) => {
@@ -218,5 +217,25 @@ router.get('/fake-tracking/:tripId', async (req, res) => {
         res.status(500).json({ error: err.message });
     }
 });
+router.get("/points", async (req, res) => {
+    try {
+        console.log("POINTS API HIT");
+        const pool = await poolPromise;
+
+        const result = await pool.request().query(`
+      SELECT p.id, p.address, s.name AS stationName
+      FROM Points p
+      LEFT JOIN Stations s ON p.stationId = s.id
+      ORDER BY p.address
+    `);
+
+        res.json(result.recordset);
+
+    } catch (err) {
+        console.error(err);
+        res.status(500).json(err);
+    }
+});
+router.get("/:id", tripController.getTripById);
 
 module.exports = router;
