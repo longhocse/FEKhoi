@@ -1,21 +1,88 @@
 // src/pages/Profile.jsx
-import { Container, Card, Form, Button, Row, Col, Alert, Tab, Tabs } from "react-bootstrap";
+import { Container, Card, Form, Button, Row, Col, Alert, Spinner } from "react-bootstrap";
 import { useAuth } from "../context/AuthContext";
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import axios from "axios";
 
 export default function Profile() {
-  const { user, updateProfile, logout, changePassword } = useAuth();
+  const { user, updateProfile, logout, changePassword, token } = useAuth();
   const [editMode, setEditMode] = useState(false);
+  const [loading, setLoading] = useState(false);
+  const [statsLoading, setStatsLoading] = useState(true);
+  const [message, setMessage] = useState({ type: "", text: "" });
+  const [userStats, setUserStats] = useState({
+    totalTickets: 0,
+    bookedTickets: 0,
+    paidTickets: 0,
+    cancelledTickets: 0,
+    usedTickets: 0
+  });
+
   const [formData, setFormData] = useState({
-    name: user?.name || "",
-    email: user?.email || "",
-    phone: user?.phone || "",
+    name: "",
+    email: "",
+    phoneNumber: "",
     currentPassword: "",
     newPassword: "",
     confirmPassword: ""
   });
-  const [message, setMessage] = useState({ type: "", text: "" });
-  const [loading, setLoading] = useState(false);
+
+  const API_URL = process.env.REACT_APP_API_URL || "http://localhost:5000/api";
+
+  const getHeaders = () => {
+    const token = localStorage.getItem("token");
+    return {
+      Authorization: `Bearer ${token}`,
+      "Content-Type": "application/json",
+    };
+  };
+
+  // Lấy thống kê vé từ backend
+  useEffect(() => {
+    const fetchUserStats = async () => {
+      try {
+        setStatsLoading(true);
+        const response = await axios.get(`${API_URL}/tickets/my-tickets`, {
+          headers: getHeaders()
+        });
+
+        if (response.data.success) {
+          const tickets = response.data.data || [];
+
+          // Thống kê theo trạng thái
+          const stats = {
+            totalTickets: tickets.length,
+            bookedTickets: tickets.filter(t => t.status === 'BOOKED').length,
+            paidTickets: tickets.filter(t => t.status === 'PAID').length,
+            cancelledTickets: tickets.filter(t => t.status === 'CANCELLED').length,
+            usedTickets: tickets.filter(t => t.status === 'USED').length
+          };
+
+          setUserStats(stats);
+        }
+      } catch (err) {
+        console.error("Lỗi lấy thống kê vé:", err);
+      } finally {
+        setStatsLoading(false);
+      }
+    };
+
+    if (user) {
+      fetchUserStats();
+    }
+  }, [user]);
+
+  // Cập nhật formData khi user thay đổi
+  useEffect(() => {
+    if (user) {
+      setFormData(prev => ({
+        ...prev,
+        name: user.name || "",
+        email: user.email || "",
+        phoneNumber: user.phoneNumber || user.phone || ""
+      }));
+    }
+  }, [user]);
 
   const handleChange = (e) => {
     setFormData({
@@ -30,15 +97,28 @@ export default function Profile() {
     setMessage({ type: "", text: "" });
 
     try {
-      const { currentPassword, newPassword, confirmPassword, ...profileData } = formData;
+      // Gọi API cập nhật profile
+      const response = await axios.put(
+        `${API_URL}/users/profile`,
+        {
+          name: formData.name,
+          phoneNumber: formData.phoneNumber
+        },
+        { headers: getHeaders() }
+      );
 
-      await updateProfile(profileData);
+      if (response.data.success) {
+        // Cập nhật lại user trong context
+        await updateProfile({ name: formData.name, phone: formData.phoneNumber });
 
-      setMessage({ type: "success", text: "Cập nhật thông tin thành công!" });
-      setEditMode(false);
-
+        setMessage({ type: "success", text: "Cập nhật thông tin thành công!" });
+        setEditMode(false);
+      } else {
+        setMessage({ type: "danger", text: response.data.message || "Cập nhật thất bại" });
+      }
     } catch (error) {
-      setMessage({ type: "danger", text: error.message });
+      console.error("Lỗi cập nhật profile:", error);
+      setMessage({ type: "danger", text: error.response?.data?.message || "Cập nhật thất bại" });
     }
 
     setLoading(false);
@@ -74,7 +154,7 @@ export default function Profile() {
       });
 
     } catch (error) {
-      setMessage({ type: "danger", text: error.message });
+      setMessage({ type: "danger", text: error.message || "Đổi mật khẩu thất bại" });
     }
 
     setLoading(false);
@@ -141,10 +221,11 @@ export default function Profile() {
                 <Form.Group className="mb-3">
                   <Form.Label>Số điện thoại</Form.Label>
                   <Form.Control
-                    name="phone"
+                    name="phoneNumber"
                     type="tel"
-                    value={formData.phone}
+                    value={formData.phoneNumber}
                     onChange={handleChange}
+                    placeholder="Nhập số điện thoại"
                   />
                 </Form.Group>
                 <div className="d-flex gap-2">
@@ -163,7 +244,7 @@ export default function Profile() {
                         ...formData,
                         name: user.name,
                         email: user.email,
-                        phone: user.phone || ""
+                        phoneNumber: user.phoneNumber || user.phone || ""
                       });
                     }}
                   >
@@ -183,17 +264,21 @@ export default function Profile() {
                   <div>
                     <h4 className="mb-1">{user.name}</h4>
                     <p className="text-muted mb-0">{user.email}</p>
-                    {user.phone && <p className="text-muted mb-0">{user.phone}</p>}
+                    {user.phoneNumber && <p className="text-muted mb-0">{user.phoneNumber}</p>}
                   </div>
                 </div>
                 <div className="row">
                   <div className="col-md-6 mb-3">
                     <div className="fw-semibold">Ngày tham gia:</div>
-                    <div>{new Date(user.createdAt).toLocaleDateString('vi-VN')}</div>
+                    <div>{user.createdAt ? new Date(user.createdAt).toLocaleDateString('vi-VN') : "Đang cập nhật"}</div>
                   </div>
                   <div className="col-md-6 mb-3">
-                    <div className="fw-semibold">Số vé đã đặt:</div>
-                    <div>0 vé</div>
+                    <div className="fw-semibold">Vai trò:</div>
+                    <div className="badge bg-primary">
+                      {user.role === 'customer' ? 'Khách hàng' :
+                        user.role === 'partner' ? 'Nhà xe' :
+                          user.role === 'admin' ? 'Quản trị viên' : user.role}
+                    </div>
                   </div>
                 </div>
               </div>
@@ -211,6 +296,7 @@ export default function Profile() {
                   type="password"
                   value={formData.currentPassword}
                   onChange={handleChange}
+                  placeholder="Nhập mật khẩu hiện tại"
                 />
               </Form.Group>
               <Form.Group className="mb-3">
@@ -220,6 +306,7 @@ export default function Profile() {
                   type="password"
                   value={formData.newPassword}
                   onChange={handleChange}
+                  placeholder="Nhập mật khẩu mới (tối thiểu 6 ký tự)"
                 />
               </Form.Group>
               <Form.Group className="mb-3">
@@ -229,6 +316,7 @@ export default function Profile() {
                   type="password"
                   value={formData.confirmPassword}
                   onChange={handleChange}
+                  placeholder="Nhập lại mật khẩu mới"
                 />
               </Form.Group>
               <Button
@@ -247,9 +335,21 @@ export default function Profile() {
           <Card className="soft-card p-4">
             <h5 className="mb-3">Tài khoản của bạn</h5>
             <div className="d-grid gap-2">
-              <Button variant="outline-primary" className="text-start">
+              <Button
+                variant="outline-primary"
+                className="text-start"
+                onClick={() => navigate("/ve-cua-toi")}
+              >
                 <i className="bi bi-ticket-perforated me-2"></i>
                 Vé của tôi
+              </Button>
+              <Button
+                variant="outline-info"
+                className="text-start"
+                onClick={() => window.location.href = "/vi"}
+              >
+                <i className="bi bi-wallet2 me-2"></i>
+                Ví điện tử
               </Button>
               <Button
                 variant="outline-danger"
@@ -264,23 +364,36 @@ export default function Profile() {
 
           {/* Thống kê */}
           <Card className="soft-card p-4 mt-4">
-            <h5 className="mb-3">Thống kê</h5>
-            <div className="d-flex justify-content-between mb-2">
-              <span>Tổng số vé:</span>
-              <span className="fw-bold">0</span>
-            </div>
-            <div className="d-flex justify-content-between mb-2">
-              <span>Đang chờ thanh toán:</span>
-              <span className="fw-bold">0</span>
-            </div>
-            <div className="d-flex justify-content-between mb-2">
-              <span>Đã thanh toán:</span>
-              <span className="fw-bold">0</span>
-            </div>
-            <div className="d-flex justify-content-between">
-              <span>Đã hủy:</span>
-              <span className="fw-bold">0</span>
-            </div>
+            <h5 className="mb-3">Thống kê đặt vé</h5>
+            {statsLoading ? (
+              <div className="text-center py-3">
+                <Spinner animation="border" size="sm" />
+                <p className="mt-2 text-muted small">Đang tải...</p>
+              </div>
+            ) : (
+              <>
+                <div className="d-flex justify-content-between mb-2">
+                  <span>Tổng số vé:</span>
+                  <span className="fw-bold">{userStats.totalTickets}</span>
+                </div>
+                <div className="d-flex justify-content-between mb-2">
+                  <span>Chờ thanh toán:</span>
+                  <span className="fw-bold text-warning">{userStats.bookedTickets}</span>
+                </div>
+                <div className="d-flex justify-content-between mb-2">
+                  <span>Đã thanh toán:</span>
+                  <span className="fw-bold text-success">{userStats.paidTickets}</span>
+                </div>
+                <div className="d-flex justify-content-between mb-2">
+                  <span>Đã sử dụng:</span>
+                  <span className="fw-bold text-info">{userStats.usedTickets}</span>
+                </div>
+                <div className="d-flex justify-content-between">
+                  <span>Đã hủy:</span>
+                  <span className="fw-bold text-danger">{userStats.cancelledTickets}</span>
+                </div>
+              </>
+            )}
           </Card>
         </Col>
       </Row>

@@ -104,21 +104,6 @@
     margin-bottom: 20px;
 }
 
-.seat {
-    padding: 10px;
-    text-align: center;
-    border-radius: 8px;
-    font-size: 14px;
-    font-weight: 600;
-}
-
-.seat.normal {
-    background: #e3f2fd;
-}
-
-.seat.vip {
-    background: #fff3cd;
-}
 
 .floor-title {
     margin-top: 15px;

@@ -9,6 +9,16 @@ export default function AdminTickets() {
   const [filter, setFilter] = useState('all');
   const [stats, setStats] = useState(null);
 
+  const API_URL = process.env.REACT_APP_API_URL || "http://localhost:5000/api";
+
+  const getHeaders = () => {
+    const token = localStorage.getItem("token");
+    return {
+      Authorization: `Bearer ${token}`,
+      "Content-Type": "application/json",
+    };
+  };
+
   useEffect(() => {
     fetchTickets();
     fetchStats();
@@ -18,19 +28,29 @@ export default function AdminTickets() {
     try {
       setLoading(true);
       console.log("🔄 Đang gọi API tickets...");
-      
-      const response = await axios.get('http://localhost:5000/api/admin/tickets');
-      
+
+      // SỬA: Gọi đúng endpoint
+      const response = await axios.get(`${API_URL}/tickets/admin/all`, {
+        headers: getHeaders()
+      });
+
       console.log("✅ API response:", response.data);
-      
+
       if (response.data.success) {
-        setTickets(response.data.data);
+        setTickets(response.data.data || []);
+        setError(null);
       } else {
-        setError(response.data.error);
+        setError(response.data.message || "Không thể tải dữ liệu");
       }
     } catch (err) {
       console.error("❌ Lỗi fetch:", err);
-      setError(err.message);
+      if (err.response?.status === 401) {
+        setError("Phiên đăng nhập hết hạn. Vui lòng đăng nhập lại.");
+      } else if (err.code === 'ERR_NETWORK') {
+        setError("Không thể kết nối đến server. Kiểm tra backend đã chạy chưa.");
+      } else {
+        setError(err.response?.data?.message || err.message);
+      }
     } finally {
       setLoading(false);
     }
@@ -38,41 +58,46 @@ export default function AdminTickets() {
 
   const fetchStats = async () => {
     try {
-      const response = await axios.get('http://localhost:5000/api/admin/tickets/status');
-      if (response.data.success) {
-        setStats(response.data.data);
+      // Tính thống kê từ dữ liệu đã có
+      if (tickets.length > 0) {
+        const totalTickets = tickets.length;
+        const paidTickets = tickets.filter(t => t.status === 'PAID').length;
+        const bookedTickets = tickets.filter(t => t.status === 'BOOKED').length;
+        const totalRevenue = tickets
+          .filter(t => t.status === 'PAID')
+          .reduce((sum, t) => sum + (t.totalAmount || 0), 0);
+
+        setStats({
+          totalTickets,
+          paidTickets,
+          bookedTickets,
+          totalRevenue
+        });
       }
     } catch (err) {
-      console.error("Lỗi lấy thống kê:", err);
+      console.error("Lỗi tính thống kê:", err);
     }
   };
+
+  useEffect(() => {
+    fetchStats();
+  }, [tickets]);
 
   const updateStatus = async (id, newStatus) => {
     try {
-      await axios.patch(`http://localhost:5000/api/admin/tickets/${id}/status`, {
-        status: newStatus
-      });
+      await axios.put(
+        `${API_URL}/tickets/admin/${id}/status`,
+        { status: newStatus },
+        { headers: getHeaders() }
+      );
       fetchTickets();
-      fetchStats();
     } catch (err) {
-      alert('Lỗi cập nhật: ' + err.message);
+      alert('Lỗi cập nhật: ' + (err.response?.data?.message || err.message));
     }
   };
 
-  const deleteTicket = async (id) => {
-    if (window.confirm('Bạn có chắc muốn xóa vé này?')) {
-      try {
-        await axios.delete(`http://localhost:5000/api/admin/tickets/${id}`);
-        fetchTickets();
-        fetchStats();
-      } catch (err) {
-        alert('Lỗi xóa: ' + err.message);
-      }
-    }
-  };
-
-  const filteredTickets = filter === 'all' 
-    ? tickets 
+  const filteredTickets = filter === 'all'
+    ? tickets
     : tickets.filter(t => t.status === filter);
 
   const getStatusBadge = (status) => {
@@ -93,7 +118,11 @@ export default function AdminTickets() {
   };
 
   const formatPrice = (price) => {
-    return (price || 0).toLocaleString() + 'đ';
+    return new Intl.NumberFormat('vi-VN', {
+      style: 'currency',
+      currency: 'VND',
+      minimumFractionDigits: 0
+    }).format(price || 0);
   };
 
   if (loading) {
@@ -111,9 +140,15 @@ export default function AdminTickets() {
         <Alert variant="danger">
           <Alert.Heading>Lỗi!</Alert.Heading>
           <p>{error}</p>
-          <Button variant="outline-danger" onClick={fetchTickets}>
-            Thử lại
-          </Button>
+          <hr />
+          <div className="d-flex gap-2">
+            <Button variant="outline-danger" onClick={fetchTickets}>
+              Thử lại
+            </Button>
+            <Button variant="outline-secondary" onClick={() => window.location.reload()}>
+              Tải lại trang
+            </Button>
+          </div>
         </Alert>
       </Container>
     );
@@ -127,169 +162,192 @@ export default function AdminTickets() {
       {stats && (
         <Row className="mb-4">
           <Col md={3}>
-            <Card className="bg-primary text-white">
+            <Card className="bg-primary text-white shadow-sm">
               <Card.Body>
-                <h6>Tổng số vé</h6>
-                <h3>{stats.totalTickets || 0}</h3>
+                <h6 className="mb-2">Tổng số vé</h6>
+                <h2 className="mb-0">{stats.totalTickets || 0}</h2>
               </Card.Body>
             </Card>
           </Col>
           <Col md={3}>
-            <Card className="bg-success text-white">
+            <Card className="bg-success text-white shadow-sm">
               <Card.Body>
-                <h6>Đã thanh toán</h6>
-                <h3>{stats.paidTickets || 0}</h3>
+                <h6 className="mb-2">Đã thanh toán</h6>
+                <h2 className="mb-0">{stats.paidTickets || 0}</h2>
               </Card.Body>
             </Card>
           </Col>
           <Col md={3}>
-            <Card className="bg-warning">
+            <Card className="bg-warning text-dark shadow-sm">
               <Card.Body>
-                <h6>Chờ thanh toán</h6>
-                <h3>{stats.bookedTickets || 0}</h3>
+                <h6 className="mb-2">Chờ thanh toán</h6>
+                <h2 className="mb-0">{stats.bookedTickets || 0}</h2>
               </Card.Body>
             </Card>
           </Col>
           <Col md={3}>
-            <Card className="bg-info text-white">
+            <Card className="bg-info text-white shadow-sm">
               <Card.Body>
-                <h6>Doanh thu</h6>
-                <h3>{formatPrice(stats.totalRevenue)}</h3>
+                <h6 className="mb-2">Doanh thu</h6>
+                <h3 className="mb-0">{formatPrice(stats.totalRevenue)}</h3>
               </Card.Body>
             </Card>
           </Col>
         </Row>
       )}
 
-      <Row className="mb-3">
+      <Row className="mb-3 align-items-center">
         <Col md={4}>
-          <Form.Select 
-            value={filter} 
+          <Form.Select
+            value={filter}
             onChange={(e) => setFilter(e.target.value)}
+            className="w-auto"
           >
-            <option value="all">Tất cả trạng thái</option>
-            <option value="BOOKED">Chờ thanh toán</option>
-            <option value="PAID">Đã thanh toán</option>
-            <option value="USED">Đã sử dụng</option>
-            <option value="CANCELLED">Đã hủy</option>
+            <option value="all">📋 Tất cả trạng thái</option>
+            <option value="BOOKED">⏳ Chờ thanh toán</option>
+            <option value="PAID">✅ Đã thanh toán</option>
+            <option value="USED">🚌 Đã sử dụng</option>
+            <option value="CANCELLED">❌ Đã hủy</option>
           </Form.Select>
         </Col>
         <Col className="text-end">
-          <p className="text-muted">Tổng số: {filteredTickets.length} vé</p>
+          <p className="text-muted mb-0">
+            <i className="bi bi-ticket-perforated me-1"></i>
+            Tổng số: <strong>{filteredTickets.length}</strong> vé
+          </p>
         </Col>
       </Row>
 
-      <Card>
-        <Card.Body>
-          <Table hover responsive striped>
-            <thead>
-              <tr>
-                <th>#</th>
-                <th>Khách hàng</th>
-                <th>Hành khách</th>
-                <th>Tuyến xe</th>
-                <th>Ghế</th>
-                <th>Giá vé</th>
-                <th>Trạng thái</th>
-                <th>Ngày đặt</th>
-                <th>Hành động</th>
-              </tr>
-            </thead>
-            <tbody>
-              {filteredTickets.length === 0 ? (
+      <Card className="shadow-sm">
+        <Card.Body className="p-0">
+          <div className="table-responsive">
+            <Table hover striped className="mb-0">
+              <thead className="table-dark">
                 <tr>
-                  <td colSpan="9" className="text-center text-muted py-4">
-                    Không có vé nào
-                  </td>
+                  <th style={{ width: '5%' }}>#</th>
+                  <th style={{ width: '12%' }}>Khách hàng</th>
+                  <th style={{ width: '10%' }}>Hành khách</th>
+                  <th style={{ width: '20%' }}>Tuyến xe</th>
+                  <th style={{ width: '8%' }}>Ghế</th>
+                  <th style={{ width: '10%' }}>Giá vé</th>
+                  <th style={{ width: '10%' }}>Thanh toán</th>
+                  <th style={{ width: '10%' }}>Trạng thái</th>
+                  <th style={{ width: '10%' }}>Ngày đặt</th>
+                  <th style={{ width: '5%' }}>Hành động</th>
                 </tr>
-              ) : (
-                filteredTickets.map((ticket, index) => (
-                  <tr key={ticket.id}>
-                    <td>{index + 1}</td>
-                    <td>
-                      <div className="fw-bold">{ticket.customerName || 'Khách vãng lai'}</div>
-                      <div className="small text-muted">{ticket.customerEmail}</div>
-                      <div className="small text-muted">{ticket.customerPhone}</div>
-                    </td>
-                    <td>
-                      <div>{ticket.passengerName || ticket.customerName}</div>
-                      <div className="small text-muted">{ticket.passengerPhone}</div>
-                      <div className="small text-muted">{ticket.passengerEmail}</div>
-                    </td>
-                    <td>
-                      <div className="fw-bold">{ticket.fromStation || 'N/A'} → {ticket.toStation || 'N/A'}</div>
-                      <div className="small text-muted">
-                        {formatDate(ticket.startTime)}
-                      </div>
-                      <div className="small">{ticket.companyName || 'N/A'}</div>
-                    </td>
-                    <td>
-                      <Badge bg="info">
-                        {ticket.seatName || 'A1'} (Tầng {ticket.seatFloor || 1})
-                      </Badge>
-                      <div className="small text-muted">{ticket.seatType || 'NORMAL'}</div>
-                    </td>
-                    <td>
-                      <div className="fw-bold text-primary">
-                        {formatPrice(ticket.totalAmount)}
-                      </div>
-                      <div className="small text-muted">
-                        {ticket.paymentMethod || 'N/A'}
-                      </div>
-                    </td>
-                    <td>{getStatusBadge(ticket.status)}</td>
-                    <td>
-                      <div className="small">
-                        {formatDate(ticket.bookedAt)}
-                      </div>
-                    </td>
-                    <td>
-                      <div className="d-flex gap-2">
-                        {ticket.status === 'BOOKED' && (
-                          <Button
-                            size="sm"
-                            variant="success"
-                            onClick={() => updateStatus(ticket.id, 'PAID')}
-                            title="Xác nhận thanh toán"
-                          >
-                            <i className="bi bi-check-lg"></i>
-                          </Button>
-                        )}
-                        {ticket.status === 'PAID' && (
-                          <Button
-                            size="sm"
-                            variant="secondary"
-                            onClick={() => updateStatus(ticket.id, 'USED')}
-                            title="Đã lên xe"
-                          >
-                            <i className="bi bi-check2-all"></i>
-                          </Button>
-                        )}
-                        {ticket.status !== 'CANCELLED' && ticket.status !== 'USED' && (
-                          <Button
-                            size="sm"
-                            variant="warning"
-                            onClick={() => updateStatus(ticket.id, 'CANCELLED')}
-                            title="Hủy vé"
-                          >
-                            <i className="bi bi-x-lg"></i>
-                          </Button>
-                        )}
-                        <Button
-                          size="sm"
-                          variant="outline-danger"
-                          onClick={() => deleteTicket(ticket.id)}
-                          title="Xóa vé"
-                        >
-                          <i className="bi bi-trash"></i>
-                        </Button>
-                      </div>
+              </thead>
+              <tbody>
+                {filteredTickets.length === 0 ? (
+                  <tr>
+                    <td colSpan="10" className="text-center text-muted py-5">
+                      <i className="bi bi-ticket fs-1 d-block mb-2"></i>
+                      Không có vé nào
                     </td>
                   </tr>
-                ))
-              )}
-            </tbody>
-          </Table>
+                ) : (
+                  filteredTickets.map((ticket, index) => (
+                    <tr key={ticket.id}>
+                      <td className="fw-bold">{index + 1}</td>
+                      <td>
+                        <div className="fw-semibold">{ticket.userName || 'Khách vãng lai'}</div>
+                        {ticket.userEmail && (
+                          <small className="text-muted d-block">{ticket.userEmail}</small>
+                        )}
+                        {ticket.userPhone && (
+                          <small className="text-muted d-block">{ticket.userPhone}</small>
+                        )}
+                      </td>
+                      <td>
+                        <div>{ticket.passengerName || ticket.userName || 'N/A'}</div>
+                        {ticket.passengerPhone && (
+                          <small className="text-muted d-block">{ticket.passengerPhone}</small>
+                        )}
+                      </td>
+                      <td>
+                        <div className="fw-semibold">
+                          {ticket.fromStation || 'N/A'} → {ticket.toStation || 'N/A'}
+                        </div>
+                        {ticket.startTime && (
+                          <small className="text-muted d-block">
+                            <i className="bi bi-clock me-1"></i>
+                            {formatDate(ticket.startTime)}
+                          </small>
+                        )}
+                        {ticket.companyName && (
+                          <small className="text-muted d-block">
+                            🏢 {ticket.companyName}
+                          </small>
+                        )}
+                      </td>
+                      <td>
+                        <Badge bg="info" className="px-2 py-1">
+                          {ticket.seatName || 'N/A'}
+                        </Badge>
+                        {ticket.seatType && (
+                          <div className="small text-muted mt-1">{ticket.seatType}</div>
+                        )}
+                      </td>
+                      <td className="fw-bold text-primary">
+                        {formatPrice(ticket.totalAmount)}
+                      </td>
+                      <td>
+                        {ticket.paymentMethod === 'WALLET' && (
+                          <Badge bg="success">💳 Ví điện tử</Badge>
+                        )}
+                        {ticket.paymentMethod === 'BANKING' && (
+                          <Badge bg="info">🏦 Chuyển khoản</Badge>
+                        )}
+                        {ticket.paymentMethod === 'CASH' && (
+                          <Badge bg="secondary">💰 Tiền mặt</Badge>
+                        )}
+                        {!ticket.paymentMethod && <Badge bg="light">N/A</Badge>}
+                      </td>
+                      <td>{getStatusBadge(ticket.status)}</td>
+                      <td>
+                        <small className="text-muted">
+                          {formatDate(ticket.bookedAt)}
+                        </small>
+                      </td>
+                      <td>
+                        <div className="d-flex gap-1">
+                          {ticket.status === 'BOOKED' && (
+                            <Button
+                              size="sm"
+                              variant="success"
+                              onClick={() => updateStatus(ticket.id, 'PAID')}
+                              title="Xác nhận thanh toán"
+                            >
+                              <i className="bi bi-check-lg"></i>
+                            </Button>
+                          )}
+                          {ticket.status === 'PAID' && (
+                            <Button
+                              size="sm"
+                              variant="secondary"
+                              onClick={() => updateStatus(ticket.id, 'USED')}
+                              title="Đã lên xe"
+                            >
+                              <i className="bi bi-check2-all"></i>
+                            </Button>
+                          )}
+                          {ticket.status !== 'CANCELLED' && ticket.status !== 'USED' && (
+                            <Button
+                              size="sm"
+                              variant="warning"
+                              onClick={() => updateStatus(ticket.id, 'CANCELLED')}
+                              title="Hủy vé"
+                            >
+                              <i className="bi bi-x-lg"></i>
+                            </Button>
+                          )}
+                        </div>
+                      </td>
+                    </tr>
+                  ))
+                )}
+              </tbody>
+            </Table>
+          </div>
         </Card.Body>
       </Card>
     </Container>

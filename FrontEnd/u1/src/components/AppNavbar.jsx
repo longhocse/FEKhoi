@@ -2,7 +2,7 @@
 import { Container, Nav, Navbar, Button, Dropdown } from "react-bootstrap";
 import { NavLink, useNavigate } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
-import { useWallet } from "../context/WalletProvider"; // Import từ WalletProvider
+import { useWallet } from "../context/WalletProvider";
 import { useEffect } from "react";
 
 export default function AppNavbar() {
@@ -56,14 +56,27 @@ export default function AppNavbar() {
           {/* ===== MENU CHÍNH ===== */}
           <Nav className="mx-auto gap-3">
             <Nav.Link as={NavLink} to="/" end>
+              <i className="bi bi-house-door me-1"></i>
               Trang chủ
             </Nav.Link>
 
             <Nav.Link as={NavLink} to="/tuyen-xe">
+              <i className="bi bi-bus-front me-1"></i>
               Vé xe khách
             </Nav.Link>
 
+            <Nav.Link as={NavLink} to="/tin-tuc">
+              <i className="bi bi-newspaper me-1"></i>
+              Tin tức
+            </Nav.Link>
+
+            <Nav.Link as={NavLink} to="/lien-he">
+              <i className="bi bi-envelope me-1"></i>
+              Liên hệ
+            </Nav.Link>
+
             <Nav.Link as={NavLink} to="/doi-tac">
+              <i className="bi bi-building me-1"></i>
               Dành cho nhà xe
             </Nav.Link>
           </Nav>
@@ -146,6 +159,7 @@ export default function AppNavbar() {
                   variant="outline-light"
                   onClick={() => navigate("/dang-nhap")}
                 >
+                  <i className="bi bi-box-arrow-in-right me-2"></i>
                   Đăng nhập
                 </Button>
 
@@ -154,6 +168,7 @@ export default function AppNavbar() {
                   className="pill px-3"
                   onClick={() => navigate("/dang-ky")}
                 >
+                  <i className="bi bi-person-plus me-2"></i>
                   Đăng ký
                 </Button>
               </>

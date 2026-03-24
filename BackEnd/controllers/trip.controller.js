@@ -1,6 +1,163 @@
 const sql = require("mssql");
 const { poolPromise } = require("../config/db");
 
+
+exports.bookMultipleTickets = async (req, res) => {
+    try {
+        const { tripId, seatIds, paymentMethod } = req.body;
+        const userId = req.user.id;
+
+        console.log(`📌 bookMultipleTickets - tripId: ${tripId}, seatIds: ${seatIds}, userId: ${userId}`);
+
+        if (!seatIds || seatIds.length === 0) {
+            return res.status(400).json({
+                success: false,
+                message: "Vui lòng chọn ít nhất 1 ghế"
+            });
+        }
+
+        const pool = await poolPromise;
+
+        // Lấy giá vé
+        const tripResult = await pool.request()
+            .input('tripId', sql.Int, tripId)
+            .query('SELECT price FROM Trips WHERE id = @tripId');
+
+        if (tripResult.recordset.length === 0) {
+            return res.status(404).json({
+                success: false,
+                message: "Không tìm thấy chuyến xe"
+            });
+        }
+
+        const price = tripResult.recordset[0].price;
+        const totalAmount = price * seatIds.length;
+        let transactionId = null;
+        let groupTransactionId = null;
+
+        // Tạo ID nhóm duy nhất cho đợt mua này
+        groupTransactionId = `GROUP_${Date.now()}_${userId}_${tripId}`;
+
+        // Kiểm tra từng ghế có bị trùng không
+        for (const seatId of seatIds) {
+            const checkSeat = await pool.request()
+                .input('tripId', sql.Int, tripId)
+                .input('seatId', sql.Int, seatId)
+                .query(`
+                    SELECT id FROM Tickets 
+                    WHERE tripId = @tripId AND seatId = @seatId 
+                    AND status IN ('BOOKED', 'PAID')
+                `);
+
+            if (checkSeat.recordset.length > 0) {
+                return res.status(400).json({
+                    success: false,
+                    message: `Ghế ${seatId} đã được đặt`
+                });
+            }
+        }
+
+        // Nếu thanh toán bằng ví, trừ tiền 1 lần cho tổng số vé
+        if (paymentMethod === 'WALLET') {
+            const walletResult = await pool.request()
+                .input('userId', sql.Int, userId)
+                .query('SELECT id, balance FROM Wallets WHERE userId = @userId');
+
+            if (walletResult.recordset.length === 0) {
+                return res.status(400).json({
+                    success: false,
+                    message: "Không tìm thấy ví"
+                });
+            }
+
+            const wallet = walletResult.recordset[0];
+
+            if (wallet.balance < totalAmount) {
+                return res.status(400).json({
+                    success: false,
+                    message: `Số dư không đủ. Cần ${totalAmount.toLocaleString()}đ, hiện có ${wallet.balance.toLocaleString()}đ`
+                });
+            }
+
+            // Trừ tiền trong ví 1 lần
+            await pool.request()
+                .input('walletId', sql.Int, wallet.id)
+                .input('amount', sql.Decimal(12, 2), totalAmount)
+                .query(`
+                    UPDATE Wallets 
+                    SET balance = balance - @amount, updatedAt = GETDATE()
+                    WHERE id = @walletId
+                `);
+
+            // Tạo 1 giao dịch duy nhất cho cả đợt
+            const transResult = await pool.request()
+                .input('walletId', sql.Int, wallet.id)
+                .input('amount', sql.Decimal(12, 2), totalAmount)
+                .input('type', sql.VarChar(20), 'PAYMENT')
+                .input('status', sql.VarChar(20), 'SUCCESS')
+                .input('description', sql.NVarChar(255), `Thanh toán ${seatIds.length} vé chuyến xe #${tripId}`)
+                .query(`
+                    INSERT INTO Transactions (walletId, amount, type, status, description, createdAt)
+                    OUTPUT INSERTED.id
+                    VALUES (@walletId, @amount, @type, @status, @description, GETDATE())
+                `);
+
+            transactionId = transResult.recordset[0].id;
+        }
+
+        // Tạo vé cho từng ghế - TẤT CẢ DÙNG CHUNG transactionId
+        const ticketIds = [];
+        const bookedAt = new Date();
+
+        for (const seatId of seatIds) {
+            const ticketResult = await pool.request()
+                .input('userId', sql.Int, userId)
+                .input('tripId', sql.Int, tripId)
+                .input('seatId', sql.Int, seatId)
+                .input('totalAmount', sql.Decimal(10, 2), price)
+                .input('paymentMethod', sql.VarChar(20), paymentMethod)
+                .input('transactionId', sql.Int, transactionId)
+                .input('groupId', sql.NVarChar(100), groupTransactionId)
+                .input('status', sql.VarChar(20), paymentMethod === 'WALLET' ? 'PAID' : 'BOOKED')
+                .input('bookedAt', sql.DateTime, bookedAt)
+                .query(`
+                    INSERT INTO Tickets (userId, tripId, seatId, totalAmount, paymentMethod, transactionId, groupId, status, bookedAt)
+                    OUTPUT INSERTED.id
+                    VALUES (@userId, @tripId, @seatId, @totalAmount, @paymentMethod, @transactionId, @groupId, @status, @bookedAt)
+                `);
+
+            ticketIds.push(ticketResult.recordset[0].id);
+
+            // Cập nhật trạng thái ghế
+            await pool.request()
+                .input('seatId', sql.Int, seatId)
+                .query(`UPDATE Seats SET status = 'BOOKED' WHERE id = @seatId`);
+        }
+
+        res.json({
+            success: true,
+            message: paymentMethod === 'WALLET'
+                ? `Đặt thành công ${seatIds.length} vé và thanh toán ${totalAmount.toLocaleString()}đ từ ví`
+                : `Đặt thành công ${seatIds.length} vé`,
+            data: {
+                ticketIds,
+                quantity: seatIds.length,
+                totalAmount,
+                groupId: groupTransactionId,
+                bookedAt: bookedAt
+            }
+        });
+
+    } catch (err) {
+        console.error('❌ Lỗi đặt nhiều vé:', err);
+        res.status(500).json({
+            success: false,
+            message: err.message
+        });
+    }
+};
+
+
 // Lấy danh sách trips
 exports.getTrips = async (req, res) => {
     try {
@@ -83,6 +240,10 @@ exports.getAllTrips = async (req, res) => {
     }
 };
 
+
+
+
+
 // ================= SIMPLE LIST =================
 exports.getSimpleTrips = async (req, res) => {
     try {
@@ -125,6 +286,7 @@ exports.getSimpleTrips = async (req, res) => {
 // ================= SEARCH =================
 exports.searchTrips = async (req, res) => {
     try {
+        console.log("API /search CALLED");
         const { from, to } = req.query;
         const pool = await poolPromise;
 
@@ -136,14 +298,12 @@ exports.searchTrips = async (req, res) => {
             t.startTime,
             t.price,
             t.estimatedDuration,
-            (SELECT TOP 1 imageUrl 
-             FROM ImageVehicles iv
-             JOIN Vehicles v ON iv.vehicleId = v.id
-             WHERE v.id = t.vehicleId AND iv.isPrimary = 1) AS imageUrl
+            t.imageUrl
         FROM Trips t
         JOIN Stations sFrom ON t.fromStationId = sFrom.id
         JOIN Stations sTo ON t.toStationId = sTo.id
         WHERE t.isActive = 1
+          AND t.startTime > DATEADD(HOUR, 0, GETUTCDATE())
         `);
 
         let filtered = result.recordset;
@@ -178,20 +338,21 @@ exports.getPopularTrips = async (req, res) => {
         const pool = await poolPromise;
 
         const result = await pool.request().query(`
-SELECT TOP 8
-    t.id,
-    s1.name AS fromStation,
-    s2.name AS toStation,
-    t.startTime,
-    t.price,
-    t.estimatedDuration,
-    t.imageUrl
-FROM Trips t
-JOIN Stations s1 ON t.fromStationId = s1.id
-JOIN Stations s2 ON t.toStationId = s2.id
-WHERE t.isActive = 1
-ORDER BY t.startTime
-`);
+            SELECT TOP 8
+                t.id,
+                s1.name AS fromStation,
+                s2.name AS toStation,
+                t.startTime,
+                t.price,
+                t.estimatedDuration,
+                t.imageUrl
+            FROM Trips t
+            JOIN Stations s1 ON t.fromStationId = s1.id
+            JOIN Stations s2 ON t.toStationId = s2.id
+            WHERE t.isActive = 1
+              AND t.startTime > DATEADD(HOUR, 0, GETUTCDATE())
+            ORDER BY t.startTime ASC
+        `);
 
         res.json(result.recordset);
 
@@ -200,7 +361,6 @@ ORDER BY t.startTime
         res.status(500).json({ message: "Server error" });
     }
 };
-
 
 // ================= TRIP DETAIL =================
 exports.getTripById = async (req, res) => {
@@ -230,6 +390,11 @@ SELECT
   v.name as vehicleName,
   v.type as vehicleType,
   pc.name as companyName,
+  pc.id as companyId,  -- THÊM DÒNG NÀY ĐỂ LẤY ID NHÀ XE
+  pc.name as companyName,
+  pc.phone as companyPhone,
+  pc.address as companyAddress,
+  pc.logo as companyLogo,
   (SELECT TOP 1 imageUrl 
    FROM ImageVehicles 
    WHERE vehicleId = v.id AND isPrimary = 1) AS imageUrl

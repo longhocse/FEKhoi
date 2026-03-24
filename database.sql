@@ -173,6 +173,129 @@ CREATE TABLE TicketPassengers (
     FOREIGN KEY (ticketId) REFERENCES Tickets(id) ON DELETE CASCADE
 );
 
+-- Bảng đánh giá chuyến xe
+CREATE TABLE TripReviews (
+    id INT PRIMARY KEY IDENTITY(1,1),
+    userId INT NOT NULL,
+    tripId INT NOT NULL,
+    rating INT NOT NULL CHECK (rating BETWEEN 1 AND 5),
+    comment NVARCHAR(MAX),
+    images NVARCHAR(MAX), -- Lưu JSON hoặc đường dẫn ảnh
+    status VARCHAR(20) DEFAULT 'PENDING' CHECK (status IN ('PENDING', 'APPROVED', 'REJECTED')),
+    createdAt DATETIME DEFAULT GETDATE(),
+    updatedAt DATETIME DEFAULT GETDATE(),
+    FOREIGN KEY (userId) REFERENCES Users(id),
+    FOREIGN KEY (tripId) REFERENCES Trips(id)
+);
+
+-- Bảng đánh giá nhà xe
+CREATE TABLE CompanyReviews (
+    id INT PRIMARY KEY IDENTITY(1,1),
+    userId INT NOT NULL,
+    companyId INT NOT NULL,
+    rating INT NOT NULL CHECK (rating BETWEEN 1 AND 5),
+    comment NVARCHAR(MAX),
+    images NVARCHAR(MAX),
+    status VARCHAR(20) DEFAULT 'PENDING' CHECK (status IN ('PENDING', 'APPROVED', 'REJECTED')),
+    createdAt DATETIME DEFAULT GETDATE(),
+    updatedAt DATETIME DEFAULT GETDATE(),
+    FOREIGN KEY (userId) REFERENCES Users(id),
+    FOREIGN KEY (companyId) REFERENCES PassengerCarCompanies(id)
+);
+
+
+
+-- Tạo index
+CREATE INDEX IX_TripReviews_TripId ON TripReviews(tripId);
+CREATE INDEX IX_TripReviews_UserId ON TripReviews(userId);
+CREATE INDEX IX_CompanyReviews_CompanyId ON CompanyReviews(companyId);
+
+GO
+
+
+-- Bảng khuyến mãi (Promotions)
+CREATE TABLE Promotions (
+    id INT PRIMARY KEY IDENTITY(1,1),
+    code NVARCHAR(50) NOT NULL UNIQUE,
+    name NVARCHAR(255) NOT NULL,
+    description NVARCHAR(MAX),
+    discountType VARCHAR(20) NOT NULL CHECK (discountType IN ('PERCENT', 'FIXED')),
+    discountValue DECIMAL(10,2) NOT NULL,
+    minOrderValue DECIMAL(10,2) DEFAULT 0,
+    maxDiscount DECIMAL(10,2) NULL,
+    startDate DATETIME NOT NULL,
+    endDate DATETIME NOT NULL,
+    usageLimit INT DEFAULT 1,
+    usedCount INT DEFAULT 0,
+    isActive BIT DEFAULT 1,
+    createdAt DATETIME DEFAULT GETDATE(),
+    updatedAt DATETIME DEFAULT GETDATE()
+);
+
+-- Bảng lưu lịch sử sử dụng khuyến mãi
+CREATE TABLE PromotionUsage (
+    id INT PRIMARY KEY IDENTITY(1,1),
+    promotionId INT NOT NULL,
+    userId INT NOT NULL,
+    ticketId INT NOT NULL,
+    discountAmount DECIMAL(10,2) NOT NULL,
+    usedAt DATETIME DEFAULT GETDATE(),
+    FOREIGN KEY (promotionId) REFERENCES Promotions(id),
+    FOREIGN KEY (userId) REFERENCES Users(id),
+    FOREIGN KEY (ticketId) REFERENCES Tickets(id)
+);
+
+-- Index
+CREATE INDEX IX_Promotions_Code ON Promotions(code);
+CREATE INDEX IX_Promotions_Date ON Promotions(startDate, endDate);
+CREATE INDEX IX_PromotionUsage_UserId ON PromotionUsage(userId);
+
+
+-- Xóa bảng cũ nếu tồn tại
+DROP TABLE IF EXISTS Reports;
+
+-- Tạo bảng Reports mới (không có fromStation, toStation)
+CREATE TABLE Reports (
+    id INT PRIMARY KEY IDENTITY(1,1),
+    userId INT NOT NULL,
+    ticketId INT NULL,
+    tripId INT NULL,
+    title NVARCHAR(255) NOT NULL,
+    description NVARCHAR(MAX) NOT NULL,
+    category VARCHAR(50) NOT NULL CHECK (category IN ('TECHNICAL', 'SERVICE', 'PAYMENT', 'OTHER')),
+    status VARCHAR(20) DEFAULT 'PENDING' CHECK (status IN ('PENDING', 'PROCESSING', 'RESOLVED', 'CLOSED')),
+    adminNote NVARCHAR(MAX) NULL,
+    resolvedAt DATETIME NULL,
+    createdAt DATETIME DEFAULT GETDATE(),
+    FOREIGN KEY (userId) REFERENCES Users(id),
+    FOREIGN KEY (ticketId) REFERENCES Tickets(id),
+    FOREIGN KEY (tripId) REFERENCES Trips(id)
+);
+
+
+-- 1. Thêm cột refundPercentage
+IF NOT EXISTS (SELECT * FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_NAME = 'Refunds' AND COLUMN_NAME = 'refundPercentage')
+BEGIN
+    ALTER TABLE Refunds ADD refundPercentage INT NULL;
+    PRINT '✅ Đã thêm cột refundPercentage';
+END
+ELSE
+BEGIN
+    PRINT 'ℹ️ Cột refundPercentage đã tồn tại';
+END
+
+-- 2. Thêm cột adminNote
+IF NOT EXISTS (SELECT * FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_NAME = 'Refunds' AND COLUMN_NAME = 'adminNote')
+BEGIN
+    ALTER TABLE Refunds ADD adminNote NVARCHAR(MAX) NULL;
+    PRINT '✅ Đã thêm cột adminNote';
+END
+ELSE
+BEGIN
+    PRINT 'ℹ️ Cột adminNote đã tồn tại';
+END
+
+
 GO
 INSERT INTO Users (
         name,
@@ -1654,56 +1777,43 @@ ON Vehicles
 AFTER INSERT
 AS
 BEGIN
-PRINT 'Trigger running'
-SET NOCOUNT ON;
+    PRINT 'Trigger running'
+    SET NOCOUNT ON;
 
--- FLOOR 1
-INSERT INTO Seats (vehicleId, name, floor, type, status)
-SELECT
-i.id,
-seat.name,
-1,
-seat.type,
-'AVAILABLE'
-FROM inserted i
-CROSS JOIN (
-VALUES
-('A1','VIP'),
-('A2','VIP'),
-('A3','VIP'),
-('A4','VIP'),
-('B1','NORMAL'),
-('B2','NORMAL'),
-('B3','NORMAL'),
-('B4','NORMAL'),
-('C1','NORMAL'),
-('C2','NORMAL'),
-('C3','NORMAL'),
-('C4','NORMAL'),
-('D1','NORMAL'),
-('D2','NORMAL'),
-('D3','NORMAL'),
-('D4','NORMAL')
-) seat(name,type);
+    -- FLOOR 1 (14 ghế đầu)
+    INSERT INTO Seats (vehicleId, name, floor, type, status)
+    SELECT
+        i.id,
+        seat.name,
+        1,
+        seat.type,
+        'AVAILABLE'
+    FROM inserted i
+    CROSS JOIN (
+        VALUES
+        ('A1','VIP'), ('A2','VIP'), ('A3','VIP'), ('A4','VIP'),
+        ('B1','NORMAL'), ('B2','NORMAL'), ('B3','NORMAL'), ('B4','NORMAL'),
+        ('C1','NORMAL'), ('C2','NORMAL'), ('C3','NORMAL'), ('C4','NORMAL'),
+        ('D1','NORMAL'), ('D2','NORMAL')
+    ) seat(name,type);
 
-
--- FLOOR 2
-INSERT INTO Seats (vehicleId, name, floor, type, status)
-SELECT
-i.id,
-seat.name,
-2,
-'NORMAL',
-'AVAILABLE'
-FROM inserted i
-CROSS JOIN (
-VALUES
-('E1'),
-('E2'),
-('F1'),
-('F2')
-) seat(name)
-WHERE i.numberOfFloors = 2;
+    -- FLOOR 2 (14 ghế còn lại)
+    INSERT INTO Seats (vehicleId, name, floor, type, status)
+    SELECT
+        i.id,
+        seat.name,
+        2,
+        seat.type,
+        'AVAILABLE'
+    FROM inserted i
+    CROSS JOIN (
+        VALUES
+        ('D3','NORMAL'), ('D4','NORMAL'),
+        ('E1','NORMAL'), ('E2','NORMAL'), ('E3','NORMAL'), ('E4','NORMAL'),
+        ('F1','NORMAL'), ('F2','NORMAL'), ('F3','NORMAL'), ('F4','NORMAL'),
+        ('G1','NORMAL'), ('G2','NORMAL'), ('G3','NORMAL'), ('G4','NORMAL')
+    ) seat(name,type)
+    WHERE i.numberOfFloors = 2;
 
 END
 
@@ -1726,3 +1836,145 @@ SELECT
 t.name,
 OBJECT_NAME(t.parent_id) AS table_name
 FROM sys.triggers t
+
+SELECT * FROM Trips WHERE id = 47;
+
+INSERT INTO TimePoints (
+    tripId,
+    pointId,
+    arrivalTime,
+    departureTime,
+    stopDuration
+)
+VALUES 
+-- Đi qua các điểm miền Trung
+(47, 2, '09:30:00', '09:45:00', 15),   -- Thanh Hóa
+(47, 3, '12:00:00', '12:15:00', 15),   -- Vinh
+(47, 4, '14:30:00', '14:45:00', 15),   -- Hà Tĩnh
+(47, 5, '17:00:00', '17:15:00', 15),   -- Đồng Hới
+(47, 6, '19:30:00', '19:45:00', 15),   -- Đông Hà
+(47, 7, '21:30:00', '21:45:00', 15);   -- Huế
+
+SELECT tp.*, p.address
+FROM TimePoints tp
+JOIN Points p ON tp.pointId = p.id
+WHERE tp.tripId = 47
+ORDER BY tp.arrivalTime;
+
+DECLARE @TripId INT;
+DECLARE @Now DATETIME = GETDATE();
+
+INSERT INTO Trips (
+    fromStationId,
+    toStationId,
+    vehicleId,
+    startTime,
+    price,
+    estimatedDuration,
+    imageUrl,
+    isActive
+)
+VALUES (
+    1,  -- Hà Nội
+    3,  -- Đà Nẵng
+    1,
+    DATEADD(HOUR, -2, @Now), -- khởi hành cách đây 2 tiếng
+    350000,
+    900,
+    '/images/trips/live-tracking.jpg',
+    1
+);
+
+SET @TripId = SCOPE_IDENTITY();
+
+DECLARE 
+    @pThanhHoa INT,
+    @pVinh INT,
+    @pHaTinh INT,
+    @pDongHoi INT,
+    @pDongHa INT,
+    @pHue INT;
+
+SELECT @pThanhHoa = id FROM Points WHERE address = N'Thanh Hóa';
+SELECT @pVinh = id FROM Points WHERE address = N'Vinh';
+SELECT @pHaTinh = id FROM Points WHERE address = N'Hà Tĩnh';
+SELECT @pDongHoi = id FROM Points WHERE address = N'Đồng Hới';
+SELECT @pDongHa = id FROM Points WHERE address = N'Đông Hà';
+SELECT @pHue = id FROM Points WHERE address = N'Huế';
+
+
+INSERT INTO TimePoints (
+    tripId,
+    pointId,
+    arrivalTime,
+    departureTime,
+    stopDuration
+)
+VALUES
+-- ĐÃ ĐI QUA
+(@TripId, @pThanhHoa, CAST(DATEADD(HOUR, -1, @Now) AS TIME), CAST(DATEADD(MINUTE, -45, @Now) AS TIME), 15),
+
+-- ĐANG GẦN / SẮP TỚI
+(@TripId, @pVinh, CAST(DATEADD(MINUTE, 30, @Now) AS TIME), CAST(DATEADD(MINUTE, 45, @Now) AS TIME), 15),
+
+-- CHƯA ĐẾN
+(@TripId, @pHaTinh, CAST(DATEADD(HOUR, 2, @Now) AS TIME), CAST(DATEADD(HOUR, 2, @Now) AS TIME), 15),
+(@TripId, @pDongHoi, CAST(DATEADD(HOUR, 4, @Now) AS TIME), CAST(DATEADD(HOUR, 4, @Now) AS TIME), 15),
+(@TripId, @pDongHa, CAST(DATEADD(HOUR, 6, @Now) AS TIME), CAST(DATEADD(HOUR, 6, @Now) AS TIME), 15),
+(@TripId, @pHue, CAST(DATEADD(HOUR, 8, @Now) AS TIME), CAST(DATEADD(HOUR, 8, @Now) AS TIME), 15);
+
+
+SELECT 
+    p.address,
+    tp.arrivalTime,
+    tp.departureTime,
+    CASE 
+        WHEN CAST(GETDATE() AS TIME) < tp.arrivalTime THEN 'UPCOMING'
+        WHEN CAST(GETDATE() AS TIME) BETWEEN tp.arrivalTime AND tp.departureTime THEN 'STOPPING'
+        ELSE 'PASSED'
+    END AS status
+FROM TimePoints tp
+JOIN Points p ON tp.pointId = p.id
+WHERE tp.tripId = @TripId
+ORDER BY tp.arrivalTime;
+
+INSERT INTO Transactions (walletId, amount, type, status, description)
+VALUES (
+    (SELECT id FROM Wallets WHERE userId = 2),
+    350000,
+    'PAYMENT',
+    'SUCCESS',
+    N'Test tracking trip 50'
+);
+
+INSERT INTO Tickets (
+    userId,
+    tripId,
+    seatId,
+    totalAmount,
+    paymentMethod,
+    transactionId,
+    status
+)
+VALUES (
+    2,          -- userId (partner)
+    50,         -- tripId
+    1,          -- seatId (thay bằng seat bạn lấy được)
+    350000,
+    'WALLET',
+    (SELECT TOP 1 id FROM Transactions ORDER BY id DESC),
+    'PAID'
+);
+
+INSERT INTO TicketPassengers (
+    ticketId,
+    fullName,
+    phoneNumber,
+    email
+)
+VALUES (
+    (SELECT TOP 1 id FROM Tickets ORDER BY id DESC),
+    N'Test User 2',
+    '0900000999',
+    'test2@busgo.vn'
+);

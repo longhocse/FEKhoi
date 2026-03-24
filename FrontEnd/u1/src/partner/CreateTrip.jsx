@@ -17,6 +17,9 @@ export default function CreateTrip() {
   const { id } = useParams();
   const isEdit = !!id;
 
+  const [timePoints, setTimePoints] = useState([]);
+  const [points, setPoints] = useState([]);
+
   const [form, setForm] = useState({
     fromStationId: "",
     toStationId: "",
@@ -31,7 +34,7 @@ export default function CreateTrip() {
   useEffect(() => {
     fetchVehicles();
     fetchStations();
-
+    fetchPoints();
     if (isEdit) {
       fetchTripDetail();
     }
@@ -54,6 +57,11 @@ export default function CreateTrip() {
   const fetchStations = async () => {
     const res = await axios.get("http://localhost:5000/api/partner/stations");
     setStations(res.data);
+  };
+
+  const fetchPoints = async () => {
+    const res = await axios.get("http://localhost:5000/api/trips/points");
+    setPoints(res.data);
   };
 
   const fetchVehicles = async () => {
@@ -101,12 +109,19 @@ export default function CreateTrip() {
   const handleSubmit = async (e) => {
     e.preventDefault();
 
-    let startDateTime = new Date(`${form.startDate}T${form.startTime}`);
-    let arrivalDateTime = new Date(`${form.startDate}T${form.arrivalTime}`);
+    const startDateTime = `${form.startDate} ${form.startTime}:00`;
+    const arrivalDateTime = `${form.startDate} ${form.arrivalTime}:00`;
 
     if (arrivalDateTime <= startDateTime) {
       arrivalDateTime.setDate(arrivalDateTime.getDate() + 1);
     }
+    for (let tp of timePoints) {
+      if (!tp.pointId || !tp.arrivalTime || !tp.departureTime) {
+        alert("Vui lòng nhập đầy đủ điểm dừng và thời gian!");
+        return;
+      }
+    }
+
 
     try {
       if (isEdit) {
@@ -125,12 +140,22 @@ export default function CreateTrip() {
         navigate("/doi-tac/trips");
       } else {
         // CREATE
+
+        const formattedTimePoints = timePoints
+          .filter(tp => tp.pointId && tp.arrivalTime && tp.departureTime)
+          .map(tp => ({
+            ...tp,
+            arrivalTime: formatTime(tp.arrivalTime),
+            departureTime: formatTime(tp.departureTime)
+          }));
+
         await axios.post(
           "http://localhost:5000/api/partner/trips",
           {
             ...form,
             startTime: startDateTime,
-            arrivalTime: arrivalDateTime
+            arrivalTime: arrivalDateTime,
+            timePoints: formattedTimePoints
           }
         );
 
@@ -152,6 +177,38 @@ export default function CreateTrip() {
     .filter(seat => seat.floor === 2)
     .sort((a, b) => a.name.localeCompare(b.name));
 
+  const addTimePoint = () => {
+    setTimePoints([
+      ...timePoints,
+      {
+        pointId: "",
+        arrivalTime: "",
+        departureTime: "",
+        stopDuration: 0
+      }
+    ]);
+  };
+
+  const removeTimePoint = (index) => {
+    const updated = [...timePoints];
+    updated.splice(index, 1);
+    setTimePoints(updated);
+  };
+
+  const handleTimePointChange = (index, field, value) => {
+    const updated = [...timePoints];
+    updated[index][field] = value;
+    setTimePoints(updated);
+  };
+
+  const formatTime = (time) => {
+    if (!time) return null; // 🔥 tránh gửi rác
+
+    // nếu là HH:mm thì convert thành HH:mm:ss
+    if (time.length === 5) return time + ":00";
+
+    return time;
+  };
 
   return (
 
@@ -306,6 +363,79 @@ export default function CreateTrip() {
           </Card.Body>
         </Card>
 
+        <Card className="trip-card">
+          <Card.Body>
+
+            <Card.Title>📍 Điểm dừng (TimePoints)</Card.Title>
+
+            {timePoints.map((tp, index) => (
+              <Row key={index} className="mb-3">
+
+                <Col md={3}>
+                  <Form.Select
+                    value={tp.pointId}
+                    onChange={(e) =>
+                      handleTimePointChange(index, "pointId", e.target.value)
+                    }
+                  >
+                    <option value="">Chọn điểm</option>
+                    {points.map(p => (
+                      <option key={p.id} value={p.id}>
+                        {p.address}
+                      </option>
+                    ))}
+                  </Form.Select>
+                </Col>
+
+                <Col md={3}>
+                  <Form.Control
+                    type="time"
+                    value={tp.arrivalTime}
+                    onChange={(e) =>
+                      handleTimePointChange(index, "arrivalTime", e.target.value)
+                    }
+                  />
+                </Col>
+
+                <Col md={3}>
+                  <Form.Control
+                    type="time"
+                    value={tp.departureTime}
+                    onChange={(e) =>
+                      handleTimePointChange(index, "departureTime", e.target.value)
+                    }
+                  />
+                </Col>
+
+                <Col md={2}>
+                  <Form.Control
+                    type="number"
+                    placeholder="Stop (phút)"
+                    value={tp.stopDuration}
+                    onChange={(e) =>
+                      handleTimePointChange(index, "stopDuration", e.target.value)
+                    }
+                  />
+                </Col>
+
+                <Col md={1}>
+                  <Button
+                    variant="danger"
+                    onClick={() => removeTimePoint(index)}
+                  >
+                    ✕
+                  </Button>
+                </Col>
+
+              </Row>
+            ))}
+
+            <Button onClick={addTimePoint}>
+              ➕ Thêm điểm dừng
+            </Button>
+
+          </Card.Body>
+        </Card>
 
         {/* VEHICLE */}
         <Card className="trip-card">

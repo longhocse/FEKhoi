@@ -2,6 +2,7 @@ import { Container, Row, Col, Form, Card, Spinner, Alert } from "react-bootstrap
 import { useSearchParams, useLocation } from "react-router-dom";
 import RouteCard from "../components/RouteCard";
 import { useState, useEffect } from "react";
+import SearchBox from "../components/SearchBox";
 import axios from "axios";
 
 export default function TuyenXe() {
@@ -22,7 +23,6 @@ export default function TuyenXe() {
     const fetchRoutes = async () => {
       try {
         setLoading(true);
-        
         // Nếu có kết quả từ state thì dùng, không thì gọi API
         if (location.state?.searchResults) {
           console.log("Dùng dữ liệu từ state:", location.state.searchResults);
@@ -30,7 +30,6 @@ export default function TuyenXe() {
         } else {
           // Gọi API tìm kiếm
           console.log("Gọi API tìm kiếm với params:", { from: fromQ, to: toQ, date: dateQ });
-          
           const response = await axios.get('http://localhost:5000/api/search', {
             params: {
               from: fromQ,
@@ -38,11 +37,11 @@ export default function TuyenXe() {
               date: dateQ
             }
           });
-          
+
           console.log("Kết quả từ API:", response.data);
           setRoutes(response.data.data || []);
         }
-        
+
         setError(null);
       } catch (err) {
         console.error("Lỗi khi tải dữ liệu:", err);
@@ -56,7 +55,7 @@ export default function TuyenXe() {
   }, [fromQ, toQ, dateQ, location.state]);
 
   // Lọc theo giá (client-side filter)
-  const filteredRoutes = minPrice 
+  const filteredRoutes = minPrice
     ? routes.filter(route => route.price >= Number(minPrice))
     : routes;
 
@@ -83,6 +82,13 @@ export default function TuyenXe() {
   return (
     <Container className="py-4">
       <h3 className="section-title mb-3">Kết quả tìm kiếm</h3>
+      <div className="mb-4">
+        <SearchBox
+          defaultFrom={fromQ}
+          defaultTo={toQ}
+          defaultDate={dateQ}
+        />
+      </div>
 
       {/* Hiển thị thông tin tìm kiếm */}
       {(fromQ || toQ || dateQ) && (

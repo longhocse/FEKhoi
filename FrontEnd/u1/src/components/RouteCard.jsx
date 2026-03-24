@@ -3,25 +3,22 @@ import { useNavigate } from "react-router-dom";
 
 export default function RouteCard({ item }) {
   const navigate = useNavigate();
-  // Debug: xem dữ liệu nhận được
+
   console.log('RouteCard nhận item:', item);
 
-  // Xử lý giá trị mặc định nếu thiếu dữ liệu
   const fromStation = item.fromStation || item.from || 'Không xác định';
   const toStation = item.toStation || item.to || 'Không xác định';
   const price = item.price || 0;
+
+  // ĐÚNG: vehicleName là loại xe, companyName là nhà xe
+  const vehicleType = item.vehicleName || item.vehicleType || item.vehicle || 'Xe khách';
   const companyName = item.companyName || item.company || 'Nhà xe BUSGO';
-  const vehicleName = item.vehicleName || item.vehicle || 'Xe khách';
-  const imageUrl =
-    item.imageUrl ||
-    item.image ||
-    item.vehicleImage ||
-    "/images/default-bus.jpg";
+
+  const imageUrl = item.imageUrl || item.image || "/images/default-bus.jpg";
   const availableSeats = item.availableSeats || item.seatsAvailable || 0;
 
   return (
     <Card className="soft-card h-100 overflow-hidden">
-      {/* Ảnh xe */}
       <div
         style={{
           height: 140,
@@ -33,7 +30,7 @@ export default function RouteCard({ item }) {
           position: "relative",
         }}
       >
-        {availableSeats < 10 && (
+        {availableSeats < 10 && availableSeats > 0 && (
           <Badge
             bg="warning"
             text="dark"
@@ -54,7 +51,11 @@ export default function RouteCard({ item }) {
             <div className="fw-bold fs-5">{fromStation} → {toStation}</div>
             <div className="text-muted small">
               <i className="bi bi-bus-front me-1"></i>
-              {vehicleName} • {companyName}
+              {vehicleType}  {/* Loại xe: Xe giường nằm 40 chỗ */}
+            </div>
+            <div className="text-muted small mt-1">
+              <i className="bi bi-building me-1"></i>
+              {companyName}  {/* Nhà xe: Xe Phương Trang */}
             </div>
           </div>
         </div>
@@ -75,7 +76,7 @@ export default function RouteCard({ item }) {
             variant="outline-primary"
             size="sm"
             className="pill px-3"
-            onClick={() => navigate(`/tuyen-xe/${item.id}`)} // Sửa thành id
+            onClick={() => navigate(`/tuyen-xe/${item.id}`)}
           >
             Chi tiết
           </Button>

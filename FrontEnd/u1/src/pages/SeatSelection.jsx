@@ -12,20 +12,17 @@ export default function SeatSelection() {
   const [trip, setTrip] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
-  const [selectedSeat, setSelectedSeat] = useState(null);
+  const [selectedSeats, setSelectedSeats] = useState([]); // Thay đổi: lưu mảng các ghế được chọn
 
   // Lấy dữ liệu từ state hoặc gọi API
   useEffect(() => {
     const loadData = async () => {
       try {
-        // Nếu có dữ liệu từ state (từ RouteDetail cũ)
         if (location.state?.trip) {
           console.log("📦 Dùng dữ liệu từ state:", location.state.trip);
           setTrip(location.state.trip);
           setLoading(false);
-        }
-        // Nếu có ID trong URL (từ RouteDetail mới)
-        else if (id) {
+        } else if (id) {
           console.log("🔄 Gọi API lấy chuyến xe ID:", id);
           const response = await axios.get(`http://localhost:5000/api/trips/${id}`);
 
@@ -35,9 +32,7 @@ export default function SeatSelection() {
             setError("Không tìm thấy chuyến xe");
           }
           setLoading(false);
-        }
-        // Không có dữ liệu
-        else {
+        } else {
           setError("Không có dữ liệu chuyến xe");
           setLoading(false);
         }
@@ -51,21 +46,38 @@ export default function SeatSelection() {
     loadData();
   }, [id, location.state]);
 
+  // Hàm xử lý chọn/bỏ chọn ghế
+  const handleSeatSelect = (seat) => {
+    if (seat.status !== 'AVAILABLE') {
+      alert("Ghế này không khả dụng");
+      return;
+    }
+
+    setSelectedSeats(prev => {
+      // Kiểm tra ghế đã được chọn chưa
+      const isSelected = prev.some(s => s.id === seat.id);
+
+      if (isSelected) {
+        // Nếu đã chọn thì bỏ chọn
+        return prev.filter(s => s.id !== seat.id);
+      } else {
+        // Nếu chưa chọn thì thêm vào danh sách
+        return [...prev, seat];
+      }
+    });
+  };
+
+  // Tính tổng tiền
+  const totalAmount = selectedSeats.reduce((sum, seat) => sum + trip.price, 0);
+
+  // Trong SeatSelection.jsx, sửa hàm handleContinue
+
   const handleContinue = () => {
-    if (!selectedSeat) {
-      alert("Vui lòng chọn ghế");
+    if (selectedSeats.length === 0) {
+      alert("Vui lòng chọn ít nhất 1 ghế");
       return;
     }
 
-    // Tìm thông tin ghế đầy đủ
-    const seatInfo = trip.seats?.find(s => s.id === selectedSeat);
-
-    if (!seatInfo) {
-      alert("Không tìm thấy thông tin ghế");
-      return;
-    }
-
-    // Dữ liệu gửi sang Payment
     const bookingData = {
       trip: {
         id: trip.id,
@@ -77,15 +89,19 @@ export default function SeatSelection() {
         vehicleName: trip.vehicleName,
         estimatedDuration: trip.estimatedDuration
       },
-      seatId: seatInfo.id,
-      seatName: seatInfo.seatName || seatInfo.name,
-      totalAmount: trip.price
+      seats: selectedSeats.map(seat => ({
+        id: seat.id,
+        name: seat.seatName || seat.name,
+        price: trip.price
+      })),
+      seatIds: selectedSeats.map(seat => seat.id), // Mảng ID ghế
+      seatNames: selectedSeats.map(seat => seat.seatName || seat.name).join(', '),
+      totalAmount: totalAmount,
+      quantity: selectedSeats.length
     };
 
-    // Lưu vào localStorage để phòng trường hợp refresh
     localStorage.setItem('currentBooking', JSON.stringify(bookingData));
 
-    // Chuyển đến trang thanh toán
     navigate("/thanh-toan", {
       state: bookingData
     });
@@ -129,8 +145,6 @@ export default function SeatSelection() {
     );
   }
 
-  const selectedSeatInfo = trip.seats?.find(s => s.id === selectedSeat);
-
   return (
     <Container className="py-4">
       <Button
@@ -142,7 +156,13 @@ export default function SeatSelection() {
         Quay lại
       </Button>
 
-      <h3 className="mb-4">Chọn ghế - {trip.fromStation} → {trip.toStation}</h3>
+      <div className="d-flex justify-content-between align-items-center mb-4">
+        <h3 className="mb-0">Chọn ghế - {trip.fromStation} → {trip.toStation}</h3>
+        <Badge bg="info" className="p-2">
+          <i className="bi bi-check-circle me-1"></i>
+          Đã chọn: {selectedSeats.length} ghế
+        </Badge>
+      </div>
 
       <Row>
         <Col lg={8}>
@@ -157,17 +177,17 @@ export default function SeatSelection() {
 
               <SeatLayout
                 seats={trip.seats || []}
-                selectedSeat={selectedSeat}
-                setSelectedSeat={setSelectedSeat}
+                selectedSeats={selectedSeats}
+                onSeatSelect={handleSeatSelect}
               />
             </Card.Body>
           </Card>
         </Col>
 
         <Col lg={4}>
-          <Card className="shadow-sm sticky-top" style={{ top: '20px' }}>
+          <Card className="shadow-sm " >
             <Card.Body>
-              <h5 className="mb-3">Thông tin vé</h5>
+              <h5 className="mb-3">Thông tin đặt vé</h5>
 
               <div className="mb-3">
                 <small className="text-muted">Tuyến xe</small>
@@ -195,34 +215,74 @@ export default function SeatSelection() {
               </div>
 
               <div className="mb-3">
-                <small className="text-muted">Giá vé</small>
-                <p className="h4 text-primary mb-2">
+                <small className="text-muted">Giá vé / ghế</small>
+                <p className="h5 text-primary mb-2">
                   {formatCurrency(trip.price)}
                 </p>
               </div>
 
-              <div className="mb-4">
-                <small className="text-muted">Ghế đã chọn</small>
-                <p className="h5 mb-2">
-                  {selectedSeatInfo ? (
-                    <Badge bg="info" className="p-2">
-                      {selectedSeatInfo.seatName || selectedSeatInfo.name}
-                    </Badge>
+              {/* Danh sách ghế đã chọn */}
+              <div className="mb-3">
+                <small className="text-muted">Ghế đã chọn ({selectedSeats.length})</small>
+                <div className="mt-2">
+                  {selectedSeats.length === 0 ? (
+                    <p className="text-muted mb-0">Chưa chọn ghế</p>
                   ) : (
-                    <span className="text-muted">Chưa chọn ghế</span>
+                    <div className="d-flex flex-wrap gap-2">
+                      {selectedSeats.map(seat => (
+                        <Badge
+                          key={seat.id}
+                          bg="warning"
+                          className="p-2 d-flex align-items-center gap-1"
+                          style={{ cursor: 'pointer' }}
+                          onClick={() => handleSeatSelect(seat)}
+                        >
+                          {seat.seatName || seat.name}
+                          <i className="bi bi-x-circle ms-1"></i>
+                        </Badge>
+                      ))}
+                    </div>
                   )}
-                </p>
+                </div>
+              </div>
+
+              <hr />
+
+              {/* Tổng tiền */}
+              <div className="mb-4">
+                <div className="d-flex justify-content-between mb-2">
+                  <span>Số lượng ghế:</span>
+                  <span className="fw-bold">{selectedSeats.length}</span>
+                </div>
+                <div className="d-flex justify-content-between">
+                  <span>Tổng tiền:</span>
+                  <h5 className="text-primary mb-0">{formatCurrency(totalAmount)}</h5>
+                </div>
               </div>
 
               <Button
                 variant="primary"
                 size="lg"
                 className="w-100"
-                disabled={!selectedSeat}
+                disabled={selectedSeats.length === 0}
                 onClick={handleContinue}
               >
-                {selectedSeat ? 'Tiếp tục thanh toán' : 'Vui lòng chọn ghế'}
+                {selectedSeats.length === 0
+                  ? 'Vui lòng chọn ghế'
+                  : `Tiếp tục thanh toán (${selectedSeats.length} ghế)`}
               </Button>
+
+              {selectedSeats.length > 0 && (
+                <Button
+                  variant="outline-secondary"
+                  size="sm"
+                  className="w-100 mt-2"
+                  onClick={() => setSelectedSeats([])}
+                >
+                  <i className="bi bi-arrow-repeat me-1"></i>
+                  Bỏ chọn tất cả
+                </Button>
+              )}
             </Card.Body>
           </Card>
         </Col>
