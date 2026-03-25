@@ -1817,6 +1817,45 @@ BEGIN
 
 END
 
+
+CREATE OR ALTER PROCEDURE sp_GetPartnerTickets
+    @PartnerId INT
+AS
+BEGIN
+    SELECT 
+        tk.id AS ticketId,
+        tk.status,
+        tk.totalAmount,
+        tk.paymentMethod,
+        tk.bookedAt,
+
+        u.name AS customerName,
+        u.phoneNumber AS customerPhone,
+
+        t.id AS tripId,
+        t.startTime,
+
+        sFrom.name AS fromStation,
+        sTo.name AS toStation,
+
+        v.name AS vehicleName,
+
+        tp.fullName AS passengerName,
+        tp.phoneNumber AS passengerPhone
+
+    FROM Tickets tk
+    JOIN Users u ON tk.userId = u.id
+    JOIN Trips t ON tk.tripId = t.id
+    JOIN Vehicles v ON t.vehicleId = v.id
+    JOIN Stations sFrom ON t.fromStationId = sFrom.id
+    JOIN Stations sTo ON t.toStationId = sTo.id
+    LEFT JOIN TicketPassengers tp ON tp.ticketId = tk.id
+
+    WHERE v.partnerId = @PartnerId
+    ORDER BY tk.bookedAt DESC;
+END
+
+
 INSERT INTO Vehicles
 (name, licensePlate, type, numberOfFloors, partnerId)
 VALUES
@@ -1978,3 +2017,5 @@ VALUES (
     '0900000999',
     'test2@busgo.vn'
 );
+
+
