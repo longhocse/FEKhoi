@@ -3,11 +3,11 @@ import { useNavigate } from "react-router-dom";
 import { useState, useEffect } from "react";
 import axios from "axios";
 
-export default function SearchBox() {
+export default function SearchBox({ defaultFrom, defaultTo, defaultDate }) {
   const navigate = useNavigate();
-  const [from, setFrom] = useState("");
-  const [to, setTo] = useState("");
-  const [date, setDate] = useState("");
+  const [from, setFrom] = useState(defaultFrom || "");
+  const [to, setTo] = useState(defaultTo || "");
+  const [date, setDate] = useState(defaultDate || "");
   const [fromSuggestions, setFromSuggestions] = useState([]);
   const [toSuggestions, setToSuggestions] = useState([]);
   const [loading, setLoading] = useState(false);
@@ -66,20 +66,19 @@ export default function SearchBox() {
 
     try {
       // Gọi API search-simple
-      const response = await axios.get('http://localhost:5000/api/trips/search', {
+      const response = await axios.get('http://localhost:5000/api/search', {
         params: {
           from: from,
-          to: to
-          // Không dùng date vì đang test
+          to: to,
+          date: date
         }
       });
 
       console.log('Kết quả tìm kiếm:', response.data);
 
-      navigate('/tuyen-xe', {
+      navigate(`/tuyen-xe?from=${from}&to=${to}&date=${date}`, {
         state: {
-          searchResults: response.data.data,
-          searchParams: { from, to, date }
+          searchResults: response.data.data // vẫn có thể giữ nếu muốn
         }
       });
     } catch (error) {

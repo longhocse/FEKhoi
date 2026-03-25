@@ -283,55 +283,6 @@ exports.getSimpleTrips = async (req, res) => {
 };
 
 
-// ================= SEARCH =================
-exports.searchTrips = async (req, res) => {
-    try {
-        console.log("API /search CALLED");
-        const { from, to } = req.query;
-        const pool = await poolPromise;
-
-        const result = await pool.request().query(`
-        SELECT 
-            t.id,
-            sFrom.name as fromStation,
-            sTo.name as toStation,
-            t.startTime,
-            t.price,
-            t.estimatedDuration,
-            t.imageUrl
-        FROM Trips t
-        JOIN Stations sFrom ON t.fromStationId = sFrom.id
-        JOIN Stations sTo ON t.toStationId = sTo.id
-        WHERE t.isActive = 1
-          AND t.startTime > DATEADD(HOUR, 0, GETUTCDATE())
-        `);
-
-        let filtered = result.recordset;
-
-        if (from) {
-            filtered = filtered.filter(item =>
-                item.fromStation.toLowerCase().includes(from.toLowerCase())
-            );
-        }
-
-        if (to) {
-            filtered = filtered.filter(item =>
-                item.toStation.toLowerCase().includes(to.toLowerCase())
-            );
-        }
-
-        res.json({
-            success: true,
-            count: filtered.length,
-            data: filtered
-        });
-
-    } catch (err) {
-        res.status(500).json({ error: err.message });
-    }
-};
-
-
 // ================= POPULAR =================
 exports.getPopularTrips = async (req, res) => {
     try {

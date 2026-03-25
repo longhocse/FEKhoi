@@ -83,22 +83,10 @@ export default function RouteDetail() {
   const formatTimeOnly = (timeString) => {
     if (!timeString) return 'N/A';
 
-    // Nếu backend trả "HH:mm:ss"
-    if (typeof timeString === 'string' && timeString.length <= 8) {
-      return timeString.slice(0, 5);
-    }
-
-    const date = new Date(timeString);
-
-    if (isNaN(date)) return timeString;
-
-    return date.toLocaleTimeString('vi-VN', {
-      hour: '2-digit',
-      minute: '2-digit',
-      hour12: false,
-      timeZone: 'Asia/Ho_Chi_Minh'
-    });
+    return timeString.substring(11, 16);
   };
+
+
 
   if (loading) {
     return (
@@ -158,7 +146,7 @@ export default function RouteDetail() {
                   <div className="mb-3">
                     <h6 className="text-muted mb-1">Tuyến xe</h6>
                     <h4>{trip.fromStation} → {trip.toStation}</h4>
-                    <small className="text-muted">{trip.fromProvince} - {trip.toProvince}</small>
+                    <small className="text-muted">{trip.fromProvince}  {trip.toProvince}</small>
                   </div>
                   <div className="mb-3">
                     <h6 className="text-muted mb-1">Thời gian khởi hành</h6>
@@ -171,7 +159,7 @@ export default function RouteDetail() {
                 <Col md={6}>
                   <div className="mb-3">
                     <h6 className="text-muted mb-1">Nhà xe</h6>
-                    <p className="fw-bold mb-0">{trip.companyName}</p>
+                    <p>{Array.isArray(trip.companyName) ? trip.companyName[0] : trip.companyName}</p>
                     <small className="text-muted">📞 {trip.companyPhone}</small>
                   </div>
                   <div className="mb-3">
@@ -242,7 +230,7 @@ export default function RouteDetail() {
               </div>
               <div className="mb-3">
                 <h6 className="text-muted mb-2">Nhà xe</h6>
-                <p>{trip.companyName}</p>
+                <p>{Array.isArray(trip.companyName) ? trip.companyName[0] : trip.companyName}</p>
               </div>
               <Button
                 variant="primary"

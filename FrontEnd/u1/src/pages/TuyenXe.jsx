@@ -18,6 +18,7 @@ export default function TuyenXe() {
   const toQ = searchParams.get("to") || "";
   const dateQ = searchParams.get("date") || "";
 
+
   // Nếu có kết quả từ state (từ SearchBox), dùng luôn
   useEffect(() => {
     const fetchRoutes = async () => {
@@ -90,30 +91,6 @@ export default function TuyenXe() {
         />
       </div>
 
-      {/* Hiển thị thông tin tìm kiếm */}
-      {(fromQ || toQ || dateQ) && (
-        <Card className="bg-light border-0 mb-4">
-          <Card.Body>
-            <Row>
-              {fromQ && (
-                <Col md={4}>
-                  <strong>Điểm đi:</strong> {fromQ}
-                </Col>
-              )}
-              {toQ && (
-                <Col md={4}>
-                  <strong>Điểm đến:</strong> {toQ}
-                </Col>
-              )}
-              {dateQ && (
-                <Col md={4}>
-                  <strong>Ngày đi:</strong> {new Date(dateQ).toLocaleDateString('vi-VN')}
-                </Col>
-              )}
-            </Row>
-          </Card.Body>
-        </Card>
-      )}
 
       {/* Bộ lọc giá */}
       <Card className="soft-card p-3 mb-4">

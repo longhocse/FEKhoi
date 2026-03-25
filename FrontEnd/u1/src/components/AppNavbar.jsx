@@ -70,11 +70,6 @@ export default function AppNavbar() {
               Tin tức
             </Nav.Link>
 
-            <Nav.Link as={NavLink} to="/lien-he">
-              <i className="bi bi-envelope me-1"></i>
-              Liên hệ
-            </Nav.Link>
-
             <Nav.Link as={NavLink} to="/doi-tac">
               <i className="bi bi-building me-1"></i>
               Dành cho nhà xe

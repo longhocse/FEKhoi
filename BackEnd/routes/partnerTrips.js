@@ -242,6 +242,8 @@ router.get("/stations", async (req, res) => {
 
 // ================= ADD TRIP =================
 router.post("/trips", async (req, res) => {
+  console.log("🔥 POST /partnerTrips/trips called ");
+  console.log("📥 BODY:", req.body);
   const transaction = new sql.Transaction(await poolPromise);
 
   try {
@@ -253,67 +255,101 @@ router.post("/trips", async (req, res) => {
       price,
       vehicleId,
       imageUrl,
-      timePoints = []
+      timePoints = [],
+      endDate
     } = req.body;
 
-    if (!fromStationId || !toStationId || !startTime || !arrivalTime || !vehicleId) {
+    // validate
+    if (!fromStationId || !toStationId || !startTime || !arrivalTime || !vehicleId || !endDate) {
       return res.status(400).json({ message: "Missing required fields" });
     }
 
-    const start = new Date(startTime);
-    const arrival = new Date(arrivalTime);
-    const estimatedDuration = Math.floor((arrival - start) / 60000);
+    // parse thời gian gốc (ngày đầu tiên)
+    const baseStart = new Date(startTime.replace(" ", "T") + "+07:00");
+    const baseArrival = new Date(arrivalTime.replace(" ", "T") + "+07:00");
+
+    // ngày kết thúc (chỉ lấy date)
+    const endDateObj = new Date(endDate + "T23:59:59+07:00");
 
     await transaction.begin();
 
-    const request = new sql.Request(transaction);
+    let currentDate = new Date(baseStart);
+    let createdTripIds = [];
 
-    // 1. Insert Trip + lấy ID
-    const tripResult = await request
-      .input("fromStationId", sql.Int, fromStationId)
-      .input("toStationId", sql.Int, toStationId)
-      .input("vehicleId", sql.Int, vehicleId)
-      .input("startTime", sql.DateTime, start)
-      .input("price", sql.Decimal(10, 2), price)
-      .input("estimatedDuration", sql.Int, estimatedDuration)
-      .input("imageUrl", sql.NVarChar, imageUrl)
-      .query(`
-        INSERT INTO Trips
-        (fromStationId, toStationId, vehicleId, startTime, price, estimatedDuration, imageUrl)
-        OUTPUT INSERTED.id
-        VALUES
-        (@fromStationId, @toStationId, @vehicleId, @startTime, @price, @estimatedDuration, @imageUrl)
-      `);
+    while (currentDate <= endDateObj) {
 
-    const tripId = tripResult.recordset[0].id;
+      // clone ngày hiện tại
+      const start = new Date(currentDate);
+      start.setHours(baseStart.getHours(), baseStart.getMinutes(), 0, 0);
+      console.log("👉 Creating trip for date:", start);
+      const arrival = new Date(currentDate);
+      arrival.setHours(baseArrival.getHours(), baseArrival.getMinutes(), 0, 0);
 
-    // 2. Insert TimePoints
-    for (const tp of timePoints) {
-      await new sql.Request(transaction)
-        .input("tripId", sql.Int, tripId)
-        .input("pointId", sql.Int, tp.pointId)
-        .input("arrivalTime", sql.VarChar, tp.arrivalTime)
-        .input("departureTime", sql.VarChar, tp.departureTime)
-        .input("stopDuration", sql.Int, tp.stopDuration || 0)
+      // nếu giờ đến < giờ đi → qua ngày hôm sau
+      if (arrival <= start) {
+        arrival.setDate(arrival.getDate() + 1);
+      }
+
+      const estimatedDuration = Math.floor((arrival - start) / 60000);
+
+      // insert trip
+      const tripResult = await new sql.Request(transaction)
+        .input("fromStationId", sql.Int, fromStationId)
+        .input("toStationId", sql.Int, toStationId)
+        .input("vehicleId", sql.Int, vehicleId)
+        .input("startTime", sql.DateTime, start)
+        .input("price", sql.Decimal(10, 2), price)
+        .input("estimatedDuration", sql.Int, estimatedDuration)
+        .input("imageUrl", sql.NVarChar, imageUrl)
         .query(`
-          INSERT INTO TimePoints
-          (tripId, pointId, arrivalTime, departureTime, stopDuration)
+          INSERT INTO Trips
+          (fromStationId, toStationId, vehicleId, startTime, price, estimatedDuration, imageUrl)
+          OUTPUT INSERTED.id
           VALUES
-          (@tripId, @pointId, @arrivalTime, @departureTime, @stopDuration)
+          (@fromStationId, @toStationId, @vehicleId, @startTime, @price, @estimatedDuration, @imageUrl)
         `);
+
+      const tripId = tripResult.recordset[0].id;
+      createdTripIds.push(tripId);
+
+      // insert timePoints cho từng trip
+      for (const tp of timePoints) {
+        await new sql.Request(transaction)
+          .input("tripId", sql.Int, tripId)
+          .input("pointId", sql.Int, tp.pointId)
+          .input("arrivalTime", sql.VarChar, tp.arrivalTime)
+          .input("departureTime", sql.VarChar, tp.departureTime)
+          .input("stopDuration", sql.Int, tp.stopDuration || 0)
+          .query(`
+            INSERT INTO TimePoints
+            (tripId, pointId, arrivalTime, departureTime, stopDuration)
+            VALUES
+            (@tripId, @pointId, @arrivalTime, @departureTime, @stopDuration)
+          `);
+      }
+
+      // tăng ngày
+      currentDate.setDate(currentDate.getDate() + 1);
     }
 
     await transaction.commit();
 
     res.json({
-      message: "Trip + TimePoints created successfully",
-      tripId
+      message: "Created multiple trips successfully",
+      totalTrips: createdTripIds.length,
+      tripIds: createdTripIds
     });
 
   } catch (err) {
     await transaction.rollback();
-    console.error(err);
-    res.status(500).json(err);
+
+    console.error("🔥 ERROR:", err);
+    console.error("🔥 SQL ERROR:", err.originalError);
+
+    res.status(500).json({
+      message: "Server error",
+      error: err.message
+    });
   }
 });
 

@@ -123,6 +123,7 @@ CREATE TABLE Tickets (
     paymentMethod VARCHAR(20) CHECK (paymentMethod IN ('WALLET', 'CASH', 'BANKING')),
     transactionId INT,
     bookedAt DATETIME DEFAULT GETDATE(),
+	groupId NVARCHAR(100),
     FOREIGN KEY (userId) REFERENCES Users(id),
     FOREIGN KEY (tripId) REFERENCES Trips(id),
     FOREIGN KEY (seatId) REFERENCES Seats(id),

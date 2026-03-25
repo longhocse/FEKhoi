@@ -72,9 +72,20 @@ export default function CreateTrip() {
   };
 
   const handleChange = (e) => {
+    const { name, value } = e.target;
+
+    if (name === "startDate") {
+      setForm(prev => ({
+        ...prev,
+        startDate: value,
+        endDate: "" // reset để user chọn lại
+      }));
+      return;
+    }
+
     setForm({
       ...form,
-      [e.target.name]: e.target.value
+      [name]: value
     });
   };
 
@@ -92,6 +103,7 @@ export default function CreateTrip() {
       setForm({
         fromStationId: trip.fromStationId,
         toStationId: trip.toStationId,
+        endDate: "",
         startDate: start.toISOString().slice(0, 10),
         startTime: start.toTimeString().slice(0, 5),
         arrivalTime: arrival.toTimeString().slice(0, 5),
@@ -105,12 +117,23 @@ export default function CreateTrip() {
     }
   };
 
+  const formatDateTime = (date) => {
+    const yyyy = date.getFullYear();
+    const MM = String(date.getMonth() + 1).padStart(2, "0");
+    const dd = String(date.getDate()).padStart(2, "0");
+    const HH = String(date.getHours()).padStart(2, "0");
+    const mm = String(date.getMinutes()).padStart(2, "0");
+    const ss = "00";
+
+    return `${yyyy}-${MM}-${dd} ${HH}:${mm}:${ss}`;
+  };
+
 
   const handleSubmit = async (e) => {
     e.preventDefault();
 
-    const startDateTime = `${form.startDate} ${form.startTime}:00`;
-    const arrivalDateTime = `${form.startDate} ${form.arrivalTime}:00`;
+    let startDateTime = new Date(`${form.startDate}T${form.startTime}:00`);
+    let arrivalDateTime = new Date(`${form.startDate}T${form.arrivalTime}:00`);
 
     if (arrivalDateTime <= startDateTime) {
       arrivalDateTime.setDate(arrivalDateTime.getDate() + 1);
@@ -141,6 +164,7 @@ export default function CreateTrip() {
       } else {
         // CREATE
 
+
         const formattedTimePoints = timePoints
           .filter(tp => tp.pointId && tp.arrivalTime && tp.departureTime)
           .map(tp => ({
@@ -149,12 +173,19 @@ export default function CreateTrip() {
             departureTime: formatTime(tp.departureTime)
           }));
 
+        console.log("🚀 SUBMIT DATA:", {
+          ...form,
+          startTime: formatDateTime(startDateTime),
+          arrivalTime: formatDateTime(arrivalDateTime),
+          timePoints: formattedTimePoints
+        });
+
         await axios.post(
           "http://localhost:5000/api/partner/trips",
           {
             ...form,
-            startTime: startDateTime,
-            arrivalTime: arrivalDateTime,
+            startTime: formatDateTime(startDateTime),
+            arrivalTime: formatDateTime(arrivalDateTime),
             timePoints: formattedTimePoints
           }
         );
@@ -208,6 +239,17 @@ export default function CreateTrip() {
     if (time.length === 5) return time + ":00";
 
     return time;
+  };
+
+  const MAX_DAYS = 60;
+
+  const getMaxEndDate = (startDate) => {
+    if (!startDate) return "";
+
+    const d = new Date(startDate);
+    d.setDate(d.getDate() + MAX_DAYS - 1);
+
+    return d.toISOString().slice(0, 10);
   };
 
   return (
@@ -334,6 +376,16 @@ export default function CreateTrip() {
                   required
                 />
               </Col>
+
+              <Form.Control
+                type="date"
+                name="endDate"
+                value={form.endDate || ""}
+                onChange={handleChange}
+                min={form.startDate}
+                max={getMaxEndDate(form.startDate)}
+                required
+              />
 
             </Row>
 
