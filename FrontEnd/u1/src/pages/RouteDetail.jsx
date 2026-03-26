@@ -97,6 +97,8 @@ export default function RouteDetail() {
     );
   }
 
+
+
   if (error) {
     return (
       <Container className="py-5">
@@ -121,6 +123,19 @@ export default function RouteDetail() {
       </Container>
     );
   }
+
+  const getServiceIcon = (service) => {
+    const s = service.toLowerCase();
+
+    if (s.includes("wifi")) return "bi-wifi";
+    if (s.includes("điều hòa") || s.includes("air")) return "bi-snow";
+    if (s.includes("cắm") || s.includes("sạc")) return "bi-plug";
+    if (s.includes("nước")) return "bi-cup-straw";
+    if (s.includes("tv")) return "bi-tv";
+    if (s.includes("chăn") || s.includes("gối")) return "bi-moon";
+
+    return "bi-stars"; // default
+  };
 
   return (
     <Container className="py-4">
@@ -166,6 +181,28 @@ export default function RouteDetail() {
                     <h6 className="text-muted mb-1">Loại xe</h6>
                     <p className="mb-0">{trip.vehicleName}</p>
                     <small className="text-muted">{trip.vehicleType} - {trip.numberOfFloors} tầng</small>
+                  </div>
+                  <div className="mb-3">
+                    <h6 className="text-muted mb-1">Tiện ích</h6>
+
+                    {trip.services && trip.services.length > 0 ? (
+                      <div className="d-flex flex-wrap gap-2">
+                        {trip.services.map((service, index) => (
+                          <Badge
+                            key={index}
+                            bg="light"
+                            text="dark"
+                            className="px-3 py-2 d-flex align-items-center gap-2"
+                            style={{ fontSize: "0.85rem" }}
+                          >
+                            <i className={`bi ${getServiceIcon(service)}`}></i>
+                            {service}
+                          </Badge>
+                        ))}
+                      </div>
+                    ) : (
+                      <small className="text-muted">Không có tiện ích</small>
+                    )}
                   </div>
                   <div className="mb-3">
                     <h6 className="text-muted mb-1">Giá vé</h6>

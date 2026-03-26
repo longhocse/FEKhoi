@@ -289,23 +289,58 @@ exports.getPopularTrips = async (req, res) => {
         const pool = await poolPromise;
 
         const result = await pool.request().query(`
-            SELECT TOP 8
+            WITH TopTrips AS (
+                SELECT TOP 8 *
+                FROM Trips
+                WHERE isActive = 1
+                  AND startTime > GETUTCDATE()
+                ORDER BY startTime ASC
+            )
+
+            SELECT 
                 t.id,
                 s1.name AS fromStation,
                 s2.name AS toStation,
                 t.startTime,
                 t.price,
                 t.estimatedDuration,
-                t.imageUrl
-            FROM Trips t
+                t.imageUrl,
+                sv.name AS serviceName
+
+            FROM TopTrips t
             JOIN Stations s1 ON t.fromStationId = s1.id
             JOIN Stations s2 ON t.toStationId = s2.id
-            WHERE t.isActive = 1
-              AND t.startTime > DATEADD(HOUR, 0, GETUTCDATE())
+            LEFT JOIN Vehicles v ON t.vehicleId = v.id
+            LEFT JOIN VehicleServices vs ON v.id = vs.vehicleId
+            LEFT JOIN Services sv ON vs.serviceId = sv.id
+
             ORDER BY t.startTime ASC
         `);
 
-        res.json(result.recordset);
+        const tripsMap = {};
+
+        result.recordset.forEach(row => {
+            if (!tripsMap[row.id]) {
+                tripsMap[row.id] = {
+                    id: row.id,
+                    fromStation: row.fromStation,
+                    toStation: row.toStation,
+                    startTime: row.startTime,
+                    price: row.price,
+                    estimatedDuration: row.estimatedDuration,
+                    imageUrl: row.imageUrl,
+                    services: []
+                };
+            }
+
+            if (row.serviceName) {
+                tripsMap[row.id].services.push({
+                    name: row.serviceName
+                });
+            }
+        });
+
+        res.json(Object.values(tripsMap));
 
     } catch (error) {
         console.error("Error fetching popular trips:", error);
@@ -327,6 +362,7 @@ exports.getTripById = async (req, res) => {
 
         const pool = await poolPromise;
 
+        // ✅ LẤY TRIP + SERVICES
         const tripResult = await pool.request()
             .input("id", sql.Int, id)
             .query(`
@@ -337,24 +373,51 @@ SELECT
   t.startTime,
   t.price,
   t.estimatedDuration,
+
   v.id as vehicleId,
   v.name as vehicleName,
   v.type as vehicleType,
-  pc.name as companyName,
-  pc.id as companyId,  -- THÊM DÒNG NÀY ĐỂ LẤY ID NHÀ XE
+
+  pc.id as companyId,
   pc.name as companyName,
   pc.phone as companyPhone,
   pc.address as companyAddress,
   pc.logo as companyLogo,
+
   (SELECT TOP 1 imageUrl 
    FROM ImageVehicles 
-   WHERE vehicleId = v.id AND isPrimary = 1) AS imageUrl
+   WHERE vehicleId = v.id AND isPrimary = 1) AS imageUrl,
+
+  -- ✅ THÊM SERVICE
+  STRING_AGG(sv.name, ',') as services
+
 FROM Trips t
 JOIN Stations sFrom ON t.fromStationId = sFrom.id
 JOIN Stations sTo ON t.toStationId = sTo.id
 JOIN Vehicles v ON t.vehicleId = v.id
 JOIN PassengerCarCompanies pc ON v.partnerId = pc.id
+
+-- JOIN SERVICE
+LEFT JOIN VehicleServices vs ON v.id = vs.vehicleId
+LEFT JOIN Services sv ON vs.serviceId = sv.id
+
 WHERE t.id = @id AND t.isActive = 1
+
+GROUP BY 
+  t.id,
+  sFrom.name,
+  sTo.name,
+  t.startTime,
+  t.price,
+  t.estimatedDuration,
+  v.id,
+  v.name,
+  v.type,
+  pc.id,
+  pc.name,
+  pc.phone,
+  pc.address,
+  pc.logo
 `);
 
         if (tripResult.recordset.length === 0) {
@@ -366,6 +429,12 @@ WHERE t.id = @id AND t.isActive = 1
 
         const trip = tripResult.recordset[0];
 
+        // ✅ convert services string -> array
+        trip.services = trip.services
+            ? trip.services.split(',')
+            : [];
+
+        // ================= SEATS =================
         const seatsResult = await pool.request()
             .input("vehicleId", sql.Int, trip.vehicleId)
             .input("tripId", sql.Int, id)
@@ -381,12 +450,13 @@ WHERE t.id = @id AND t.isActive = 1
             ELSE s.status
           END as status
         FROM Seats s
-        LEFT JOIN Tickets tk ON s.id = tk.seatId AND tk.tripId = @tripId
+        LEFT JOIN Tickets tk 
+          ON s.id = tk.seatId AND tk.tripId = @tripId
         WHERE s.vehicleId = @vehicleId
         ORDER BY s.floor, s.name
         `);
 
-        // Lấy điểm dừng
+        // ================= TIME POINTS =================
         const pointsResult = await pool.request()
             .input("tripId", sql.Int, id)
             .query(`
@@ -419,7 +489,6 @@ WHERE t.id = @id AND t.isActive = 1
         });
     }
 };
-
 
 exports.getTripsByPartner = async (req, res) => {
     try {

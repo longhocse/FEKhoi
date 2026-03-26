@@ -12,6 +12,8 @@ export default function TuyenXe() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [minPrice, setMinPrice] = useState("");
+  const [priceRange, setPriceRange] = useState(2000000); // max 2 triệu
+  const [services, setServices] = useState([]);
 
   // Lấy params từ URL
   const fromQ = searchParams.get("from") || "";
@@ -51,14 +53,34 @@ export default function TuyenXe() {
         setLoading(false);
       }
     };
-
+    fetchServices();
     fetchRoutes();
   }, [fromQ, toQ, dateQ, location.state]);
 
-  // Lọc theo giá (client-side filter)
-  const filteredRoutes = minPrice
-    ? routes.filter(route => route.price >= Number(minPrice))
-    : routes;
+  const fetchServices = async () => {
+    try {
+      const res = await axios.get("http://localhost:5000/api/partner/services");
+      setServices(res.data);
+    } catch (err) {
+      console.error("Lỗi lấy services:", err);
+    }
+  };
+
+  const [selectedServices, setSelectedServices] = useState([]);
+
+  const filteredRoutes = routes.filter(route => {
+    const matchPrice = route.price <= priceRange;
+
+    const routeServices = Array.isArray(route.services)
+      ? route.services.map(s => s.name)
+      : [];
+
+    const matchService =
+      selectedServices.length === 0 ||
+      selectedServices.every(s => routeServices.includes(s));
+
+    return matchPrice && matchService;
+  });
 
   if (loading) {
     return (
@@ -92,52 +114,79 @@ export default function TuyenXe() {
       </div>
 
 
-      {/* Bộ lọc giá */}
-      <Card className="soft-card p-3 mb-4">
-        <Row className="g-2 align-items-center">
-          <Col md={3}>
-            <Form.Label className="fw-bold mb-0">Lọc theo giá:</Form.Label>
-          </Col>
-          <Col md={4}>
-            <Form.Control
-              type="number"
-              placeholder="Giá tối thiểu (VNĐ)"
-              value={minPrice}
-              onChange={(e) => setMinPrice(e.target.value)}
-            />
-          </Col>
-          <Col md={5}>
-            <div className="text-muted small">
-              <i className="bi bi-info-circle me-1"></i>
-              Để trống để xem tất cả
-            </div>
-          </Col>
-        </Row>
-      </Card>
+      <Row>
+        {/* ===== SIDEBAR FILTER ===== */}
+        <Col md={3}>
+          <Card className="p-3 shadow-sm mb-4">
+            <h5 className="mb-3">Bộ lọc</h5>
 
-      {/* Kết quả */}
-      {filteredRoutes.length === 0 ? (
-        <div className="text-center py-5">
-          <i className="bi bi-search fs-1 text-muted d-block mb-3"></i>
-          <h5>Không tìm thấy chuyến xe nào</h5>
-          <p className="text-muted">
-            Vui lòng thử lại với điểm đi, điểm đến hoặc ngày khác.
-          </p>
-        </div>
-      ) : (
-        <>
-          <p className="text-muted mb-3">
-            Tìm thấy <strong>{filteredRoutes.length}</strong> chuyến xe
-          </p>
-          <Row className="g-4">
-            {filteredRoutes.map((route) => (
-              <Col key={route.id} lg={4} md={6}>
-                <RouteCard item={route} />
-              </Col>
-            ))}
-          </Row>
-        </>
-      )}
-    </Container>
+            {/* ===== FILTER GIÁ ===== */}
+            <Form.Group className="mb-4">
+              <Form.Label className="fw-bold">
+                Giá tối đa: {priceRange.toLocaleString('vi-VN')}₫
+              </Form.Label>
+
+              <Form.Range
+                min={0}
+                max={2000000}
+                step={50000}
+                value={priceRange}
+                onChange={(e) => setPriceRange(Number(e.target.value))}
+              />
+
+              <div className="d-flex justify-content-between small text-muted">
+                <span>0₫</span>
+                <span>2.000.000₫</span>
+              </div>
+            </Form.Group>
+
+            {/* ===== FILTER SERVICE ===== */}
+            <Form.Group>
+              <Form.Label className="fw-bold">Tiện ích</Form.Label>
+
+              {services.map((s) => (
+                <Form.Check
+                  key={s.id}
+                  type="checkbox"
+                  label={s.name}
+                  value={s.name}
+                  onChange={(e) => {
+                    if (e.target.checked) {
+                      setSelectedServices([...selectedServices, s.name]);
+                    } else {
+                      setSelectedServices(selectedServices.filter(x => x !== s.name));
+                    }
+                  }}
+                />
+              ))}
+            </Form.Group>
+          </Card>
+        </Col>
+
+        {/* ===== LIST ROUTES ===== */}
+        <Col md={9}>
+          {filteredRoutes.length === 0 ? (
+            <div className="text-center py-5">
+              <i className="bi bi-search fs-1 text-muted"></i>
+              <h5>Không tìm thấy chuyến xe</h5>
+            </div>
+          ) : (
+            <>
+              <p className="text-muted mb-3">
+                Tìm thấy <strong>{filteredRoutes.length}</strong> chuyến xe
+              </p>
+
+              <Row className="g-4">
+                {filteredRoutes.map((route) => (
+                  <Col key={route.id} lg={6}>
+                    <RouteCard item={route} />
+                  </Col>
+                ))}
+              </Row>
+            </>
+          )}
+        </Col>
+      </Row>
+    </Container >
   );
 }
