@@ -21,7 +21,7 @@ export default function RouteCard({ item }) {
 
   // ĐÚNG: vehicleName là loại xe, companyName là nhà xe
   const vehicleType = item.vehicleName || item.vehicleType || item.vehicle || 'Xe khách';
-  const companyName = item.companyName || item.company || 'Nhà xe BUSGO';
+  const companyName = item.createdBy || 'Nhà xe BUSGO';
 
   const imageUrl = item.imageUrl || item.image || "/images/default-bus.jpg";
   const availableSeats = item.availableSeats || item.seatsAvailable || 0;

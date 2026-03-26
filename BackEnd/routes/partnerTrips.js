@@ -5,7 +5,7 @@ const authMiddleware = require("../middleware/authMiddleware");
 
 router.get("/tickets", authMiddleware, async (req, res) => {
   try {
-    console.log("🔥 partnerTrips route loaded");
+    console.log("🔥 partnerTrips route ticket loaded");
     const partnerId = req.user.id;
 
     const pool = await poolPromise;

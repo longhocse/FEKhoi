@@ -339,60 +339,67 @@ export default function CreateTrip() {
         {/* TIME */}
         <Card className="trip-card">
           <Card.Body>
-
             <Card.Title>⏰ Thời gian chuyến xe</Card.Title>
 
-            <Row>
-
+            <Row className="gy-3">
               <Col md={4}>
-                <Form.Label>Ngày khởi hành</Form.Label>
-                <Form.Control
-                  type="date"
-                  name="startDate"
-                  value={form.startDate}
-                  onChange={handleChange}
-                  required
-                />
+                <Form.Group>
+                  <Form.Label>Ngày hiệu lực</Form.Label>
+                  <Form.Control
+                    type="date"
+                    name="startDate"
+                    value={form.startDate}
+                    onChange={handleChange}
+                    required
+                  />
+                </Form.Group>
               </Col>
 
               <Col md={4}>
-                <Form.Label>Giờ khởi hành</Form.Label>
-                <Form.Control
-                  type="time"
-                  name="startTime"
-                  value={form.startTime}
-                  onChange={handleChange}
-                  required
-                />
+                <Form.Group>
+                  <Form.Label>Giờ khởi hành</Form.Label>
+                  <Form.Control
+                    type="time"
+                    name="startTime"
+                    value={form.startTime}
+                    onChange={handleChange}
+                    required
+                  />
+                </Form.Group>
               </Col>
 
               <Col md={4}>
-                <Form.Label>Giờ đến nơi</Form.Label>
-                <Form.Control
-                  type="time"
-                  name="arrivalTime"
-                  value={form.arrivalTime}
-                  onChange={handleChange}
-                  required
-                />
+                <Form.Group>
+                  <Form.Label>Giờ đến nơi</Form.Label>
+                  <Form.Control
+                    type="time"
+                    name="arrivalTime"
+                    value={form.arrivalTime}
+                    onChange={handleChange}
+                    required
+                  />
+                </Form.Group>
               </Col>
 
-              <Form.Control
-                type="date"
-                name="endDate"
-                value={form.endDate || ""}
-                onChange={handleChange}
-                min={form.startDate}
-                max={getMaxEndDate(form.startDate)}
-                required
-              />
-
+              <Col md={4}>
+                <Form.Group>
+                  <Form.Label>Ngày hết hạn</Form.Label>
+                  <Form.Control
+                    type="date"
+                    name="endDate"
+                    value={form.endDate || ""}
+                    onChange={handleChange}
+                    min={form.startDate}
+                    max={getMaxEndDate(form.startDate)}
+                    required
+                  />
+                </Form.Group>
+              </Col>
             </Row>
 
-            <p className="time-hint">
+            <p className="time-hint mt-2">
               ⏱ Thời gian di chuyển sẽ được hệ thống tự động tính.
             </p>
-
           </Card.Body>
         </Card>
 

@@ -174,8 +174,8 @@ export default function RouteDetail() {
                 <Col md={6}>
                   <div className="mb-3">
                     <h6 className="text-muted mb-1">Nhà xe</h6>
-                    <p>{Array.isArray(trip.companyName) ? trip.companyName[0] : trip.companyName}</p>
-                    <small className="text-muted">📞 {trip.companyPhone}</small>
+                    <p>{trip.user?.name || 'Không xác định'}</p>
+                    <small className="text-muted">📞 {trip.user?.phone || 'N/A'}</small>
                   </div>
                   <div className="mb-3">
                     <h6 className="text-muted mb-1">Loại xe</h6>
@@ -267,7 +267,7 @@ export default function RouteDetail() {
               </div>
               <div className="mb-3">
                 <h6 className="text-muted mb-2">Nhà xe</h6>
-                <p>{Array.isArray(trip.companyName) ? trip.companyName[0] : trip.companyName}</p>
+                <p>{trip.user?.name || 'Không xác định'}</p>
               </div>
               <Button
                 variant="primary"
@@ -287,7 +287,7 @@ export default function RouteDetail() {
       </Row>
 
       {/* ===== ĐÁNH GIÁ NHÀ XE ===== */}
-      <CompanyReviews companyId={trip.companyId} companyName={trip.companyName} />
+      <CompanyReviews companyId={trip.companyId} companyName={trip.user.name} />
     </Container>
   );
 }

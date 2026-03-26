@@ -128,10 +128,7 @@ exports.bookMultipleTickets = async (req, res) => {
 
             ticketIds.push(ticketResult.recordset[0].id);
 
-            // Cập nhật trạng thái ghế
-            await pool.request()
-                .input('seatId', sql.Int, seatId)
-                .query(`UPDATE Seats SET status = 'BOOKED' WHERE id = @seatId`);
+
         }
 
         res.json({
@@ -305,12 +302,19 @@ exports.getPopularTrips = async (req, res) => {
                 t.price,
                 t.estimatedDuration,
                 t.imageUrl,
+
+                v.name AS vehicleName,         -- ✅ tên xe
+                u.name AS createdBy,           -- ✅ user tạo (partner)
+
                 sv.name AS serviceName
 
             FROM TopTrips t
             JOIN Stations s1 ON t.fromStationId = s1.id
             JOIN Stations s2 ON t.toStationId = s2.id
+
             LEFT JOIN Vehicles v ON t.vehicleId = v.id
+            LEFT JOIN Users u ON v.partnerId = u.id   -- 🔥 quan trọng
+
             LEFT JOIN VehicleServices vs ON v.id = vs.vehicleId
             LEFT JOIN Services sv ON vs.serviceId = sv.id
 
@@ -329,6 +333,10 @@ exports.getPopularTrips = async (req, res) => {
                     price: row.price,
                     estimatedDuration: row.estimatedDuration,
                     imageUrl: row.imageUrl,
+
+                    vehicleName: row.vehicleName,   // ✅ thêm
+                    createdBy: row.createdBy,       // ✅ thêm
+
                     services: []
                 };
             }
@@ -366,59 +374,67 @@ exports.getTripById = async (req, res) => {
         const tripResult = await pool.request()
             .input("id", sql.Int, id)
             .query(`
-SELECT 
-  t.id,
-  sFrom.name as fromStation,
-  sTo.name as toStation,
-  t.startTime,
-  t.price,
-  t.estimatedDuration,
+            SELECT 
+            t.id,
+            sFrom.name as fromStation,
+            sTo.name as toStation,
+            t.startTime,
+            t.price,
+            t.estimatedDuration,
 
-  v.id as vehicleId,
-  v.name as vehicleName,
-  v.type as vehicleType,
+            v.id as vehicleId,
+            v.name as vehicleName,
+            v.type as vehicleType,
 
-  pc.id as companyId,
-  pc.name as companyName,
-  pc.phone as companyPhone,
-  pc.address as companyAddress,
-  pc.logo as companyLogo,
+            pc.id as companyId,
+            pc.name as companyName,
+            pc.phone as companyPhone,
+            pc.address as companyAddress,
+            pc.logo as companyLogo,
 
-  (SELECT TOP 1 imageUrl 
-   FROM ImageVehicles 
-   WHERE vehicleId = v.id AND isPrimary = 1) AS imageUrl,
+            u.id as userId,
+            u.name as createdBy,
+            u.phoneNumber as userPhone,
+            u.avatar as userAvatar,
 
-  -- ✅ THÊM SERVICE
-  STRING_AGG(sv.name, ',') as services
+            (SELECT TOP 1 imageUrl 
+            FROM ImageVehicles 
+            WHERE vehicleId = v.id AND isPrimary = 1) AS imageUrl,
 
-FROM Trips t
-JOIN Stations sFrom ON t.fromStationId = sFrom.id
-JOIN Stations sTo ON t.toStationId = sTo.id
-JOIN Vehicles v ON t.vehicleId = v.id
-JOIN PassengerCarCompanies pc ON v.partnerId = pc.id
+            STRING_AGG(sv.name, ',') as services
 
--- JOIN SERVICE
-LEFT JOIN VehicleServices vs ON v.id = vs.vehicleId
-LEFT JOIN Services sv ON vs.serviceId = sv.id
+            FROM Trips t
+            JOIN Stations sFrom ON t.fromStationId = sFrom.id
+            JOIN Stations sTo ON t.toStationId = sTo.id
+            JOIN Vehicles v ON t.vehicleId = v.id
+            JOIN PassengerCarCompanies pc ON v.partnerId = pc.id
+            JOIN Users u ON v.partnerId = u.id   -- ✅ lấy user tạo chuyến
 
-WHERE t.id = @id AND t.isActive = 1
+            LEFT JOIN VehicleServices vs ON v.id = vs.vehicleId
+            LEFT JOIN Services sv ON vs.serviceId = sv.id
 
-GROUP BY 
-  t.id,
-  sFrom.name,
-  sTo.name,
-  t.startTime,
-  t.price,
-  t.estimatedDuration,
-  v.id,
-  v.name,
-  v.type,
-  pc.id,
-  pc.name,
-  pc.phone,
-  pc.address,
-  pc.logo
-`);
+            WHERE t.id = @id AND t.isActive = 1
+
+            GROUP BY 
+            t.id,
+            sFrom.name,
+            sTo.name,
+            t.startTime,
+            t.price,
+            t.estimatedDuration,
+            v.id,
+            v.name,
+            v.type,
+            pc.id,
+            pc.name,
+            pc.phone,
+            pc.address,
+            pc.logo,
+            u.id,
+            u.name,
+            u.phoneNumber,
+            u.avatar
+            `);
 
         if (tripResult.recordset.length === 0) {
             return res.status(404).json({
@@ -428,12 +444,14 @@ GROUP BY
         }
 
         const trip = tripResult.recordset[0];
+        trip.services = trip.services ? trip.services.split(',') : [];
 
-        // ✅ convert services string -> array
-        trip.services = trip.services
-            ? trip.services.split(',')
-            : [];
-
+        trip.user = {
+            id: trip.userId,
+            name: trip.createdBy,
+            phone: trip.userPhone,
+            avatar: trip.userAvatar
+        };
         // ================= SEATS =================
         const seatsResult = await pool.request()
             .input("vehicleId", sql.Int, trip.vehicleId)
@@ -630,11 +648,6 @@ exports.bookTicket = async (req, res) => {
                 INSERT INTO Tickets (userId, tripId, seatId, totalAmount, paymentMethod, transactionId, status, bookedAt)
                 VALUES (@userId, @tripId, @seatId, @totalAmount, @paymentMethod, @transactionId, @status, GETDATE())
             `);
-
-        // Cập nhật trạng thái ghế
-        await pool.request()
-            .input('seatId', sql.Int, seatId)
-            .query(`UPDATE Seats SET status = 'BOOKED' WHERE id = @seatId`);
 
         res.json({
             success: true,

@@ -31,9 +31,9 @@ router.get('/search', async (req, res) => {
     v.type as vehicleType,
     v.description as vehicleDescription,
 
-    pc.name as companyName,
-    pc.phone as companyPhone,
-    pc.logo as companyLogo,
+    u.name as createdBy,          -- ✅ user tạo chuyến
+    u.phoneNumber as partnerPhone,
+    u.avatar as partnerAvatar,
 
     (SELECT COUNT(*) FROM Seats WHERE vehicleId = v.id AND status = 'AVAILABLE') as availableSeats,
 
@@ -41,13 +41,13 @@ router.get('/search', async (req, res) => {
      FROM ImageVehicles 
      WHERE vehicleId = v.id AND isPrimary = 1) as vehicleImage,
 
-    sv.name as serviceName   -- ✅ thêm dòng này
+    sv.name as serviceName
 
   FROM Trips t
   JOIN Stations sFrom ON t.fromStationId = sFrom.id
   JOIN Stations sTo ON t.toStationId = sTo.id
   JOIN Vehicles v ON t.vehicleId = v.id
-  JOIN PassengerCarCompanies pc ON v.partnerId = pc.id
+  JOIN Users u ON v.partnerId = u.id   -- 🔥 đúng chỗ này
 
   LEFT JOIN VehicleServices vs ON v.id = vs.vehicleId
   LEFT JOIN Services sv ON vs.serviceId = sv.id
@@ -101,12 +101,15 @@ router.get('/search', async (req, res) => {
           price: row.price,
           estimatedDuration: row.estimatedDuration,
           imageUrl: row.imageUrl,
+
           vehicleName: row.vehicleName,
           vehicleType: row.vehicleType,
           vehicleDescription: row.vehicleDescription,
-          companyName: row.companyName,
-          companyPhone: row.companyPhone,
-          companyLogo: row.companyLogo,
+
+          createdBy: row.createdBy,           // ✅ thêm
+          partnerPhone: row.partnerPhone,     // optional
+          partnerAvatar: row.partnerAvatar,   // optional
+
           availableSeats: row.availableSeats,
           vehicleImage: row.vehicleImage,
           services: []
