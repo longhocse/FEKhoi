@@ -89,7 +89,7 @@ export default function SeatLayout({ seats = [], selectedSeats = [], onSeatSelec
           <span className="small">Đang chọn</span>
         </div>
         <div className="d-flex align-items-center">
-          <Button size="sm" variant="danger" className="me-2" style={{ width: 40 }} disabled>A3</Button>
+          <Button size="sm" variant="secondary" className="me-2" style={{ width: 40 }} disabled>A3</Button>
           <span className="small">Đã đặt</span>
         </div>
       </div>

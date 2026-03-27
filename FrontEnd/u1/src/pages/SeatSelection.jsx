@@ -168,12 +168,12 @@ export default function SeatSelection() {
         <Col lg={8}>
           <Card className="shadow-sm">
             <Card.Body>
-              <div className="mb-3">
+              {/* <div className="mb-3">
                 <Badge bg="success" className="me-2">Còn trống</Badge>
-                <Badge bg="danger" className="me-2">Đã đặt</Badge>
+                <Badge bg="secondary" className="me-2">Đã đặt</Badge>
                 <Badge bg="warning" className="me-2">Đang chọn</Badge>
                 <Badge bg="secondary">Bảo trì</Badge>
-              </div>
+              </div> */}
 
               <SeatLayout
                 seats={trip.seats || []}
@@ -185,7 +185,7 @@ export default function SeatSelection() {
         </Col>
 
         <Col lg={4}>
-          <Card className="shadow-sm sticky-top" style={{ top: '20px' }}>
+          <Card className="shadow-sm " >
             <Card.Body>
               <h5 className="mb-3">Thông tin đặt vé</h5>
 
