@@ -20,6 +20,8 @@ export default function CreateTrip() {
   const [timePoints, setTimePoints] = useState([]);
   const [points, setPoints] = useState([]);
 
+  const [errors, setErrors] = useState({});
+
   const [form, setForm] = useState({
     fromStationId: "",
     toStationId: "",
@@ -129,8 +131,66 @@ export default function CreateTrip() {
   };
 
 
+  const validate = () => {
+    const newErrors = {};
+
+    // Route
+    if (!form.fromStationId) {
+      newErrors.fromStationId = "Vui lòng chọn điểm đi";
+    }
+
+    if (!form.toStationId) {
+      newErrors.toStationId = "Vui lòng chọn điểm đến";
+    } else if (form.toStationId === form.fromStationId) {
+      newErrors.toStationId = "Điểm đến phải khác điểm đi";
+    }
+
+    // Time
+    if (!form.startDate) {
+      newErrors.startDate = "Vui lòng chọn ngày";
+    }
+
+    if (!form.startTime) {
+      newErrors.startTime = "Vui lòng nhập giờ khởi hành";
+    }
+
+    if (!form.arrivalTime) {
+      newErrors.arrivalTime = "Vui lòng nhập giờ đến";
+    }
+
+    if (!form.endDate) {
+      newErrors.endDate = "Vui lòng chọn ngày hết hạn";
+    } else if (form.startDate && form.endDate < form.startDate) {
+      newErrors.endDate = "Ngày hết hạn phải ≥ ngày bắt đầu";
+    }
+
+    // Price
+    if (!form.price) {
+      newErrors.price = "Vui lòng nhập giá vé";
+    } else if (form.price <= 0) {
+      newErrors.price = "Giá phải lớn hơn 0";
+    }
+
+    // Vehicle
+    if (!form.vehicleId) {
+      newErrors.vehicleId = "Vui lòng chọn xe";
+    }
+
+    // TimePoints
+    timePoints.forEach((tp, index) => {
+      if (!tp.pointId || !tp.arrivalTime || !tp.departureTime) {
+        newErrors[`timePoint_${index}`] = "Điền đầy đủ điểm dừng";
+      }
+    });
+
+    setErrors(newErrors);
+    return Object.keys(newErrors).length === 0;
+  };
+
   const handleSubmit = async (e) => {
     e.preventDefault();
+
+    if (!validate()) return;
 
     let startDateTime = new Date(`${form.startDate}T${form.startTime}:00`);
     let arrivalDateTime = new Date(`${form.startDate}T${form.arrivalTime}:00`);
@@ -302,8 +362,11 @@ export default function CreateTrip() {
                   name="fromStationId"
                   value={form.fromStationId}
                   onChange={handleChange}
-                  required
+                  isInvalid={!!errors.fromStationId}
                 >
+                  <Form.Control.Feedback type="invalid">
+                    {errors.fromStationId}
+                  </Form.Control.Feedback>
                   <option value="">Chọn điểm đi</option>
                   {stations.map(s => (
                     <option key={s.id} value={s.id}>
@@ -319,8 +382,11 @@ export default function CreateTrip() {
                   name="toStationId"
                   value={form.toStationId}
                   onChange={handleChange}
-                  required
+                  isInvalid={!!errors.toStationId}
                 >
+                  <Form.Control.Feedback type="invalid">
+                    {errors.toStationId}
+                  </Form.Control.Feedback>
                   <option value="">Chọn điểm đến</option>
                   {stations.map(s => (
                     <option key={s.id} value={s.id}>
@@ -350,8 +416,11 @@ export default function CreateTrip() {
                     name="startDate"
                     value={form.startDate}
                     onChange={handleChange}
-                    required
+                    isInvalid={!!errors.startDate}
                   />
+                  <Form.Control.Feedback type="invalid">
+                    {errors.startDate}
+                  </Form.Control.Feedback>
                 </Form.Group>
               </Col>
 
@@ -363,8 +432,11 @@ export default function CreateTrip() {
                     name="startTime"
                     value={form.startTime}
                     onChange={handleChange}
-                    required
+                    isInvalid={!!errors.startTime}
                   />
+                  <Form.Control.Feedback type="invalid">
+                    {errors.startTime}
+                  </Form.Control.Feedback>
                 </Form.Group>
               </Col>
 
@@ -374,10 +446,13 @@ export default function CreateTrip() {
                   <Form.Control
                     type="time"
                     name="arrivalTime"
-                    value={form.arrivalTime}
+                    value={form.arrivalTimeTime}
                     onChange={handleChange}
-                    required
+                    isInvalid={!!errors.arrivalTime}
                   />
+                  <Form.Control.Feedback type="invalid">
+                    {errors.startTime}
+                  </Form.Control.Feedback>
                 </Form.Group>
               </Col>
 
@@ -391,8 +466,11 @@ export default function CreateTrip() {
                     onChange={handleChange}
                     min={form.startDate}
                     max={getMaxEndDate(form.startDate)}
-                    required
+                    isInvalid={!!errors.endDate}
                   />
+                  <Form.Control.Feedback type="invalid">
+                    {errors.endDate}
+                  </Form.Control.Feedback>
                 </Form.Group>
               </Col>
             </Row>
@@ -416,8 +494,11 @@ export default function CreateTrip() {
               value={form.price}
               onChange={handleChange}
               placeholder="Ví dụ: 250000"
-              required
+              isInvalid={!!errors.price}
             />
+            <Form.Control.Feedback type="invalid">
+              {errors.price}
+            </Form.Control.Feedback>
 
           </Card.Body>
         </Card>
@@ -506,7 +587,7 @@ export default function CreateTrip() {
               name="vehicleId"
               value={form.vehicleId}
               onChange={handleChange}
-              required
+              isInvalid={!!errors.vehicleId}
             >
               <option value="">Chọn xe</option>
 
@@ -515,6 +596,10 @@ export default function CreateTrip() {
                   {v.name} - {v.licensePlate}
                 </option>
               ))}
+
+              <Form.Control.Feedback type="invalid">
+                {errors.vehicleId}
+              </Form.Control.Feedback>
 
             </Form.Select>
 

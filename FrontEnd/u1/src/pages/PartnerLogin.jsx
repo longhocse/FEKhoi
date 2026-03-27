@@ -9,11 +9,34 @@ export default function PartnerLogin() {
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
   const navigate = useNavigate();
+  const [errors, setErrors] = useState({});
+
+
+
+  const validate = () => {
+    const newErrors = {};
+
+    if (!email.trim()) {
+      newErrors.email = "Vui lòng nhập email";
+    } else if (!/^\S+@\S+\.\S+$/.test(email)) {
+      newErrors.email = "Email không hợp lệ";
+    }
+
+    if (!password.trim()) {
+      newErrors.password = "Vui lòng nhập mật khẩu";
+    } else if (password.length < 6) {
+      newErrors.password = "Mật khẩu tối thiểu 6 ký tự";
+    }
+
+    setErrors(newErrors);
+    return Object.keys(newErrors).length === 0;
+  };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
     setError("");
 
+    if (!validate()) return;
     try {
       const user = await login(email, password, "partner");
 
@@ -117,7 +140,7 @@ export default function PartnerLogin() {
 
           {error && <Alert variant="danger">{error}</Alert>}
 
-          <Form onSubmit={handleSubmit}>
+          <Form noValidate onSubmit={handleSubmit}>
             <Form.Group className="mb-3">
               <Form.Label style={{ fontWeight: '500' }}>
                 <i className="bi bi-envelope me-1"></i>
@@ -127,14 +150,19 @@ export default function PartnerLogin() {
                 type="email"
                 placeholder="nhaxe@example.com"
                 value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                required
+                onChange={(e) => {
+                  setEmail(e.target.value);
+                  setErrors(prev => ({ ...prev, email: "" }));
+                }}
+                isInvalid={!!errors.email}
                 style={{
-                  borderColor: '#dee2e6',
                   borderRadius: '10px',
                   padding: '12px'
                 }}
               />
+              <Form.Control.Feedback type="invalid">
+                {errors.email}
+              </Form.Control.Feedback>
             </Form.Group>
 
             <Form.Group className="mb-3">
@@ -146,14 +174,19 @@ export default function PartnerLogin() {
                 type="password"
                 placeholder="••••••••"
                 value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                required
+                onChange={(e) => {
+                  setPassword(e.target.value);
+                  setErrors(prev => ({ ...prev, password: "" }));
+                }}
+                isInvalid={!!errors.password}
                 style={{
-                  borderColor: '#dee2e6',
                   borderRadius: '10px',
                   padding: '12px'
                 }}
               />
+              <Form.Control.Feedback type="invalid">
+                {errors.password}
+              </Form.Control.Feedback>
             </Form.Group>
 
             <div className="d-flex justify-content-end mb-3">

@@ -11,6 +11,7 @@ export default function PartnerVehicles() {
 
   const [vehicles, setVehicles] = useState([]);
   const [error, setError] = useState("");
+  const [errors, setErrors] = useState({});
 
   const [form, setForm] = useState({
     name: "",
@@ -60,6 +61,8 @@ export default function PartnerVehicles() {
   const handleAddVehicle = async (e) => {
     e.preventDefault();
 
+    if (!validate()) return;
+
     try {
       setError("");
 
@@ -87,6 +90,40 @@ export default function PartnerVehicles() {
     }
   };
 
+  const validate = () => {
+    const newErrors = {};
+
+    // Name
+    if (!form.name.trim()) {
+      newErrors.name = "Vui lòng nhập tên xe";
+    } else if (form.name.trim().length < 2) {
+      newErrors.name = "Tên xe quá ngắn";
+    }
+
+    // License Plate (VN)
+    if (!form.licensePlate.trim()) {
+      newErrors.licensePlate = "Vui lòng nhập biển số";
+    } else if (!/^[0-9]{2}[A-Z]-?[0-9]{4,5}$/.test(form.licensePlate)) {
+      newErrors.licensePlate = "Biển số không hợp lệ (VD: 43A-12345)";
+    }
+
+    // Type
+    if (!form.type.trim()) {
+      newErrors.type = "Vui lòng nhập loại xe";
+    }
+
+    // Floors
+    if (!form.numberOfFloors) {
+      newErrors.numberOfFloors = "Vui lòng nhập số tầng";
+    } else if (form.numberOfFloors < 1 || form.numberOfFloors > 2) {
+      newErrors.numberOfFloors = "Chỉ hỗ trợ xe 1 hoặc 2 tầng";
+    }
+
+    setErrors(newErrors);
+    return Object.keys(newErrors).length === 0;
+  };
+
+
   return (
     <Container fluid style={{ background: "#FFF8F0", minHeight: "100vh", padding: "30px" }}>
 
@@ -104,15 +141,18 @@ export default function PartnerVehicles() {
             </Card.Header>
 
             <Card.Body>
-              <Form onSubmit={handleAddVehicle}>
+              <Form noValidate onSubmit={handleAddVehicle}>
                 <Form.Group className="mb-3">
                   <Form.Label>Tên xe</Form.Label>
                   <Form.Control
                     name="name"
                     value={form.name}
                     onChange={handleChange}
-                    required
+                    isInvalid={!!errors.name}
                   />
+                  <Form.Control.Feedback type="invalid">
+                    {errors.name}
+                  </Form.Control.Feedback>
                 </Form.Group>
 
                 <Form.Group className="mb-3">
@@ -121,8 +161,11 @@ export default function PartnerVehicles() {
                     name="licensePlate"
                     value={form.licensePlate}
                     onChange={handleChange}
-                    required
+                    isInvalid={!!errors.licensePlate}
                   />
+                  <Form.Control.Feedback type="invalid">
+                    {errors.licensePlate}
+                  </Form.Control.Feedback>
                 </Form.Group>
 
                 <Form.Group className="mb-3">
@@ -131,7 +174,11 @@ export default function PartnerVehicles() {
                     name="type"
                     value={form.type}
                     onChange={handleChange}
+                    isInvalid={!!errors.type}
                   />
+                  <Form.Control.Feedback type="invalid">
+                    {errors.type}
+                  </Form.Control.Feedback>
                 </Form.Group>
 
                 <Form.Group className="mb-3">
@@ -141,7 +188,11 @@ export default function PartnerVehicles() {
                     name="numberOfFloors"
                     value={form.numberOfFloors}
                     onChange={handleChange}
+                    isInvalid={!!errors.numberOfFloors}
                   />
+                  <Form.Control.Feedback type="invalid">
+                    {errors.numberOfFloors}
+                  </Form.Control.Feedback>
                 </Form.Group>
 
                 {/* SERVICES */}
