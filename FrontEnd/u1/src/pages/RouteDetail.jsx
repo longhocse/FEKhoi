@@ -83,22 +83,10 @@ export default function RouteDetail() {
   const formatTimeOnly = (timeString) => {
     if (!timeString) return 'N/A';
 
-    // Nếu backend trả "HH:mm:ss"
-    if (typeof timeString === 'string' && timeString.length <= 8) {
-      return timeString.slice(0, 5);
-    }
-
-    const date = new Date(timeString);
-
-    if (isNaN(date)) return timeString;
-
-    return date.toLocaleTimeString('vi-VN', {
-      hour: '2-digit',
-      minute: '2-digit',
-      hour12: false,
-      timeZone: 'Asia/Ho_Chi_Minh'
-    });
+    return timeString.substring(11, 16);
   };
+
+
 
   if (loading) {
     return (
@@ -108,6 +96,8 @@ export default function RouteDetail() {
       </Container>
     );
   }
+
+
 
   if (error) {
     return (
@@ -134,6 +124,19 @@ export default function RouteDetail() {
     );
   }
 
+  const getServiceIcon = (service) => {
+    const s = service.toLowerCase();
+
+    if (s.includes("wifi")) return "bi-wifi";
+    if (s.includes("điều hòa") || s.includes("air")) return "bi-snow";
+    if (s.includes("cắm") || s.includes("sạc")) return "bi-plug";
+    if (s.includes("nước")) return "bi-cup-straw";
+    if (s.includes("tv")) return "bi-tv";
+    if (s.includes("chăn") || s.includes("gối")) return "bi-moon";
+
+    return "bi-stars"; // default
+  };
+
   return (
     <Container className="py-4">
       <Button
@@ -158,7 +161,7 @@ export default function RouteDetail() {
                   <div className="mb-3">
                     <h6 className="text-muted mb-1">Tuyến xe</h6>
                     <h4>{trip.fromStation} → {trip.toStation}</h4>
-                    <small className="text-muted">{trip.fromProvince} - {trip.toProvince}</small>
+                    <small className="text-muted">{trip.fromProvince}  {trip.toProvince}</small>
                   </div>
                   <div className="mb-3">
                     <h6 className="text-muted mb-1">Thời gian khởi hành</h6>
@@ -171,13 +174,35 @@ export default function RouteDetail() {
                 <Col md={6}>
                   <div className="mb-3">
                     <h6 className="text-muted mb-1">Nhà xe</h6>
-                    <p className="fw-bold mb-0">{trip.companyName}</p>
-                    <small className="text-muted">📞 {trip.companyPhone}</small>
+                    <p>{trip.user?.name || 'Không xác định'}</p>
+                    <small className="text-muted">📞 {trip.user?.phone || 'N/A'}</small>
                   </div>
                   <div className="mb-3">
                     <h6 className="text-muted mb-1">Loại xe</h6>
                     <p className="mb-0">{trip.vehicleName}</p>
                     <small className="text-muted">{trip.vehicleType} - {trip.numberOfFloors} tầng</small>
+                  </div>
+                  <div className="mb-3">
+                    <h6 className="text-muted mb-1">Tiện ích</h6>
+
+                    {trip.services && trip.services.length > 0 ? (
+                      <div className="d-flex flex-wrap gap-2">
+                        {trip.services.map((service, index) => (
+                          <Badge
+                            key={index}
+                            bg="light"
+                            text="dark"
+                            className="px-3 py-2 d-flex align-items-center gap-2"
+                            style={{ fontSize: "0.85rem" }}
+                          >
+                            <i className={`bi ${getServiceIcon(service)}`}></i>
+                            {service}
+                          </Badge>
+                        ))}
+                      </div>
+                    ) : (
+                      <small className="text-muted">Không có tiện ích</small>
+                    )}
                   </div>
                   <div className="mb-3">
                     <h6 className="text-muted mb-1">Giá vé</h6>
@@ -242,7 +267,7 @@ export default function RouteDetail() {
               </div>
               <div className="mb-3">
                 <h6 className="text-muted mb-2">Nhà xe</h6>
-                <p>{trip.companyName}</p>
+                <p>{trip.user?.name || 'Không xác định'}</p>
               </div>
               <Button
                 variant="primary"
@@ -262,7 +287,7 @@ export default function RouteDetail() {
       </Row>
 
       {/* ===== ĐÁNH GIÁ NHÀ XE ===== */}
-      <CompanyReviews companyId={trip.companyId} companyName={trip.companyName} />
+      <CompanyReviews companyId={trip.companyId} companyName={trip.user.name} />
     </Container>
   );
 }

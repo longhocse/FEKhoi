@@ -23,6 +23,7 @@ export default function AdminPromotions() {
         isActive: 1
     });
     const [submitting, setSubmitting] = useState(false);
+    const [errors, setErrors] = useState({});
 
     const API_URL = process.env.REACT_APP_API_URL || "http://localhost:5000/api";
 
@@ -88,8 +89,69 @@ export default function AdminPromotions() {
         setShowModal(true);
     };
 
+    const validateForm = () => {
+        const newErrors = {};
+
+        // CODE
+        if (!formData.code.trim()) {
+            newErrors.code = "Mã không được để trống";
+        } else if (!/^[A-Z0-9]{4,10}$/.test(formData.code)) {
+            newErrors.code = "Mã 4-10 ký tự, không dấu, không khoảng trắng";
+        }
+
+        // NAME
+        if (!formData.name.trim()) {
+            newErrors.name = "Tên không được để trống";
+        }
+
+        // DISCOUNT
+        if (!formData.discountValue || formData.discountValue <= 0) {
+            newErrors.discountValue = "Giá trị giảm phải > 0";
+        }
+
+        if (formData.discountType === "PERCENT" && formData.discountValue > 100) {
+            newErrors.discountValue = "Phần trăm không được > 100";
+        }
+
+        // MAX DISCOUNT
+        if (formData.maxDiscount && formData.maxDiscount < 0) {
+            newErrors.maxDiscount = "Không hợp lệ";
+        }
+
+        // MIN ORDER
+        if (formData.minOrderValue < 0) {
+            newErrors.minOrderValue = "Không hợp lệ";
+        }
+
+        // DATE
+        if (!formData.startDate) {
+            newErrors.startDate = "Chọn ngày bắt đầu";
+        }
+
+        if (!formData.endDate) {
+            newErrors.endDate = "Chọn ngày kết thúc";
+        }
+
+        if (formData.startDate && formData.endDate) {
+            if (new Date(formData.endDate) <= new Date(formData.startDate)) {
+                newErrors.endDate = "Ngày kết thúc phải sau ngày bắt đầu";
+            }
+        }
+
+        // USAGE
+        if (formData.usageLimit < 0) {
+            newErrors.usageLimit = "Không hợp lệ";
+        }
+
+        setErrors(newErrors);
+        return Object.keys(newErrors).length === 0;
+    };
+
     const handleSubmit = async (e) => {
         e.preventDefault();
+
+        if (!validateForm()) return;
+
         setSubmitting(true);
         try {
             if (editingPromo) {
@@ -226,9 +288,12 @@ export default function AdminPromotions() {
                                         type="text"
                                         value={formData.code}
                                         onChange={(e) => setFormData({ ...formData, code: e.target.value.toUpperCase() })}
-                                        required
+                                        isInvalid={!!errors.code}
                                         placeholder="VD: BUSGO20"
                                     />
+                                    <Form.Control.Feedback type="invalid">
+                                        {errors.code}
+                                    </Form.Control.Feedback>
                                 </Form.Group>
                             </Col>
                             <Col md={6}>
@@ -238,8 +303,11 @@ export default function AdminPromotions() {
                                         type="text"
                                         value={formData.name}
                                         onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                                        required
+                                        isInvalid={!!errors.name}
                                     />
+                                    <Form.Control.Feedback type="invalid">
+                                        {errors.name}
+                                    </Form.Control.Feedback>
                                 </Form.Group>
                             </Col>
                         </Row>
@@ -250,7 +318,11 @@ export default function AdminPromotions() {
                                 rows={2}
                                 value={formData.description}
                                 onChange={(e) => setFormData({ ...formData, description: e.target.value })}
+                                isInvalid={!!errors.discountValue}
                             />
+                            <Form.Control.Feedback type="invalid">
+                                {errors.discountValue}
+                            </Form.Control.Feedback>
                         </Form.Group>
                         <Row>
                             <Col md={6}>
@@ -271,10 +343,13 @@ export default function AdminPromotions() {
                                     <Form.Control
                                         type="number"
                                         value={formData.discountValue}
+                                        isInvalid={!!errors.discountValue}
                                         onChange={(e) => setFormData({ ...formData, discountValue: e.target.value })}
-                                        required
                                         min="0"
                                     />
+                                    <Form.Control.Feedback type="invalid">
+                                        {errors.discountValue}
+                                    </Form.Control.Feedback>
                                 </Form.Group>
                             </Col>
                         </Row>
@@ -284,10 +359,14 @@ export default function AdminPromotions() {
                                     <Form.Label>Đơn hàng tối thiểu (VNĐ)</Form.Label>
                                     <Form.Control
                                         type="number"
+                                        isInvalid={!!errors.minOrderValue}
                                         value={formData.minOrderValue}
                                         onChange={(e) => setFormData({ ...formData, minOrderValue: e.target.value })}
                                         min="0"
                                     />
+                                    <Form.Control.Feedback type="invalid">
+                                        {errors.minOrderValue}
+                                    </Form.Control.Feedback>
                                 </Form.Group>
                             </Col>
                             <Col md={6}>
@@ -296,10 +375,14 @@ export default function AdminPromotions() {
                                     <Form.Control
                                         type="number"
                                         value={formData.maxDiscount}
+                                        isInvalid={!!errors.maxDiscount}
                                         onChange={(e) => setFormData({ ...formData, maxDiscount: e.target.value })}
                                         min="0"
                                         placeholder="Không giới hạn"
                                     />
+                                    <Form.Control.Feedback type="invalid">
+                                        {errors.maxDiscount}
+                                    </Form.Control.Feedback>
                                 </Form.Group>
                             </Col>
                         </Row>
@@ -310,9 +393,12 @@ export default function AdminPromotions() {
                                     <Form.Control
                                         type="datetime-local"
                                         value={formData.startDate}
+                                        isInvalid={!!errors.startDate}
                                         onChange={(e) => setFormData({ ...formData, startDate: e.target.value })}
-                                        required
                                     />
+                                    <Form.Control.Feedback type="invalid">
+                                        {errors.startDate}
+                                    </Form.Control.Feedback>
                                 </Form.Group>
                             </Col>
                             <Col md={6}>
@@ -321,9 +407,12 @@ export default function AdminPromotions() {
                                     <Form.Control
                                         type="datetime-local"
                                         value={formData.endDate}
+                                        isInvalid={!!errors.endDate}
                                         onChange={(e) => setFormData({ ...formData, endDate: e.target.value })}
-                                        required
                                     />
+                                    <Form.Control.Feedback type="invalid">
+                                        {errors.endDate}
+                                    </Form.Control.Feedback>
                                 </Form.Group>
                             </Col>
                         </Row>
@@ -334,9 +423,13 @@ export default function AdminPromotions() {
                                     <Form.Control
                                         type="number"
                                         value={formData.usageLimit}
+                                        isInvalid={!!errors.usageLimit}
                                         onChange={(e) => setFormData({ ...formData, usageLimit: e.target.value })}
                                         min="0"
                                     />
+                                    <Form.Control.Feedback type="invalid">
+                                        {errors.usageLimit}
+                                    </Form.Control.Feedback>
                                 </Form.Group>
                             </Col>
                             <Col md={6}>

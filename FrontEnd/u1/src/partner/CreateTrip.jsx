@@ -20,6 +20,8 @@ export default function CreateTrip() {
   const [timePoints, setTimePoints] = useState([]);
   const [points, setPoints] = useState([]);
 
+  const [errors, setErrors] = useState({});
+
   const [form, setForm] = useState({
     fromStationId: "",
     toStationId: "",
@@ -72,9 +74,20 @@ export default function CreateTrip() {
   };
 
   const handleChange = (e) => {
+    const { name, value } = e.target;
+
+    if (name === "startDate") {
+      setForm(prev => ({
+        ...prev,
+        startDate: value,
+        endDate: "" // reset để user chọn lại
+      }));
+      return;
+    }
+
     setForm({
       ...form,
-      [e.target.name]: e.target.value
+      [name]: value
     });
   };
 
@@ -92,6 +105,7 @@ export default function CreateTrip() {
       setForm({
         fromStationId: trip.fromStationId,
         toStationId: trip.toStationId,
+        endDate: "",
         startDate: start.toISOString().slice(0, 10),
         startTime: start.toTimeString().slice(0, 5),
         arrivalTime: arrival.toTimeString().slice(0, 5),
@@ -105,12 +119,81 @@ export default function CreateTrip() {
     }
   };
 
+  const formatDateTime = (date) => {
+    const yyyy = date.getFullYear();
+    const MM = String(date.getMonth() + 1).padStart(2, "0");
+    const dd = String(date.getDate()).padStart(2, "0");
+    const HH = String(date.getHours()).padStart(2, "0");
+    const mm = String(date.getMinutes()).padStart(2, "0");
+    const ss = "00";
+
+    return `${yyyy}-${MM}-${dd} ${HH}:${mm}:${ss}`;
+  };
+
+
+  const validate = () => {
+    const newErrors = {};
+
+    // Route
+    if (!form.fromStationId) {
+      newErrors.fromStationId = "Vui lòng chọn điểm đi";
+    }
+
+    if (!form.toStationId) {
+      newErrors.toStationId = "Vui lòng chọn điểm đến";
+    } else if (form.toStationId === form.fromStationId) {
+      newErrors.toStationId = "Điểm đến phải khác điểm đi";
+    }
+
+    // Time
+    if (!form.startDate) {
+      newErrors.startDate = "Vui lòng chọn ngày";
+    }
+
+    if (!form.startTime) {
+      newErrors.startTime = "Vui lòng nhập giờ khởi hành";
+    }
+
+    if (!form.arrivalTime) {
+      newErrors.arrivalTime = "Vui lòng nhập giờ đến";
+    }
+
+    if (!form.endDate) {
+      newErrors.endDate = "Vui lòng chọn ngày hết hạn";
+    } else if (form.startDate && form.endDate < form.startDate) {
+      newErrors.endDate = "Ngày hết hạn phải ≥ ngày bắt đầu";
+    }
+
+    // Price
+    if (!form.price) {
+      newErrors.price = "Vui lòng nhập giá vé";
+    } else if (form.price <= 0) {
+      newErrors.price = "Giá phải lớn hơn 0";
+    }
+
+    // Vehicle
+    if (!form.vehicleId) {
+      newErrors.vehicleId = "Vui lòng chọn xe";
+    }
+
+    // TimePoints
+    timePoints.forEach((tp, index) => {
+      if (!tp.pointId || !tp.arrivalTime || !tp.departureTime) {
+        newErrors[`timePoint_${index}`] = "Điền đầy đủ điểm dừng";
+      }
+    });
+
+    setErrors(newErrors);
+    return Object.keys(newErrors).length === 0;
+  };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
 
-    const startDateTime = `${form.startDate} ${form.startTime}:00`;
-    const arrivalDateTime = `${form.startDate} ${form.arrivalTime}:00`;
+    if (!validate()) return;
+
+    let startDateTime = new Date(`${form.startDate}T${form.startTime}:00`);
+    let arrivalDateTime = new Date(`${form.startDate}T${form.arrivalTime}:00`);
 
     if (arrivalDateTime <= startDateTime) {
       arrivalDateTime.setDate(arrivalDateTime.getDate() + 1);
@@ -141,6 +224,7 @@ export default function CreateTrip() {
       } else {
         // CREATE
 
+
         const formattedTimePoints = timePoints
           .filter(tp => tp.pointId && tp.arrivalTime && tp.departureTime)
           .map(tp => ({
@@ -149,12 +233,19 @@ export default function CreateTrip() {
             departureTime: formatTime(tp.departureTime)
           }));
 
+        console.log("🚀 SUBMIT DATA:", {
+          ...form,
+          startTime: formatDateTime(startDateTime),
+          arrivalTime: formatDateTime(arrivalDateTime),
+          timePoints: formattedTimePoints
+        });
+
         await axios.post(
           "http://localhost:5000/api/partner/trips",
           {
             ...form,
-            startTime: startDateTime,
-            arrivalTime: arrivalDateTime,
+            startTime: formatDateTime(startDateTime),
+            arrivalTime: formatDateTime(arrivalDateTime),
             timePoints: formattedTimePoints
           }
         );
@@ -210,6 +301,17 @@ export default function CreateTrip() {
     return time;
   };
 
+  const MAX_DAYS = 60;
+
+  const getMaxEndDate = (startDate) => {
+    if (!startDate) return "";
+
+    const d = new Date(startDate);
+    d.setDate(d.getDate() + MAX_DAYS - 1);
+
+    return d.toISOString().slice(0, 10);
+  };
+
   return (
 
     <Container className="create-trip-container">
@@ -260,8 +362,11 @@ export default function CreateTrip() {
                   name="fromStationId"
                   value={form.fromStationId}
                   onChange={handleChange}
-                  required
+                  isInvalid={!!errors.fromStationId}
                 >
+                  <Form.Control.Feedback type="invalid">
+                    {errors.fromStationId}
+                  </Form.Control.Feedback>
                   <option value="">Chọn điểm đi</option>
                   {stations.map(s => (
                     <option key={s.id} value={s.id}>
@@ -277,8 +382,11 @@ export default function CreateTrip() {
                   name="toStationId"
                   value={form.toStationId}
                   onChange={handleChange}
-                  required
+                  isInvalid={!!errors.toStationId}
                 >
+                  <Form.Control.Feedback type="invalid">
+                    {errors.toStationId}
+                  </Form.Control.Feedback>
                   <option value="">Chọn điểm đến</option>
                   {stations.map(s => (
                     <option key={s.id} value={s.id}>
@@ -297,50 +405,79 @@ export default function CreateTrip() {
         {/* TIME */}
         <Card className="trip-card">
           <Card.Body>
-
             <Card.Title>⏰ Thời gian chuyến xe</Card.Title>
 
-            <Row>
-
+            <Row className="gy-3">
               <Col md={4}>
-                <Form.Label>Ngày khởi hành</Form.Label>
-                <Form.Control
-                  type="date"
-                  name="startDate"
-                  value={form.startDate}
-                  onChange={handleChange}
-                  required
-                />
+                <Form.Group>
+                  <Form.Label>Ngày hiệu lực</Form.Label>
+                  <Form.Control
+                    type="date"
+                    name="startDate"
+                    value={form.startDate}
+                    onChange={handleChange}
+                    isInvalid={!!errors.startDate}
+                  />
+                  <Form.Control.Feedback type="invalid">
+                    {errors.startDate}
+                  </Form.Control.Feedback>
+                </Form.Group>
               </Col>
 
               <Col md={4}>
-                <Form.Label>Giờ khởi hành</Form.Label>
-                <Form.Control
-                  type="time"
-                  name="startTime"
-                  value={form.startTime}
-                  onChange={handleChange}
-                  required
-                />
+                <Form.Group>
+                  <Form.Label>Giờ khởi hành</Form.Label>
+                  <Form.Control
+                    type="time"
+                    name="startTime"
+                    value={form.startTime}
+                    onChange={handleChange}
+                    isInvalid={!!errors.startTime}
+                  />
+                  <Form.Control.Feedback type="invalid">
+                    {errors.startTime}
+                  </Form.Control.Feedback>
+                </Form.Group>
               </Col>
 
               <Col md={4}>
-                <Form.Label>Giờ đến nơi</Form.Label>
-                <Form.Control
-                  type="time"
-                  name="arrivalTime"
-                  value={form.arrivalTime}
-                  onChange={handleChange}
-                  required
-                />
+                <Form.Group>
+                  <Form.Label>Giờ đến nơi</Form.Label>
+                  <Form.Control
+                    type="time"
+                    name="arrivalTime"
+                    value={form.arrivalTimeTime}
+                    onChange={handleChange}
+                    isInvalid={!!errors.arrivalTime}
+                  />
+                  <Form.Control.Feedback type="invalid">
+                    {errors.startTime}
+                  </Form.Control.Feedback>
+                </Form.Group>
               </Col>
 
+              <Col md={4}>
+                <Form.Group>
+                  <Form.Label>Ngày hết hạn</Form.Label>
+                  <Form.Control
+                    type="date"
+                    name="endDate"
+                    value={form.endDate || ""}
+                    onChange={handleChange}
+                    min={form.startDate}
+                    max={getMaxEndDate(form.startDate)}
+                    isInvalid={!!errors.endDate}
+                  />
+                  <Form.Control.Feedback type="invalid">
+                    {errors.endDate}
+                  </Form.Control.Feedback>
+                </Form.Group>
+              </Col>
             </Row>
 
-            <p className="time-hint">
+            <p className="time-hint mt-2">
               ⏱ Thời gian di chuyển sẽ được hệ thống tự động tính.
             </p>
-
           </Card.Body>
         </Card>
 
@@ -357,8 +494,11 @@ export default function CreateTrip() {
               value={form.price}
               onChange={handleChange}
               placeholder="Ví dụ: 250000"
-              required
+              isInvalid={!!errors.price}
             />
+            <Form.Control.Feedback type="invalid">
+              {errors.price}
+            </Form.Control.Feedback>
 
           </Card.Body>
         </Card>
@@ -447,7 +587,7 @@ export default function CreateTrip() {
               name="vehicleId"
               value={form.vehicleId}
               onChange={handleChange}
-              required
+              isInvalid={!!errors.vehicleId}
             >
               <option value="">Chọn xe</option>
 
@@ -456,6 +596,10 @@ export default function CreateTrip() {
                   {v.name} - {v.licensePlate}
                 </option>
               ))}
+
+              <Form.Control.Feedback type="invalid">
+                {errors.vehicleId}
+              </Form.Control.Feedback>
 
             </Form.Select>
 

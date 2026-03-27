@@ -1,11 +1,11 @@
 import { Outlet, NavLink, useNavigate } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
 import "../styles/partner.css";
+import { Button } from "react-bootstrap";
 
 export default function PartnerLayout() {
   const { logout } = useAuth();
   const navigate = useNavigate();
-
 
   const handleLogout = () => {
     logout();
@@ -17,36 +17,39 @@ export default function PartnerLayout() {
 
       {/* SIDEBAR */}
       <aside className="partner-sidebar">
-        <h2 className="logo">🚌 BusGo Partner</h2>
+        <h2 className="logo">
+          <i className="bi bi-bus-front-fill me-2"></i> BusGo Partner
+        </h2>
 
-        {/* Trang chính */}
-        <NavLink to="/">
-          🏠 Trang chủ
+        {/* Trang chủ */}
+        <NavLink to="/" className={({ isActive }) => isActive ? "active" : ""}>
+          <i className="bi bi-house me-2"></i> Trang chủ
         </NavLink>
 
         {/* Dashboard */}
-        <NavLink to="" end >
-          📊 Dashboard
+        <NavLink to="" end className={({ isActive }) => isActive ? "active" : ""}>
+          <i className="bi bi-bar-chart me-2"></i> Dashboard
         </NavLink>
 
         {/* Lịch trình */}
-        <NavLink to="trips">
-          📅 Lịch trình
+        <NavLink to="trips" className={({ isActive }) => isActive ? "active" : ""}>
+          <i className="bi bi-calendar-event me-2"></i> Lịch trình
         </NavLink>
 
         {/* Đội xe */}
-        <NavLink to="vehicles">
-          🚌 Quản lý đội xe
+        <NavLink to="vehicles" className={({ isActive }) => isActive ? "active" : ""}>
+          <i className="bi bi-bus-front me-2"></i> Quản lý đội xe
         </NavLink>
 
-        {/* Cài đặt */}
-        <NavLink to="tickets">
-          vé được đặt
+        {/* Vé được đặt */}
+        <NavLink to="tickets" className={({ isActive }) => isActive ? "active" : ""}>
+          <i className="bi bi-ticket-perforated me-2"></i> Vé được đặt
         </NavLink>
 
-        <button className="logout-btn" onClick={handleLogout}>
-          🚪 Đăng xuất
-        </button>
+        {/* Logout */}
+        <Button className="logout-btn" onClick={handleLogout}>
+          <i className="bi bi-box-arrow-right me-2"></i> Đăng xuất
+        </Button>
       </aside>
 
       {/* CONTENT */}

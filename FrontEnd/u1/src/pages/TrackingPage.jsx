@@ -106,6 +106,7 @@ export default function TrackingPage() {
 
     const markerPosition = getMarkerPosition();
 
+
     if (loading) {
         return (
             <Container className="text-center mt-5">
@@ -119,9 +120,10 @@ export default function TrackingPage() {
     }
 
     const points = tracking.points;
-    const sortedPoints = [...tracking.points].sort(
-        (a, b) => new Date(a.arrivalTime) - new Date(b.arrivalTime)
-    );
+    // const sortedPoints = [...tracking.points].sort(
+    //     (a, b) => new Date(a.arrivalTime) - new Date(b.arrivalTime)
+    // );
+    const sortedPoints = tracking.points; // dùng thẳng backend trả
     return (
         <Container className="mt-4">
             <Row>
@@ -233,8 +235,7 @@ export default function TrackingPage() {
 
                                                 {/* time */}
                                                 <div className="text-muted small">
-                                                    {new Date(p.arrivalTime).toLocaleTimeString()} -{" "}
-                                                    {new Date(p.departureTime).toLocaleTimeString()}
+                                                    {p.arrivalTime.slice(11, 16)} - {p.departureTime.slice(11, 16)}
                                                 </div>
 
                                                 {/* badge */}

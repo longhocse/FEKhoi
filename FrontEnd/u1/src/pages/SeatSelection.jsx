@@ -185,7 +185,7 @@ export default function SeatSelection() {
         </Col>
 
         <Col lg={4}>
-          <Card className="shadow-sm " >
+          <Card className="shadow-sm sticky-top" style={{ top: '20px' }}>
             <Card.Body>
               <h5 className="mb-3">Thông tin đặt vé</h5>
 

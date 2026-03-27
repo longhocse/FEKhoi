@@ -95,7 +95,7 @@ export default function AdminReviews() {
         );
     }
 
-    const currentReviews = activeTab === "trip" ? tripReviews : companyReviews;
+    const currentReviews = companyReviews;
 
     return (
         <Container fluid className="py-4">
@@ -108,13 +108,6 @@ export default function AdminReviews() {
 
             {/* Tab */}
             <div className="d-flex gap-2 mb-4 border-bottom pb-2">
-                <Button
-                    variant={activeTab === "trip" ? "primary" : "outline-primary"}
-                    onClick={() => setActiveTab("trip")}
-                >
-                    <i className="bi bi-bus-front me-2"></i>
-                    Đánh giá chuyến xe
-                </Button>
                 <Button
                     variant={activeTab === "company" ? "primary" : "outline-primary"}
                     onClick={() => setActiveTab("company")}

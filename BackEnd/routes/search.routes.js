@@ -14,35 +14,46 @@ router.get('/search', async (req, res) => {
     const request = pool.request();
 
     let query = `
-      SELECT 
-        t.id,
-        sFrom.name as fromStation,
-        sFrom.province as fromProvince,
-        sFrom.address as fromAddress,
-        sTo.name as toStation,
-        sTo.province as toProvince,
-        sTo.address as toAddress,
-        t.startTime,
-        t.price,
-        t.estimatedDuration,
-        t.imageUrl, -- ✅ thêm dòng này
-        v.name as vehicleName,
-        v.type as vehicleType,
-        v.description as vehicleDescription,
-        pc.name as companyName,
-        pc.phone as companyPhone,
-        pc.logo as companyLogo,
-        (SELECT COUNT(*) FROM Seats WHERE vehicleId = v.id AND status = 'AVAILABLE') as availableSeats,
-        (SELECT TOP 1 imageUrl 
-         FROM ImageVehicles 
-         WHERE vehicleId = v.id AND isPrimary = 1) as vehicleImage
-      FROM Trips t
-      JOIN Stations sFrom ON t.fromStationId = sFrom.id
-      JOIN Stations sTo ON t.toStationId = sTo.id
-      JOIN Vehicles v ON t.vehicleId = v.id
-      JOIN PassengerCarCompanies pc ON v.partnerId = pc.id
-      WHERE t.isActive = 1
-    `;
+  SELECT 
+    t.id,
+    sFrom.name as fromStation,
+    sFrom.province as fromProvince,
+    sFrom.address as fromAddress,
+    sTo.name as toStation,
+    sTo.province as toProvince,
+    sTo.address as toAddress,
+    t.startTime,
+    t.price,
+    t.estimatedDuration,
+    t.imageUrl,
+
+    v.name as vehicleName,
+    v.type as vehicleType,
+    v.description as vehicleDescription,
+
+    u.name as createdBy,          -- ✅ user tạo chuyến
+    u.phoneNumber as partnerPhone,
+    u.avatar as partnerAvatar,
+
+    (SELECT COUNT(*) FROM Seats WHERE vehicleId = v.id AND status = 'AVAILABLE') as availableSeats,
+
+    (SELECT TOP 1 imageUrl 
+     FROM ImageVehicles 
+     WHERE vehicleId = v.id AND isPrimary = 1) as vehicleImage,
+
+    sv.name as serviceName
+
+  FROM Trips t
+  JOIN Stations sFrom ON t.fromStationId = sFrom.id
+  JOIN Stations sTo ON t.toStationId = sTo.id
+  JOIN Vehicles v ON t.vehicleId = v.id
+  JOIN Users u ON v.partnerId = u.id   -- 🔥 đúng chỗ này
+
+  LEFT JOIN VehicleServices vs ON v.id = vs.vehicleId
+  LEFT JOIN Services sv ON vs.serviceId = sv.id
+
+  WHERE t.isActive = 1
+`;
 
     if (date) {
       query += ` AND CAST(t.startTime AS DATE) = @date`;
@@ -73,10 +84,58 @@ router.get('/search', async (req, res) => {
 
     const result = await request.query(query);
 
+    const raw = result.recordset;
+    const tripsMap = {};
+
+    raw.forEach(row => {
+      if (!tripsMap[row.id]) {
+        tripsMap[row.id] = {
+          id: row.id,
+          fromStation: row.fromStation,
+          fromProvince: row.fromProvince,
+          fromAddress: row.fromAddress,
+          toStation: row.toStation,
+          toProvince: row.toProvince,
+          toAddress: row.toAddress,
+          startTime: row.startTime,
+          price: row.price,
+          estimatedDuration: row.estimatedDuration,
+          imageUrl: row.imageUrl,
+
+          vehicleName: row.vehicleName,
+          vehicleType: row.vehicleType,
+          vehicleDescription: row.vehicleDescription,
+
+          createdBy: row.createdBy,           // ✅ thêm
+          partnerPhone: row.partnerPhone,     // optional
+          partnerAvatar: row.partnerAvatar,   // optional
+
+          availableSeats: row.availableSeats,
+          vehicleImage: row.vehicleImage,
+          services: []
+        };
+      }
+
+      if (row.serviceName) {
+        // tránh duplicate service
+        const exists = tripsMap[row.id].services.some(
+          s => s.name === row.serviceName
+        );
+
+        if (!exists) {
+          tripsMap[row.id].services.push({
+            name: row.serviceName
+          });
+        }
+      }
+    });
+
+    const trips = Object.values(tripsMap);
+
     res.json({
       success: true,
-      count: result.recordset.length,
-      data: result.recordset
+      count: trips.length,
+      data: trips
     });
 
   } catch (err) {

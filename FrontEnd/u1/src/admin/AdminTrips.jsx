@@ -154,10 +154,6 @@ export default function AdminTrips() {
                     <i className="bi bi-bus-front me-2 text-primary"></i>
                     Quản lý chuyến xe
                 </h2>
-                <Button variant="primary" onClick={() => handleOpenModal()}>
-                    <i className="bi bi-plus-lg me-2"></i>
-                    Thêm chuyến xe
-                </Button>
             </div>
 
             {error && <Alert variant="danger">{error}</Alert>}
@@ -214,112 +210,6 @@ export default function AdminTrips() {
                     </div>
                 </Card.Body>
             </Card>
-
-            <Modal show={showModal} onHide={() => setShowModal(false)} size="lg" centered>
-                <Modal.Header closeButton>
-                    <Modal.Title>{editingTrip ? "Chỉnh sửa chuyến xe" : "Thêm chuyến xe mới"}</Modal.Title>
-                </Modal.Header>
-                <Form onSubmit={handleSubmit}>
-                    <Modal.Body>
-                        <Row>
-                            <Col md={6}>
-                                <Form.Group className="mb-3">
-                                    <Form.Label>Điểm đi</Form.Label>
-                                    <Form.Select
-                                        value={formData.fromStationId}
-                                        onChange={(e) => setFormData({ ...formData, fromStationId: e.target.value })}
-                                        required
-                                    >
-                                        <option value="">Chọn điểm đi</option>
-                                        {stations.map(s => <option key={s.id} value={s.id}>{s.name}</option>)}
-                                    </Form.Select>
-                                </Form.Group>
-                            </Col>
-                            <Col md={6}>
-                                <Form.Group className="mb-3">
-                                    <Form.Label>Điểm đến</Form.Label>
-                                    <Form.Select
-                                        value={formData.toStationId}
-                                        onChange={(e) => setFormData({ ...formData, toStationId: e.target.value })}
-                                        required
-                                    >
-                                        <option value="">Chọn điểm đến</option>
-                                        {stations.map(s => <option key={s.id} value={s.id}>{s.name}</option>)}
-                                    </Form.Select>
-                                </Form.Group>
-                            </Col>
-                        </Row>
-                        <Form.Group className="mb-3">
-                            <Form.Label>Xe sử dụng</Form.Label>
-                            <Form.Select
-                                value={formData.vehicleId}
-                                onChange={(e) => setFormData({ ...formData, vehicleId: e.target.value })}
-                                required
-                            >
-                                <option value="">Chọn xe</option>
-                                {vehicles.map(v => <option key={v.id} value={v.id}>{v.name}</option>)}
-                            </Form.Select>
-                        </Form.Group>
-                        <Row>
-                            <Col md={6}>
-                                <Form.Group className="mb-3">
-                                    <Form.Label>Thời gian khởi hành</Form.Label>
-                                    <Form.Control
-                                        type="datetime-local"
-                                        value={formData.startTime}
-                                        onChange={(e) => setFormData({ ...formData, startTime: e.target.value })}
-                                        required
-                                    />
-                                </Form.Group>
-                            </Col>
-                            <Col md={6}>
-                                <Form.Group className="mb-3">
-                                    <Form.Label>Giá vé (VNĐ)</Form.Label>
-                                    <Form.Control
-                                        type="number"
-                                        value={formData.price}
-                                        onChange={(e) => setFormData({ ...formData, price: e.target.value })}
-                                        required
-                                        min="0"
-                                    />
-                                </Form.Group>
-                            </Col>
-                        </Row>
-                        <Row>
-                            <Col md={6}>
-                                <Form.Group className="mb-3">
-                                    <Form.Label>Thời gian dự kiến (phút)</Form.Label>
-                                    <Form.Control
-                                        type="number"
-                                        value={formData.estimatedDuration}
-                                        onChange={(e) => setFormData({ ...formData, estimatedDuration: e.target.value })}
-                                        required
-                                        min="1"
-                                    />
-                                </Form.Group>
-                            </Col>
-                            <Col md={6}>
-                                <Form.Group className="mb-3">
-                                    <Form.Label>Trạng thái</Form.Label>
-                                    <Form.Select
-                                        value={formData.isActive}
-                                        onChange={(e) => setFormData({ ...formData, isActive: parseInt(e.target.value) })}
-                                    >
-                                        <option value={1}>Đang hoạt động</option>
-                                        <option value={0}>Đã khóa</option>
-                                    </Form.Select>
-                                </Form.Group>
-                            </Col>
-                        </Row>
-                    </Modal.Body>
-                    <Modal.Footer>
-                        <Button variant="secondary" onClick={() => setShowModal(false)}>Hủy</Button>
-                        <Button variant="primary" type="submit" disabled={submitting}>
-                            {submitting ? "Đang xử lý..." : (editingTrip ? "Cập nhật" : "Thêm mới")}
-                        </Button>
-                    </Modal.Footer>
-                </Form>
-            </Modal>
         </Container>
     );
 }

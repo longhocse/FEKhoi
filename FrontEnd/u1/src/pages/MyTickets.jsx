@@ -489,12 +489,6 @@ export default function MyTickets() {
                             <Button variant="outline-secondary" size="sm" onClick={() => openReportModal(ticket)}>
                               <i className="bi bi-flag me-1"></i> Báo cáo
                             </Button>
-
-                            {ticket.status === 'BOOKED' && (
-                              <Button variant="outline-danger" size="sm" onClick={() => handleCancelTicket(ticket.id)}>
-                                <i className="bi bi-x-circle me-1"></i> Hủy vé
-                              </Button>
-                            )}
                           </div>
                         </div>
                       </Col>
@@ -502,15 +496,7 @@ export default function MyTickets() {
                   })}
                 </Row>
               </Card.Body>
-              <Card.Footer className="bg-white">
-                <div className="d-flex justify-content-end gap-2">
-                  <Button variant="outline-primary" size="sm" onClick={() => console.log('Xem chi tiết đợt mua:', group)}>
-                    <i className="bi bi-eye me-1"></i> Xem chi tiết
-                  </Button>
 
-                </div>
-
-              </Card.Footer>
             </Card>
           ))}
         </div>

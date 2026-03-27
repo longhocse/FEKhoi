@@ -123,6 +123,7 @@ CREATE TABLE Tickets (
     paymentMethod VARCHAR(20) CHECK (paymentMethod IN ('WALLET', 'CASH', 'BANKING')),
     transactionId INT,
     bookedAt DATETIME DEFAULT GETDATE(),
+	groupId NVARCHAR(100),
     FOREIGN KEY (userId) REFERENCES Users(id),
     FOREIGN KEY (tripId) REFERENCES Trips(id),
     FOREIGN KEY (seatId) REFERENCES Seats(id),
@@ -250,6 +251,26 @@ CREATE INDEX IX_Promotions_Code ON Promotions(code);
 CREATE INDEX IX_Promotions_Date ON Promotions(startDate, endDate);
 CREATE INDEX IX_PromotionUsage_UserId ON PromotionUsage(userId);
 
+
+CREATE TABLE Services (
+    id INT PRIMARY KEY IDENTITY(1,1),
+    name NVARCHAR(100) NOT NULL,         -- Ví dụ: Wifi, Thú cưng
+    description NVARCHAR(255),
+    isActive BIT DEFAULT 1,
+    createdAt DATETIME DEFAULT GETDATE()
+);
+
+CREATE TABLE VehicleServices (
+    id INT PRIMARY KEY IDENTITY(1,1),
+    vehicleId INT NOT NULL,
+    serviceId INT NOT NULL,
+    createdAt DATETIME DEFAULT GETDATE(),
+
+    FOREIGN KEY (vehicleId) REFERENCES Vehicles(id) ON DELETE CASCADE,
+    FOREIGN KEY (serviceId) REFERENCES Services(id) ON DELETE CASCADE,
+
+    UNIQUE (vehicleId, serviceId) -- tránh duplicate
+);
 
 -- Xóa bảng cũ nếu tồn tại
 DROP TABLE IF EXISTS Reports;
@@ -1817,6 +1838,45 @@ BEGIN
 
 END
 
+
+CREATE OR ALTER PROCEDURE sp_GetPartnerTickets
+    @PartnerId INT
+AS
+BEGIN
+    SELECT 
+        tk.id AS ticketId,
+        tk.status,
+        tk.totalAmount,
+        tk.paymentMethod,
+        tk.bookedAt,
+
+        u.name AS customerName,
+        u.phoneNumber AS customerPhone,
+
+        t.id AS tripId,
+        t.startTime,
+
+        sFrom.name AS fromStation,
+        sTo.name AS toStation,
+
+        v.name AS vehicleName,
+
+        tp.fullName AS passengerName,
+        tp.phoneNumber AS passengerPhone
+
+    FROM Tickets tk
+    JOIN Users u ON tk.userId = u.id
+    JOIN Trips t ON tk.tripId = t.id
+    JOIN Vehicles v ON t.vehicleId = v.id
+    JOIN Stations sFrom ON t.fromStationId = sFrom.id
+    JOIN Stations sTo ON t.toStationId = sTo.id
+    LEFT JOIN TicketPassengers tp ON tp.ticketId = tk.id
+
+    WHERE v.partnerId = @PartnerId
+    ORDER BY tk.bookedAt DESC;
+END
+
+
 INSERT INTO Vehicles
 (name, licensePlate, type, numberOfFloors, partnerId)
 VALUES
@@ -1947,34 +2007,13 @@ VALUES (
     N'Test tracking trip 50'
 );
 
-INSERT INTO Tickets (
-    userId,
-    tripId,
-    seatId,
-    totalAmount,
-    paymentMethod,
-    transactionId,
-    status
-)
-VALUES (
-    2,          -- userId (partner)
-    50,         -- tripId
-    1,          -- seatId (thay bằng seat bạn lấy được)
-    350000,
-    'WALLET',
-    (SELECT TOP 1 id FROM Transactions ORDER BY id DESC),
-    'PAID'
-);
 
-INSERT INTO TicketPassengers (
-    ticketId,
-    fullName,
-    phoneNumber,
-    email
-)
-VALUES (
-    (SELECT TOP 1 id FROM Tickets ORDER BY id DESC),
-    N'Test User 2',
-    '0900000999',
-    'test2@busgo.vn'
-);
+INSERT INTO Services (name, description)
+VALUES
+(N'Wifi', N'Có wifi miễn phí'),
+(N'Điều hòa', N'Xe có điều hòa'),
+(N'Chăn gối', N'Cung cấp chăn và gối'),
+(N'Cho phép thú cưng', N'Được mang thú cưng lên xe'),
+(N'Ổ cắm điện', N'Có ổ cắm sạc điện thoại'),
+(N'Nước uống', N'Phục vụ nước miễn phí');
+

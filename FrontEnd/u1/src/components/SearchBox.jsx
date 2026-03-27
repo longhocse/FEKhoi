@@ -1,20 +1,27 @@
-import { Card, Row, Col, Form, Button, InputGroup } from "react-bootstrap";
+import { Card, Row, Col, Form, Button } from "react-bootstrap";
 import { useNavigate } from "react-router-dom";
 import { useState, useEffect } from "react";
 import axios from "axios";
 
-export default function SearchBox() {
+export default function SearchBox({ defaultFrom, defaultTo, defaultDate }) {
   const navigate = useNavigate();
-  const [from, setFrom] = useState("");
-  const [to, setTo] = useState("");
-  const [date, setDate] = useState("");
+
+  const [from, setFrom] = useState(defaultFrom || "");
+  const [to, setTo] = useState(defaultTo || "");
+  const [date, setDate] = useState(defaultDate || "");
+
   const [fromSuggestions, setFromSuggestions] = useState([]);
   const [toSuggestions, setToSuggestions] = useState([]);
+
   const [loading, setLoading] = useState(false);
 
-  const today = new Date().toISOString().split('T')[0];
+  // ✅ validation state
+  const [errors, setErrors] = useState({});
+  const [validated, setValidated] = useState(false);
 
-  // Lấy gợi ý cho điểm đi
+  const today = new Date().toISOString().split("T")[0];
+
+  // ===== Suggestion logic giữ nguyên =====
   useEffect(() => {
     const fetchSuggestions = async () => {
       if (from.length < 2) {
@@ -23,10 +30,12 @@ export default function SearchBox() {
       }
 
       try {
-        const response = await axios.get(`http://localhost:5000/api/suggestions?keyword=${from}`);
-        setFromSuggestions(response.data);
-      } catch (error) {
-        console.error('Lỗi lấy gợi ý:', error);
+        const res = await axios.get(
+          `http://localhost:5000/api/suggestions?keyword=${from}`
+        );
+        setFromSuggestions(res.data);
+      } catch (err) {
+        console.error(err);
       }
     };
 
@@ -34,7 +43,6 @@ export default function SearchBox() {
     return () => clearTimeout(debounce);
   }, [from]);
 
-  // Lấy gợi ý cho điểm đến
   useEffect(() => {
     const fetchSuggestions = async () => {
       if (to.length < 2) {
@@ -43,10 +51,12 @@ export default function SearchBox() {
       }
 
       try {
-        const response = await axios.get(`http://localhost:5000/api/suggestions?keyword=${to}`);
-        setToSuggestions(response.data);
-      } catch (error) {
-        console.error('Lỗi lấy gợi ý:', error);
+        const res = await axios.get(
+          `http://localhost:5000/api/suggestions?keyword=${to}`
+        );
+        setToSuggestions(res.data);
+      } catch (err) {
+        console.error(err);
       }
     };
 
@@ -54,38 +64,48 @@ export default function SearchBox() {
     return () => clearTimeout(debounce);
   }, [to]);
 
+  // ===== Validate function =====
+  const validateForm = () => {
+    const newErrors = {};
+
+    if (!from.trim()) newErrors.from = "Vui lòng nhập điểm đi";
+    if (!to.trim()) newErrors.to = "Vui lòng nhập điểm đến";
+    if (!date) newErrors.date = "Vui lòng chọn ngày";
+
+    if (from && to && from.trim() === to.trim()) {
+      newErrors.to = "Điểm đến phải khác điểm đi";
+    }
+
+    if (date && date < today) {
+      newErrors.date = "Ngày đi không hợp lệ";
+    }
+
+    setErrors(newErrors);
+    return Object.keys(newErrors).length === 0;
+  };
+
   const onSearch = async (e) => {
     e.preventDefault();
+    setValidated(true);
 
-    if (!from || !to || !date) {
-      alert("Vui lòng điền đầy đủ thông tin");
-      return;
-    }
+    if (!validateForm()) return;
 
     setLoading(true);
 
     try {
-      // Gọi API search-simple
-      const response = await axios.get('http://localhost:5000/api/trips/search', {
-        params: {
-          from: from,
-          to: to
-          // Không dùng date vì đang test
+      const response = await axios.get(
+        "http://localhost:5000/api/search",
+        {
+          params: { from, to, date },
         }
-      });
+      );
 
-      console.log('Kết quả tìm kiếm:', response.data);
-
-      navigate('/tuyen-xe', {
-        state: {
-          searchResults: response.data.data,
-          searchParams: { from, to, date }
-        }
+      navigate(`/tuyen-xe?from=${from}&to=${to}&date=${date}`, {
+        state: { searchResults: response.data.data },
       });
     } catch (error) {
-      console.error('Lỗi:', error);
-      console.log(from, to);
-      alert('Có lỗi xảy ra');
+      console.error(error);
+      alert("Có lỗi xảy ra");
     } finally {
       setLoading(false);
     }
@@ -94,93 +114,85 @@ export default function SearchBox() {
   return (
     <Card className="shadow-sm border-0">
       <Card.Body>
-        <Form onSubmit={onSearch}>
+        <Form noValidate onSubmit={onSearch}>
           <Row className="g-3">
+
+            {/* FROM */}
             <Col md={4}>
               <Form.Group>
-                <Form.Label className="fw-bold text-secondary mb-2">
-                  <i className="bi bi-geo-alt-fill text-primary me-2" />
-                  Điểm đi
-                </Form.Label>
+                <Form.Label>Điểm đi</Form.Label>
                 <Form.Control
                   type="text"
                   placeholder="Nhập điểm đi (tỉnh/thành phố)..."
                   value={from}
                   onChange={(e) => setFrom(e.target.value)}
-                  required
+                  isInvalid={!!errors.from}
                   list="from-suggestions"
-                  autoComplete="off"
                 />
-                {fromSuggestions.length > 0 && (
-                  <datalist id="from-suggestions">
-                    {fromSuggestions.map((item, index) => (
-                      <option key={index} value={item.value}>
-                        {item.label} ({item.type === 'province' ? 'Tỉnh' : 'Bến xe'})
-                      </option>
-                    ))}
-                  </datalist>
-                )}
+                <Form.Control.Feedback type="invalid">
+                  {errors.from}
+                </Form.Control.Feedback>
+
+                <datalist id="from-suggestions">
+                  {fromSuggestions.map((item, i) => (
+                    <option key={i} value={item.value} />
+                  ))}
+                </datalist>
               </Form.Group>
             </Col>
 
+            {/* TO */}
             <Col md={4}>
               <Form.Group>
-                <Form.Label className="fw-bold text-secondary mb-2">
-                  <i className="bi bi-flag-fill text-primary me-2" />
-                  Điểm đến
-                </Form.Label>
+                <Form.Label>Điểm đến</Form.Label>
                 <Form.Control
                   type="text"
                   placeholder="Nhập điểm đến (tỉnh/thành phố)..."
                   value={to}
                   onChange={(e) => setTo(e.target.value)}
-                  required
+                  isInvalid={!!errors.to}
                   list="to-suggestions"
-                  autoComplete="off"
                 />
-                {toSuggestions.length > 0 && (
-                  <datalist id="to-suggestions">
-                    {toSuggestions.map((item, index) => (
-                      <option key={index} value={item.value}>
-                        {item.label} ({item.type === 'province' ? 'Tỉnh' : 'Bến xe'})
-                      </option>
-                    ))}
-                  </datalist>
-                )}
+                <Form.Control.Feedback type="invalid">
+                  {errors.to}
+                </Form.Control.Feedback>
+
+                <datalist id="to-suggestions">
+                  {toSuggestions.map((item, i) => (
+                    <option key={i} value={item.value} />
+                  ))}
+                </datalist>
               </Form.Group>
             </Col>
 
+            {/* DATE */}
             <Col md={2}>
               <Form.Group>
-                <Form.Label className="fw-bold text-secondary mb-2">
-                  <i className="bi bi-calendar-event-fill text-primary me-2" />
-                  Ngày đi
-                </Form.Label>
+                <Form.Label>Ngày đi</Form.Label>
                 <Form.Control
                   type="date"
                   value={date}
                   onChange={(e) => setDate(e.target.value)}
                   min={today}
-                  required
+                  isInvalid={!!errors.date}
                 />
+                <Form.Control.Feedback type="invalid">
+                  {errors.date}
+                </Form.Control.Feedback>
               </Form.Group>
             </Col>
 
+            {/* BUTTON */}
             <Col md={2} className="d-flex align-items-end">
               <Button
                 type="submit"
-                variant="primary"
-                className="w-100 py-2"
+                className="w-100"
                 disabled={loading}
-                style={{
-                  background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
-                  border: 'none'
-                }}
               >
-                <i className="bi bi-search me-2" />
-                {loading ? 'Đang tìm...' : 'Tìm chuyến'}
+                {loading ? "Đang tìm..." : "Tìm chuyến"}
               </Button>
             </Col>
+
           </Row>
         </Form>
       </Card.Body>
