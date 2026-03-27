@@ -39,6 +39,39 @@ exports.getDashboard = async (req, res) => {
 };
 
 
+exports.getUpcomingTrips = async (req, res) => {
+  try {
+    const pool = await poolPromise;
+
+    const result = await pool.request().query(`
+      SELECT TOP 5
+        t.id,
+        sFrom.name AS fromStation,
+        sTo.name AS toStation,
+        t.startTime,
+        t.price
+      FROM Trips t
+      JOIN Stations sFrom ON t.fromStationId = sFrom.id
+      JOIN Stations sTo ON t.toStationId = sTo.id
+      WHERE t.startTime > GETDATE()
+      AND t.isActive = 1
+      ORDER BY t.startTime ASC
+    `);
+
+    res.json({
+      success: true,
+      data: result.recordset
+    });
+
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({
+      success: false,
+      message: "Server error"
+    });
+  }
+};
+
 
 // ================= USERS =================
 
@@ -62,6 +95,7 @@ exports.getUsers = async (req, res) => {
     res.status(500).json({ success: false, error: err.message });
   }
 };
+
 
 
 exports.createUser = async (req, res) => {
