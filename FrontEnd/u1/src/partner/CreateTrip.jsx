@@ -4,7 +4,18 @@ import { useAuth } from "../context/AuthContext";
 import "../styles/createTrip.css";
 import { useParams, useNavigate } from "react-router-dom";
 
-import { Container, Card, Row, Col, Form, Button } from "react-bootstrap";
+import { Container, Card, Row, Col, Form, Button, Modal } from "react-bootstrap";
+import {
+  BsPencilSquare,
+  BsBusFront,
+  BsImage,
+  BsGeoAlt,
+  BsCalendar,
+  BsClock,
+  BsCashStack,
+  BsSignpost,
+  BsGrid3X3Gap
+} from "react-icons/bs";
 
 export default function CreateTrip() {
   const navigate = useNavigate();
@@ -21,6 +32,22 @@ export default function CreateTrip() {
   const [points, setPoints] = useState([]);
 
   const [errors, setErrors] = useState({});
+
+  const [selectedDays, setSelectedDays] = useState([]);
+
+  const [showModal, setShowModal] = useState(false);
+  const [modalMessage, setModalMessage] = useState("");
+  const [shouldNavigate, setShouldNavigate] = useState(false);
+
+  const weekDays = [
+    { label: "T2", value: 1 },
+    { label: "T3", value: 2 },
+    { label: "T4", value: 3 },
+    { label: "T5", value: 4 },
+    { label: "T6", value: 5 },
+    { label: "T7", value: 6 },
+    { label: "CN", value: 0 }
+  ];
 
   const [form, setForm] = useState({
     fromStationId: "",
@@ -164,6 +191,10 @@ export default function CreateTrip() {
       newErrors.endDate = "Ngày hết hạn phải ≥ ngày bắt đầu";
     }
 
+    if (selectedDays.length === 0) {
+      newErrors.weekdays = "Phải chọn ít nhất 1 ngày chạy";
+    }
+
     // Price
     if (!form.price) {
       newErrors.price = "Vui lòng nhập giá vé";
@@ -200,7 +231,7 @@ export default function CreateTrip() {
     }
     for (let tp of timePoints) {
       if (!tp.pointId || !tp.arrivalTime || !tp.departureTime) {
-        alert("Vui lòng nhập đầy đủ điểm dừng và thời gian!");
+        showAlert("Vui lòng nhập đầy đủ điểm dừng và thời gian!");
         return;
       }
     }
@@ -218,9 +249,8 @@ export default function CreateTrip() {
           }
         );
 
-        alert("Cập nhật thành công!");
+        showAlert("Cập nhật thành công!");
 
-        navigate("/doi-tac/trips");
       } else {
         // CREATE
 
@@ -240,18 +270,16 @@ export default function CreateTrip() {
           timePoints: formattedTimePoints
         });
 
-        await axios.post(
-          "http://localhost:5000/api/partner/trips",
-          {
-            ...form,
-            startTime: formatDateTime(startDateTime),
-            arrivalTime: formatDateTime(arrivalDateTime),
-            timePoints: formattedTimePoints
-          }
-        );
+        await axios.post("http://localhost:5000/api/partner/trips", {
+          ...form,
+          weekdays: selectedDays,
+          startTime: formatDateTime(startDateTime),
+          arrivalTime: formatDateTime(arrivalDateTime),
+          timePoints: formattedTimePoints
+        });
 
-        alert("Tạo chuyến thành công!");
-        navigate("/doi-tac/trips");
+        showAlert("Tạo chuyến thành công!", true);
+
       }
 
 
@@ -278,6 +306,28 @@ export default function CreateTrip() {
         stopDuration: 0
       }
     ]);
+  };
+
+  const handleSelectDay = (day) => {
+    let updated = [...selectedDays];
+
+    if (updated.includes(day)) {
+      updated = updated.filter(d => d !== day);
+    } else {
+      updated.push(day);
+    }
+
+    updated.sort();
+
+    // ❌ check ngày liên tiếp
+    for (let i = 0; i < updated.length - 1; i++) {
+      if (updated[i + 1] - updated[i] === 1) {
+        showAlert("Không được chọn ngày liên tiếp (vd: T2 + T3)");
+        return;
+      }
+    }
+
+    setSelectedDays(updated);
   };
 
   const removeTimePoint = (index) => {
@@ -312,12 +362,28 @@ export default function CreateTrip() {
     return d.toISOString().slice(0, 10);
   };
 
+  const showAlert = (message, navigateAfter = false) => {
+    setModalMessage(message);
+    setShouldNavigate(navigateAfter);
+    setShowModal(true);
+  };
+
   return (
 
     <Container className="create-trip-container">
 
       <h2 className="page-title">
-        {isEdit ? "✏️ Chỉnh sửa chuyến xe" : "🚌 Tạo chuyến xe mới"}
+        {isEdit ? (
+          <>
+            <BsPencilSquare className="me-2" />
+            Chỉnh sửa chuyến xe
+          </>
+        ) : (
+          <>
+            <BsBusFront className="me-2" />
+            Tạo chuyến xe mới
+          </>
+        )}
       </h2>
 
       <Form onSubmit={handleSubmit}>
@@ -326,7 +392,10 @@ export default function CreateTrip() {
         <Card className="trip-card">
           <Card.Body>
 
-            <Card.Title>🖼 Ảnh chuyến xe</Card.Title>
+            <Card.Title>
+              <BsImage className="me-2" />
+              Ảnh chuyến xe
+            </Card.Title>
 
             <Form.Control
               type="text"
@@ -352,7 +421,10 @@ export default function CreateTrip() {
         <Card className="trip-card">
           <Card.Body>
 
-            <Card.Title>📍 Tuyến đường</Card.Title>
+            <Card.Title>
+              <BsGeoAlt className="me-2" />
+              Tuyến đường
+            </Card.Title>
 
             <Row>
 
@@ -363,6 +435,7 @@ export default function CreateTrip() {
                   value={form.fromStationId}
                   onChange={handleChange}
                   isInvalid={!!errors.fromStationId}
+                  disabled={isEdit}
                 >
                   <Form.Control.Feedback type="invalid">
                     {errors.fromStationId}
@@ -383,6 +456,7 @@ export default function CreateTrip() {
                   value={form.toStationId}
                   onChange={handleChange}
                   isInvalid={!!errors.toStationId}
+                  disabled={isEdit}
                 >
                   <Form.Control.Feedback type="invalid">
                     {errors.toStationId}
@@ -402,63 +476,35 @@ export default function CreateTrip() {
         </Card>
 
 
-        {/* TIME */}
         <Card className="trip-card">
           <Card.Body>
-            <Card.Title>⏰ Thời gian chuyến xe</Card.Title>
+
+            <Card.Title>
+              <BsCalendar className="me-2" />
+              Thời gian hoạt động
+            </Card.Title>
 
             <Row className="gy-3">
-              <Col md={4}>
+
+              {/* START DATE */}
+              <Col md={6}>
                 <Form.Group>
-                  <Form.Label>Ngày hiệu lực</Form.Label>
+                  <Form.Label>Ngày bắt đầu</Form.Label>
                   <Form.Control
                     type="date"
                     name="startDate"
                     value={form.startDate}
                     onChange={handleChange}
                     isInvalid={!!errors.startDate}
+                    disabled={isEdit}
                   />
-                  <Form.Control.Feedback type="invalid">
-                    {errors.startDate}
-                  </Form.Control.Feedback>
                 </Form.Group>
               </Col>
 
-              <Col md={4}>
+              {/* END DATE */}
+              <Col md={6}>
                 <Form.Group>
-                  <Form.Label>Giờ khởi hành</Form.Label>
-                  <Form.Control
-                    type="time"
-                    name="startTime"
-                    value={form.startTime}
-                    onChange={handleChange}
-                    isInvalid={!!errors.startTime}
-                  />
-                  <Form.Control.Feedback type="invalid">
-                    {errors.startTime}
-                  </Form.Control.Feedback>
-                </Form.Group>
-              </Col>
-
-              <Col md={4}>
-                <Form.Group>
-                  <Form.Label>Giờ đến nơi</Form.Label>
-                  <Form.Control
-                    type="time"
-                    name="arrivalTime"
-                    value={form.arrivalTimeTime}
-                    onChange={handleChange}
-                    isInvalid={!!errors.arrivalTime}
-                  />
-                  <Form.Control.Feedback type="invalid">
-                    {errors.startTime}
-                  </Form.Control.Feedback>
-                </Form.Group>
-              </Col>
-
-              <Col md={4}>
-                <Form.Group>
-                  <Form.Label>Ngày hết hạn</Form.Label>
+                  <Form.Label>Ngày kết thúc</Form.Label>
                   <Form.Control
                     type="date"
                     name="endDate"
@@ -467,17 +513,66 @@ export default function CreateTrip() {
                     min={form.startDate}
                     max={getMaxEndDate(form.startDate)}
                     isInvalid={!!errors.endDate}
+                    disabled={isEdit}
                   />
-                  <Form.Control.Feedback type="invalid">
-                    {errors.endDate}
-                  </Form.Control.Feedback>
                 </Form.Group>
+              </Col>
+
+            </Row>
+
+            {/* WEEKDAY PICKER */}
+            <div className="mt-4">
+              <Form.Label>Chọn ngày chạy trong tuần</Form.Label>
+
+              <div className="weekday-picker">
+                {weekDays.map(day => (
+                  <Button
+                    key={day.value}
+                    variant={selectedDays.includes(day.value) ? "primary" : "outline-secondary"}
+                    className="me-2 mb-2"
+                    onClick={() => handleSelectDay(day.value)}
+                    disabled={isEdit}
+                  >
+                    {day.label}
+                  </Button>
+                ))}
+              </div>
+            </div>
+
+          </Card.Body>
+        </Card>
+
+
+        <Card className="trip-card">
+          <Card.Body>
+
+            <Card.Title>
+              <BsClock className="me-2" />
+              Giờ chạy
+            </Card.Title>
+
+            <Row>
+              <Col md={6}>
+                <Form.Label>Giờ khởi hành</Form.Label>
+                <Form.Control
+                  type="time"
+                  name="startTime"
+                  value={form.startTime}
+                  onChange={handleChange}
+                />
+              </Col>
+
+              <Col md={6}>
+                <Form.Label>Giờ đến</Form.Label>
+                <Form.Control
+                  type="time"
+                  name="arrivalTime"
+                  value={form.arrivalTime}
+                  onChange={handleChange}
+                />
               </Col>
             </Row>
 
-            <p className="time-hint mt-2">
-              ⏱ Thời gian di chuyển sẽ được hệ thống tự động tính.
-            </p>
           </Card.Body>
         </Card>
 
@@ -486,7 +581,10 @@ export default function CreateTrip() {
         <Card className="trip-card">
           <Card.Body>
 
-            <Card.Title>💰 Giá vé</Card.Title>
+            <Card.Title>
+              <BsCashStack className="me-2" />
+              Giá vé
+            </Card.Title>
 
             <Form.Control
               type="number"
@@ -506,7 +604,10 @@ export default function CreateTrip() {
         <Card className="trip-card">
           <Card.Body>
 
-            <Card.Title>📍 Điểm dừng (TimePoints)</Card.Title>
+            <Card.Title>
+              <BsSignpost className="me-2" />
+              Điểm dừng (TimePoints)
+            </Card.Title>
 
             {timePoints.map((tp, index) => (
               <Row key={index} className="mb-3">
@@ -570,8 +671,8 @@ export default function CreateTrip() {
               </Row>
             ))}
 
-            <Button onClick={addTimePoint}>
-              ➕ Thêm điểm dừng
+            <Button onClick={addTimePoint} disabled={isEdit}>
+              Thêm điểm dừng
             </Button>
 
           </Card.Body>
@@ -581,13 +682,17 @@ export default function CreateTrip() {
         <Card className="trip-card">
           <Card.Body>
 
-            <Card.Title>🚍 Xe sử dụng</Card.Title>
+            <Card.Title>
+              <BsBusFront className="me-2" />
+              Xe sử dụng
+            </Card.Title>
 
             <Form.Select
               name="vehicleId"
               value={form.vehicleId}
               onChange={handleChange}
               isInvalid={!!errors.vehicleId}
+              disabled={isEdit}
             >
               <option value="">Chọn xe</option>
 
@@ -608,7 +713,10 @@ export default function CreateTrip() {
         <Card className="trip-card">
           <Card.Body>
 
-            <Card.Title>Seat Layout Preview</Card.Title>
+            <Card.Title>
+              <BsGrid3X3Gap className="me-2" />
+              Seat Layout Preview
+            </Card.Title>
 
             {/* FLOOR 1 */}
             {floor1Seats.length > 0 && (
@@ -651,11 +759,46 @@ export default function CreateTrip() {
 
         <div className="submit-area">
           <Button type="submit" className="create-btn">
-            {isEdit ? "💾 Cập nhật" : "Tạo chuyến xe"}
+            {isEdit ? (
+              <>
+                <BsPencilSquare className="me-2" />
+                Cập nhật
+              </>
+            ) : (
+              <>
+                <BsBusFront className="me-2" />
+                Tạo chuyến xe
+              </>
+            )}
           </Button>
         </div>
 
       </Form>
+
+      <Modal show={showModal} onHide={() => setShowModal(false)} centered>
+        <Modal.Header closeButton>
+          <Modal.Title>Thông báo</Modal.Title>
+        </Modal.Header>
+
+        <Modal.Body>
+          {modalMessage}
+        </Modal.Body>
+
+        <Modal.Footer>
+          <Button
+            variant="secondary"
+            onClick={() => {
+              setShowModal(false);
+
+              if (shouldNavigate) {
+                navigate("/doi-tac/trips");
+              }
+            }}
+          >
+            Đóng
+          </Button>
+        </Modal.Footer>
+      </Modal>
 
     </Container>
 

@@ -305,17 +305,6 @@ export default function Payment() {
 
             <Col md={4}>
               <Button
-                variant={method === "qr" ? "primary" : "outline-primary"}
-                className="w-100 py-3"
-                onClick={() => setMethod("qr")}
-              >
-                <i className="bi bi-qr-code me-2"></i>
-                QR Code
-              </Button>
-            </Col>
-
-            <Col md={4}>
-              <Button
                 variant={method === "wallet" ? "primary" : "outline-primary"}
                 className="w-100 py-3"
                 onClick={() => setMethod("wallet")}

@@ -239,6 +239,53 @@ router.get("/stations", async (req, res) => {
   }
 });
 
+router.get('/trips/:id/bookings', async (req, res) => {
+  try {
+    const tripId = req.params.id;
+    const pool = await poolPromise;
+
+    const result = await pool.request()
+      .input('TripId', tripId)
+      .query(`
+        SELECT 
+            tk.id AS ticketId,
+            tk.status,
+            tk.totalAmount,
+            tk.paymentMethod,
+            tk.bookedAt,
+
+            s.id AS seatId,
+            s.name AS seatName,
+            s.floor,
+            s.type AS seatType,
+
+            u.id AS userId,
+            u.name AS customerName,
+            u.phoneNumber AS phone
+
+        FROM Tickets tk
+        JOIN Seats s ON tk.seatId = s.id
+        JOIN Users u ON tk.userId = u.id
+
+        WHERE tk.tripId = @TripId
+        ORDER BY tk.bookedAt DESC
+      `);
+
+    res.json({
+      success: true,
+      data: result.recordset
+    });
+
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({
+      success: false,
+      message: "Server error"
+    });
+  }
+});
+
+
 
 // ================= ADD TRIP =================
 router.post("/trips", async (req, res) => {
@@ -256,7 +303,8 @@ router.post("/trips", async (req, res) => {
       vehicleId,
       imageUrl,
       timePoints = [],
-      endDate
+      endDate,
+      weekdays = []
     } = req.body;
 
     // validate
@@ -278,14 +326,22 @@ router.post("/trips", async (req, res) => {
 
     while (currentDate <= endDateObj) {
 
+      const dayOfWeek = currentDate.getDay();
+
+      // ❌ bỏ qua nếu không nằm trong weekday đã chọn
+      if (!weekdays.includes(dayOfWeek)) {
+        currentDate.setDate(currentDate.getDate() + 1);
+        continue;
+      }
+
       // clone ngày hiện tại
       const start = new Date(currentDate);
       start.setHours(baseStart.getHours(), baseStart.getMinutes(), 0, 0);
-      console.log("👉 Creating trip for date:", start);
+
       const arrival = new Date(currentDate);
       arrival.setHours(baseArrival.getHours(), baseArrival.getMinutes(), 0, 0);
 
-      // nếu giờ đến < giờ đi → qua ngày hôm sau
+      // nếu qua ngày hôm sau
       if (arrival <= start) {
         arrival.setDate(arrival.getDate() + 1);
       }
@@ -302,17 +358,17 @@ router.post("/trips", async (req, res) => {
         .input("estimatedDuration", sql.Int, estimatedDuration)
         .input("imageUrl", sql.NVarChar, imageUrl)
         .query(`
-          INSERT INTO Trips
-          (fromStationId, toStationId, vehicleId, startTime, price, estimatedDuration, imageUrl)
-          OUTPUT INSERTED.id
-          VALUES
-          (@fromStationId, @toStationId, @vehicleId, @startTime, @price, @estimatedDuration, @imageUrl)
-        `);
+      INSERT INTO Trips
+      (fromStationId, toStationId, vehicleId, startTime, price, estimatedDuration, imageUrl)
+      OUTPUT INSERTED.id
+      VALUES
+      (@fromStationId, @toStationId, @vehicleId, @startTime, @price, @estimatedDuration, @imageUrl)
+    `);
 
       const tripId = tripResult.recordset[0].id;
       createdTripIds.push(tripId);
 
-      // insert timePoints cho từng trip
+      // insert timePoints
       for (const tp of timePoints) {
         await new sql.Request(transaction)
           .input("tripId", sql.Int, tripId)
@@ -321,11 +377,11 @@ router.post("/trips", async (req, res) => {
           .input("departureTime", sql.VarChar, tp.departureTime)
           .input("stopDuration", sql.Int, tp.stopDuration || 0)
           .query(`
-            INSERT INTO TimePoints
-            (tripId, pointId, arrivalTime, departureTime, stopDuration)
-            VALUES
-            (@tripId, @pointId, @arrivalTime, @departureTime, @stopDuration)
-          `);
+        INSERT INTO TimePoints
+        (tripId, pointId, arrivalTime, departureTime, stopDuration)
+        VALUES
+        (@tripId, @pointId, @arrivalTime, @departureTime, @stopDuration)
+      `);
       }
 
       // tăng ngày
