@@ -1,31 +1,29 @@
-import { Container, Row, Col, Card, Button, Badge, Spinner } from "react-bootstrap";
+import { Container, Row, Col, Card, Button, Badge, Spinner, Alert } from "react-bootstrap";
 import { useLocation, useNavigate, useParams } from "react-router-dom";
 import { useState, useEffect } from "react";
 import SeatLayout from "../components/SeatLayout";
 import axios from "axios";
 
 export default function SeatSelection() {
-  const { id } = useParams(); // Lấy ID từ URL nếu có
+  const { id } = useParams();
   const location = useLocation();
   const navigate = useNavigate();
 
   const [trip, setTrip] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
-  const [selectedSeats, setSelectedSeats] = useState([]); // Thay đổi: lưu mảng các ghế được chọn
+  const [selectedSeats, setSelectedSeats] = useState([]);
+  const [holding, setHolding] = useState(false);   // Trạng thái đang giữ ghế
 
-  // Lấy dữ liệu từ state hoặc gọi API
+  // Load dữ liệu chuyến xe
   useEffect(() => {
     const loadData = async () => {
       try {
         if (location.state?.trip) {
-          console.log("📦 Dùng dữ liệu từ state:", location.state.trip);
           setTrip(location.state.trip);
           setLoading(false);
         } else if (id) {
-          console.log("🔄 Gọi API lấy chuyến xe ID:", id);
           const response = await axios.get(`http://localhost:5000/api/trips/${id}`);
-
           if (response.data.success) {
             setTrip(response.data.data);
           } else {
@@ -37,8 +35,8 @@ export default function SeatSelection() {
           setLoading(false);
         }
       } catch (err) {
-        console.error("❌ Lỗi:", err);
-        setError("Không thể tải dữ liệu chuyến xe");
+        console.error("❌ Lỗi tải chuyến xe:", err);
+        setError("Không thể tải thông tin chuyến xe");
         setLoading(false);
       }
     };
@@ -46,38 +44,61 @@ export default function SeatSelection() {
     loadData();
   }, [id, location.state]);
 
-  // Hàm xử lý chọn/bỏ chọn ghế
+  // Xử lý chọn / bỏ chọn ghế
   const handleSeatSelect = (seat) => {
-    if (seat.status !== 'AVAILABLE') {
+    if (seat.status !== "AVAILABLE") {
       alert("Ghế này không khả dụng");
       return;
     }
 
     setSelectedSeats(prev => {
-      // Kiểm tra ghế đã được chọn chưa
       const isSelected = prev.some(s => s.id === seat.id);
-
       if (isSelected) {
-        // Nếu đã chọn thì bỏ chọn
         return prev.filter(s => s.id !== seat.id);
       } else {
-        // Nếu chưa chọn thì thêm vào danh sách
         return [...prev, seat];
       }
     });
   };
 
-  // Tính tổng tiền
-  const totalAmount = selectedSeats.reduce((sum, seat) => sum + trip.price, 0);
+  // Giữ ghế (call API holdSeats)
+const handleHoldSeats = async () => {
+  if (selectedSeats.length === 0) {
+    alert("Vui lòng chọn ít nhất 1 ghế");
+    return;
+  }
 
-  // Trong SeatSelection.jsx, sửa hàm handleContinue
+  const token = localStorage.getItem("token");
 
-  const handleContinue = () => {
-    if (selectedSeats.length === 0) {
-      alert("Vui lòng chọn ít nhất 1 ghế");
-      return;
-    }
+  if (!token) {
+    alert("Không tìm thấy token. Vui lòng đăng nhập lại!");
+    navigate("/dang-nhap");
+    return;
+  }
 
+  setHolding(true);
+
+  try {
+    console.log("=== DEBUG TOKEN ===");
+    console.log("Token từ localStorage:", token.substring(0, 60) + "...");
+    console.log("Full Authorization header sẽ là: Bearer " + token.substring(0, 30) + "...");
+
+    const res = await axios.post(
+      "http://localhost:5000/api/trips/seat-holds",
+      {
+        tripId: trip.id,
+        seatIds: selectedSeats.map(s => s.id)
+      },
+      {
+        headers: {
+          Authorization: `Bearer ${token}`   // ← phải có khoảng trắng sau Bearer
+        }
+      }
+    );
+
+    console.log("✅ Giữ ghế thành công:", res.data);
+
+    // Chuyển sang trang thanh toán
     const bookingData = {
       trip: {
         id: trip.id,
@@ -85,33 +106,47 @@ export default function SeatSelection() {
         toStation: trip.toStation,
         startTime: trip.startTime,
         price: trip.price,
-        companyName: trip.companyName,
-        vehicleName: trip.vehicleName,
-        estimatedDuration: trip.estimatedDuration
+        companyName: trip.companyName || "",
+        vehicleName: trip.vehicleName || "",
       },
+      seatIds: selectedSeats.map(seat => seat.id),
       seats: selectedSeats.map(seat => ({
         id: seat.id,
         name: seat.seatName || seat.name,
         price: trip.price
       })),
-      seatIds: selectedSeats.map(seat => seat.id), // Mảng ID ghế
-      seatNames: selectedSeats.map(seat => seat.seatName || seat.name).join(', '),
-      totalAmount: totalAmount,
+      totalAmount: trip.price * selectedSeats.length,
       quantity: selectedSeats.length
     };
 
-    localStorage.setItem('currentBooking', JSON.stringify(bookingData));
+    localStorage.setItem("currentBooking", JSON.stringify(bookingData));
+    navigate("/thanh-toan", { state: bookingData });
 
-    navigate("/thanh-toan", {
-      state: bookingData
-    });
-  };
+  } catch (err) {
+    console.error("❌ FULL ERROR:", err);
+    console.error("Response data:", err.response?.data);
+    console.error("Status:", err.response?.status);
+
+    if (err.response?.status === 401) {
+      alert("Token không hợp lệ hoặc đã hết hạn.\n\nVui lòng đăng nhập lại!");
+      localStorage.removeItem("token");
+      navigate("/dang-nhap");
+    } else {
+      const msg = err.response?.data?.message || "Không thể giữ ghế. Vui lòng thử lại.";
+      alert(msg);
+    }
+  } finally {
+    setHolding(false);
+  }
+};
+
+  const totalAmount = trip ? trip.price * selectedSeats.length : 0;
 
   const formatCurrency = (amount) => {
-    return new Intl.NumberFormat('vi-VN', {
-      style: 'currency',
-      currency: 'VND',
-      minimumFractionDigits: 0
+    return new Intl.NumberFormat("vi-VN", {
+      style: "currency",
+      currency: "VND",
+      minimumFractionDigits: 0,
     }).format(amount);
   };
 
@@ -127,18 +162,10 @@ export default function SeatSelection() {
   if (error || !trip) {
     return (
       <Container className="py-5 text-center">
-        <Card className="soft-card p-5">
-          <div className="display-1 text-muted mb-4">404</div>
-          <h4 className="mb-3">Không có dữ liệu chuyến xe</h4>
-          <p className="text-muted mb-4">
-            {error || "Vui lòng chọn chuyến xe trước khi chọn ghế."}
-          </p>
-          <Button
-            variant="primary"
-            className="pill px-4"
-            onClick={() => navigate("/tuyen-xe")}
-          >
-            Tìm chuyến xe
+        <Card className="p-5">
+          <h4 className="text-danger">Không tìm thấy chuyến xe</h4>
+          <Button variant="primary" onClick={() => navigate("/tuyen-xe")}>
+            Quay về danh sách chuyến
           </Button>
         </Card>
       </Container>
@@ -147,19 +174,13 @@ export default function SeatSelection() {
 
   return (
     <Container className="py-4">
-      <Button
-        variant="link"
-        className="mb-3 text-decoration-none"
-        onClick={() => navigate(-1)}
-      >
-        <i className="bi bi-arrow-left me-2"></i>
-        Quay lại
+      <Button variant="link" className="mb-3 text-decoration-none" onClick={() => navigate(-1)}>
+        ← Quay lại
       </Button>
 
       <div className="d-flex justify-content-between align-items-center mb-4">
-        <h3 className="mb-0">Chọn ghế - {trip.fromStation} → {trip.toStation}</h3>
-        <Badge bg="info" className="p-2">
-          <i className="bi bi-check-circle me-1"></i>
+        <h3>Chọn ghế - {trip.fromStation} → {trip.toStation}</h3>
+        <Badge bg="info" className="p-2 fs-6">
           Đã chọn: {selectedSeats.length} ghế
         </Badge>
       </div>
@@ -168,13 +189,6 @@ export default function SeatSelection() {
         <Col lg={8}>
           <Card className="shadow-sm">
             <Card.Body>
-              {/* <div className="mb-3">
-                <Badge bg="success" className="me-2">Còn trống</Badge>
-                <Badge bg="secondary" className="me-2">Đã đặt</Badge>
-                <Badge bg="warning" className="me-2">Đang chọn</Badge>
-                <Badge bg="secondary">Bảo trì</Badge>
-              </div> */}
-
               <SeatLayout
                 seats={trip.seats || []}
                 selectedSeats={selectedSeats}
@@ -185,73 +199,64 @@ export default function SeatSelection() {
         </Col>
 
         <Col lg={4}>
-          <Card className="shadow-sm " >
+          <Card className="shadow-sm">
             <Card.Body>
               <h5 className="mb-3">Thông tin đặt vé</h5>
 
               <div className="mb-3">
                 <small className="text-muted">Tuyến xe</small>
-                <p className="fw-bold mb-2">
-                  {trip.fromStation} → {trip.toStation}
-                </p>
+                <p className="fw-bold">{trip.fromStation} → {trip.toStation}</p>
               </div>
 
               <div className="mb-3">
-                <small className="text-muted">Thời gian khởi hành</small>
-                <p className="mb-2">
-                  {new Date(trip.startTime).toLocaleString('vi-VN', {
-                    hour: '2-digit',
-                    minute: '2-digit',
-                    day: '2-digit',
-                    month: '2-digit',
-                    year: 'numeric'
+                <small className="text-muted">Khởi hành</small>
+                <p>
+                  {new Date(trip.startTime).toLocaleString("vi-VN", {
+                    hour: "2-digit",
+                    minute: "2-digit",
+                    day: "2-digit",
+                    month: "2-digit",
+                    year: "numeric",
                   })}
                 </p>
               </div>
 
               <div className="mb-3">
                 <small className="text-muted">Nhà xe</small>
-                <p className="mb-2">{trip.companyName || 'Đang cập nhật'}</p>
+                <p>{trip.companyName || "Đang cập nhật"}</p>
               </div>
 
               <div className="mb-3">
                 <small className="text-muted">Giá vé / ghế</small>
-                <p className="h5 text-primary mb-2">
-                  {formatCurrency(trip.price)}
-                </p>
+                <p className="h5 text-primary">{formatCurrency(trip.price)}</p>
               </div>
 
-              {/* Danh sách ghế đã chọn */}
               <div className="mb-3">
                 <small className="text-muted">Ghế đã chọn ({selectedSeats.length})</small>
-                <div className="mt-2">
+                <div className="mt-2 d-flex flex-wrap gap-2">
                   {selectedSeats.length === 0 ? (
-                    <p className="text-muted mb-0">Chưa chọn ghế</p>
+                    <p className="text-muted">Chưa chọn ghế nào</p>
                   ) : (
-                    <div className="d-flex flex-wrap gap-2">
-                      {selectedSeats.map(seat => (
-                        <Badge
-                          key={seat.id}
-                          bg="warning"
-                          className="p-2 d-flex align-items-center gap-1"
-                          style={{ cursor: 'pointer' }}
-                          onClick={() => handleSeatSelect(seat)}
-                        >
-                          {seat.seatName || seat.name}
-                          <i className="bi bi-x-circle ms-1"></i>
-                        </Badge>
-                      ))}
-                    </div>
+                    selectedSeats.map(seat => (
+                      <Badge
+                        key={seat.id}
+                        bg="warning"
+                        className="p-2 d-flex align-items-center gap-1"
+                        style={{ cursor: "pointer" }}
+                        onClick={() => handleSeatSelect(seat)}
+                      >
+                        {seat.seatName || seat.name} <i className="bi bi-x-circle"></i>
+                      </Badge>
+                    ))
                   )}
                 </div>
               </div>
 
               <hr />
 
-              {/* Tổng tiền */}
               <div className="mb-4">
                 <div className="d-flex justify-content-between mb-2">
-                  <span>Số lượng ghế:</span>
+                  <span>Số lượng:</span>
                   <span className="fw-bold">{selectedSeats.length}</span>
                 </div>
                 <div className="d-flex justify-content-between">
@@ -264,25 +269,31 @@ export default function SeatSelection() {
                 variant="primary"
                 size="lg"
                 className="w-100"
-                disabled={selectedSeats.length === 0}
-                onClick={handleContinue}
+                disabled={selectedSeats.length === 0 || holding}
+                onClick={handleHoldSeats}
               >
-                {selectedSeats.length === 0
-                  ? 'Vui lòng chọn ghế'
-                  : `Tiếp tục thanh toán (${selectedSeats.length} ghế)`}
+                {holding ? (
+                  <>
+                    <Spinner size="sm" className="me-2" /> Đang giữ ghế...
+                  </>
+                ) : (
+                  `Tiếp tục thanh toán (${selectedSeats.length} ghế)`
+                )}
               </Button>
 
               {selectedSeats.length > 0 && (
                 <Button
                   variant="outline-secondary"
-                  size="sm"
                   className="w-100 mt-2"
                   onClick={() => setSelectedSeats([])}
                 >
-                  <i className="bi bi-arrow-repeat me-1"></i>
                   Bỏ chọn tất cả
                 </Button>
               )}
+
+              <Alert variant="info" className="mt-3 small">
+                Ghế sẽ được giữ trong <strong>5 phút</strong>. Vui lòng hoàn tất thanh toán trước khi hết hạn.
+              </Alert>
             </Card.Body>
           </Card>
         </Col>

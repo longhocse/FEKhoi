@@ -39,7 +39,9 @@ exports.bookMultipleTickets = async (req, res) => {
         groupTransactionId = `GROUP_${Date.now()}_${userId}_${tripId}`;
 
         // Kiểm tra từng ghế có bị trùng không
+           // Kiểm tra từng ghế có bị trùng không
         for (const seatId of seatIds) {
+            // Kiểm tra ghế đã được đặt chưa
             const checkSeat = await pool.request()
                 .input('tripId', sql.Int, tripId)
                 .input('seatId', sql.Int, seatId)
@@ -53,6 +55,26 @@ exports.bookMultipleTickets = async (req, res) => {
                 return res.status(400).json({
                     success: false,
                     message: `Ghế ${seatId} đã được đặt`
+                });
+            }
+
+            // Kiểm tra ghế đang được người khác giữ không
+            const holdCheck = await pool.request()
+                .input('tripId', sql.Int, tripId)
+                .input('seatId', sql.Int, seatId)
+                .input('userId', sql.Int, userId)           // ← Quan trọng
+                .query(`
+                    SELECT id FROM SeatHolds
+                    WHERE tripId = @tripId 
+                    AND seatId = @seatId
+                    AND expiredAt > GETDATE()
+                    AND userId <> @userId
+                `);
+
+            if (holdCheck.recordset.length > 0) {
+                return res.status(400).json({
+                    success: false,
+                    message: `Ghế ${seatId} đang được người khác giữ`
                 });
             }
         }
@@ -458,20 +480,28 @@ exports.getTripById = async (req, res) => {
             .input("tripId", sql.Int, id)
             .query(`
         SELECT 
-          s.id,
-          s.name as seatName,
-          s.floor,
-          s.type as seatType,
-          CASE 
-            WHEN tk.id IS NOT NULL AND tk.status IN ('BOOKED', 'PAID') 
-            THEN 'BOOKED'
-            ELSE s.status
-          END as status
-        FROM Seats s
-        LEFT JOIN Tickets tk 
-          ON s.id = tk.seatId AND tk.tripId = @tripId
-        WHERE s.vehicleId = @vehicleId
-        ORDER BY s.floor, s.name
+  s.id,
+  s.name as seatName,
+  s.floor,
+  s.type as seatType,
+  CASE 
+    WHEN tk.id IS NOT NULL AND tk.status IN ('BOOKED','PAID') 
+        THEN 'BOOKED'
+
+    WHEN sh.id IS NOT NULL AND sh.expiredAt > GETDATE()
+        THEN 'HOLDING'
+
+    ELSE s.status
+  END as status
+FROM Seats s
+LEFT JOIN Tickets tk 
+  ON s.id = tk.seatId AND tk.tripId = @tripId
+LEFT JOIN SeatHolds sh
+  ON s.id = sh.seatId 
+  AND sh.tripId = @tripId
+  AND sh.expiredAt > GETDATE()
+WHERE s.vehicleId = @vehicleId
+ORDER BY s.floor, s.name
         `);
 
         // ================= TIME POINTS =================
@@ -660,5 +690,76 @@ exports.bookTicket = async (req, res) => {
             success: false,
             message: err.message
         });
+    }
+};
+exports.holdSeats = async (req, res) => {
+    try {
+        const { tripId, seatIds } = req.body;
+        const userId = req.user.id;
+
+        const pool = await poolPromise;
+        const expireMinutes = 5;
+
+        for (const seatId of seatIds) {
+
+            // Check BOOKED
+            const booked = await pool.request()
+                .input("tripId", sql.Int, tripId)
+                .input("seatId", sql.Int, seatId)
+                .query(`
+                    SELECT id FROM Tickets
+                    WHERE tripId = @tripId 
+                    AND seatId = @seatId
+                    AND status IN ('BOOKED','PAID')
+                `);
+
+            if (booked.recordset.length > 0) {
+                return res.status(400).json({
+                    success: false,
+                    message: `Ghế ${seatId} đã được đặt`
+                });
+            }
+
+            // Check HOLD
+            const hold = await pool.request()
+                .input("tripId", sql.Int, tripId)
+                .input("seatId", sql.Int, seatId)
+                .query(`
+                    SELECT id FROM SeatHolds
+                    WHERE tripId = @tripId 
+                    AND seatId = @seatId
+                    AND expiredAt > GETDATE()
+                `);
+
+            if (hold.recordset.length > 0) {
+                return res.status(400).json({
+                    success: false,
+                    message: `Ghế ${seatId} đang được giữ`
+                });
+            }
+
+            // Insert HOLD
+            await pool.request()
+                .input("seatId", sql.Int, seatId)
+                .input("tripId", sql.Int, tripId)
+                .input("userId", sql.Int, userId)
+                .query(`
+                    INSERT INTO SeatHolds (seatId, tripId, userId, expiredAt)
+                    VALUES (
+                        @seatId,
+                        @tripId,
+                        @userId,
+                        DATEADD(MINUTE, ${expireMinutes}, GETDATE())
+                    )
+                `);
+        }
+
+        res.json({
+            success: true,
+            message: "Giữ ghế thành công (5 phút)"
+        });
+
+    } catch (err) {
+        res.status(500).json({ success: false, message: err.message });
     }
 };
