@@ -317,6 +317,10 @@ BEGIN
 END
 
 
+ALTER TABLE Tickets
+ADD qrCode NVARCHAR(MAX),
+    isCheckedIn BIT DEFAULT 0;
+
 GO
 INSERT INTO Users (
         name,

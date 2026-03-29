@@ -1,24 +1,15 @@
 const sql = require("mssql");
 const { poolPromise } = require("../config/db");
-
+const { createQR } = require("../controllers/qrCode.controller");
 
 exports.bookMultipleTickets = async (req, res) => {
     try {
         const { tripId, seatIds, paymentMethod } = req.body;
         const userId = req.user.id;
 
-        console.log(`📌 bookMultipleTickets - tripId: ${tripId}, seatIds: ${seatIds}, userId: ${userId}`);
-
-        if (!seatIds || seatIds.length === 0) {
-            return res.status(400).json({
-                success: false,
-                message: "Vui lòng chọn ít nhất 1 ghế"
-            });
-        }
-
         const pool = await poolPromise;
 
-        // Lấy giá vé
+        // ================= GET TRIP =================
         const tripResult = await pool.request()
             .input('tripId', sql.Int, tripId)
             .query('SELECT price FROM Trips WHERE id = @tripId');
@@ -32,13 +23,11 @@ exports.bookMultipleTickets = async (req, res) => {
 
         const price = tripResult.recordset[0].price;
         const totalAmount = price * seatIds.length;
+
         let transactionId = null;
-        let groupTransactionId = null;
+        const groupId = `GROUP_${Date.now()}_${userId}_${tripId}`;
 
-        // Tạo ID nhóm duy nhất cho đợt mua này
-        groupTransactionId = `GROUP_${Date.now()}_${userId}_${tripId}`;
-
-        // Kiểm tra từng ghế có bị trùng không
+        // ================= CHECK SEAT =================
         for (const seatId of seatIds) {
             const checkSeat = await pool.request()
                 .input('tripId', sql.Int, tripId)
@@ -57,45 +46,36 @@ exports.bookMultipleTickets = async (req, res) => {
             }
         }
 
-        // Nếu thanh toán bằng ví, trừ tiền 1 lần cho tổng số vé
+        // ================= WALLET =================
         if (paymentMethod === 'WALLET') {
             const walletResult = await pool.request()
                 .input('userId', sql.Int, userId)
                 .query('SELECT id, balance FROM Wallets WHERE userId = @userId');
-
-            if (walletResult.recordset.length === 0) {
-                return res.status(400).json({
-                    success: false,
-                    message: "Không tìm thấy ví"
-                });
-            }
 
             const wallet = walletResult.recordset[0];
 
             if (wallet.balance < totalAmount) {
                 return res.status(400).json({
                     success: false,
-                    message: `Số dư không đủ. Cần ${totalAmount.toLocaleString()}đ, hiện có ${wallet.balance.toLocaleString()}đ`
+                    message: "Không đủ tiền"
                 });
             }
 
-            // Trừ tiền trong ví 1 lần
             await pool.request()
                 .input('walletId', sql.Int, wallet.id)
                 .input('amount', sql.Decimal(12, 2), totalAmount)
                 .query(`
                     UPDATE Wallets 
-                    SET balance = balance - @amount, updatedAt = GETDATE()
+                    SET balance = balance - @amount
                     WHERE id = @walletId
                 `);
 
-            // Tạo 1 giao dịch duy nhất cho cả đợt
             const transResult = await pool.request()
                 .input('walletId', sql.Int, wallet.id)
                 .input('amount', sql.Decimal(12, 2), totalAmount)
                 .input('type', sql.VarChar(20), 'PAYMENT')
                 .input('status', sql.VarChar(20), 'SUCCESS')
-                .input('description', sql.NVarChar(255), `Thanh toán ${seatIds.length} vé chuyến xe #${tripId}`)
+                .input('description', sql.NVarChar(255), `Thanh toán ${seatIds.length} vé`)
                 .query(`
                     INSERT INTO Transactions (walletId, amount, type, status, description, createdAt)
                     OUTPUT INSERTED.id
@@ -105,54 +85,75 @@ exports.bookMultipleTickets = async (req, res) => {
             transactionId = transResult.recordset[0].id;
         }
 
-        // Tạo vé cho từng ghế - TẤT CẢ DÙNG CHUNG transactionId
-        const ticketIds = [];
-        const bookedAt = new Date();
+        // ================= CREATE TICKETS =================
+        const tickets = [];
 
         for (const seatId of seatIds) {
-            const ticketResult = await pool.request()
+
+            const insertResult = await pool.request()
                 .input('userId', sql.Int, userId)
                 .input('tripId', sql.Int, tripId)
                 .input('seatId', sql.Int, seatId)
                 .input('totalAmount', sql.Decimal(10, 2), price)
                 .input('paymentMethod', sql.VarChar(20), paymentMethod)
                 .input('transactionId', sql.Int, transactionId)
-                .input('groupId', sql.NVarChar(100), groupTransactionId)
+                .input('groupId', sql.NVarChar(100), groupId)
                 .input('status', sql.VarChar(20), paymentMethod === 'WALLET' ? 'PAID' : 'BOOKED')
-                .input('bookedAt', sql.DateTime, bookedAt)
                 .query(`
-                    INSERT INTO Tickets (userId, tripId, seatId, totalAmount, paymentMethod, transactionId, groupId, status, bookedAt)
+                    INSERT INTO Tickets 
+                    (userId, tripId, seatId, totalAmount, paymentMethod, transactionId, groupId, status, bookedAt)
                     OUTPUT INSERTED.id
-                    VALUES (@userId, @tripId, @seatId, @totalAmount, @paymentMethod, @transactionId, @groupId, @status, @bookedAt)
+                    VALUES (@userId, @tripId, @seatId, @totalAmount, @paymentMethod, @transactionId, @groupId, @status, GETDATE())
                 `);
 
-            ticketIds.push(ticketResult.recordset[0].id);
+            const ticketId = insertResult.recordset[0].id;
 
+            const BASE_URL = process.env.BASE_URL;
 
+            const verifyUrl = `${BASE_URL}/ticket/qrTicketPage/${ticketId}`;
+
+            const qr = await createQR({
+                ticketId,
+                verifyUrl
+            });
+
+            await pool.request()
+                .input('qr', sql.NVarChar(sql.MAX), qr)
+                .input('id', sql.Int, ticketId)
+                .query(`
+        UPDATE Tickets 
+        SET qrCode = @qr 
+        WHERE id = @id
+    `);
+
+            tickets.push({
+                ticketId,
+                seatId,
+                qrCode: qr
+            });
         }
 
         res.json({
             success: true,
-            message: paymentMethod === 'WALLET'
-                ? `Đặt thành công ${seatIds.length} vé và thanh toán ${totalAmount.toLocaleString()}đ từ ví`
-                : `Đặt thành công ${seatIds.length} vé`,
             data: {
-                ticketIds,
-                quantity: seatIds.length,
+                tickets,
                 totalAmount,
-                groupId: groupTransactionId,
-                bookedAt: bookedAt
+                groupId
             }
         });
 
     } catch (err) {
-        console.error('❌ Lỗi đặt nhiều vé:', err);
+        console.error(err);
         res.status(500).json({
             success: false,
             message: err.message
         });
     }
 };
+
+
+
+
 
 
 // Lấy danh sách trips
@@ -636,7 +637,8 @@ exports.bookTicket = async (req, res) => {
         }
 
         // Tạo vé
-        await pool.request()
+        // Tạo vé + lấy ID luôn
+        const ticketResult = await pool.request()
             .input('userId', sql.Int, userId)
             .input('tripId', sql.Int, tripId)
             .input('seatId', sql.Int, seatId)
@@ -645,13 +647,33 @@ exports.bookTicket = async (req, res) => {
             .input('transactionId', sql.Int, transactionId)
             .input('status', sql.VarChar(20), paymentMethod === 'WALLET' ? 'PAID' : 'BOOKED')
             .query(`
-                INSERT INTO Tickets (userId, tripId, seatId, totalAmount, paymentMethod, transactionId, status, bookedAt)
-                VALUES (@userId, @tripId, @seatId, @totalAmount, @paymentMethod, @transactionId, @status, GETDATE())
-            `);
+        INSERT INTO Tickets (userId, tripId, seatId, totalAmount, paymentMethod, transactionId, status, bookedAt)
+        OUTPUT INSERTED.id, INSERTED.tripId, INSERTED.seatId
+        VALUES (@userId, @tripId, @seatId, @totalAmount, @paymentMethod, @transactionId, @status, GETDATE())
+    `);
+
+        const ticket = ticketResult.recordset[0];
+
+        // Nếu đã thanh toán thì tạo QR
+        if (paymentMethod === 'WALLET') {
+            const qr = await createQR(ticket);
+
+            await pool.request()
+                .input('qr', sql.NVarChar(sql.MAX), qr)
+                .input('id', sql.Int, ticket.id)
+                .query(`
+            UPDATE Tickets 
+            SET qrCode = @qr 
+            WHERE id = @id
+        `);
+        }
 
         res.json({
             success: true,
-            message: paymentMethod === 'WALLET' ? 'Đặt vé và thanh toán thành công' : 'Đặt vé thành công'
+            message: paymentMethod === 'WALLET'
+                ? 'Đặt vé và thanh toán thành công'
+                : 'Đặt vé thành công',
+            ticketId: ticket.id
         });
 
     } catch (err) {
@@ -661,4 +683,34 @@ exports.bookTicket = async (req, res) => {
             message: err.message
         });
     }
+};
+
+
+exports.checkIn = async (req, res) => {
+    const { ticketId } = req.body;
+    const pool = await poolPromise;
+
+    const result = await pool.request()
+        .input('id', sql.Int, ticketId)
+        .query(`SELECT * FROM Tickets WHERE id = @id`);
+
+    const ticket = result.recordset[0];
+
+    if (!ticket) return res.json({ message: "Không tồn tại" });
+
+    if (ticket.status !== "PAID")
+        return res.json({ message: "Chưa thanh toán" });
+
+    if (ticket.isCheckedIn)
+        return res.json({ message: "Đã dùng" });
+
+    await pool.request()
+        .input('id', sql.Int, ticketId)
+        .query(`
+            UPDATE Tickets 
+            SET isCheckedIn = 1, status = 'USED'
+            WHERE id = @id
+        `);
+
+    res.json({ message: "Check-in thành công" });
 };

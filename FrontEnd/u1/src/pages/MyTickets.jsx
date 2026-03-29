@@ -96,7 +96,14 @@ export default function MyTickets() {
   const groupTicketsByBooking = (ticketsList) => {
     const groups = {};
     ticketsList.forEach(ticket => {
-      const groupKey = ticket.groupId || ticket.transactionId || `booking_${ticket.bookedAt}`;
+      console.log("DEBUG:", {
+        id: ticket.id,
+        groupId: ticket.groupId,
+        transactionId: ticket.transactionId
+      });
+      const groupKey = ticket.groupId
+        ? ticket.groupId.trim().toUpperCase()
+        : ticket.transactionId || `booking_${ticket.bookedAt}`;
       if (!groups[groupKey]) {
         groups[groupKey] = {
           key: groupKey,
@@ -389,6 +396,14 @@ export default function MyTickets() {
           {groupedTickets.map((group, groupIndex) => (
             <Card key={group.key} className="mb-4 shadow-sm">
               <Card.Header className="bg-white d-flex justify-content-between align-items-center flex-wrap">
+                <Button
+                  variant="outline-dark"
+                  size="sm"
+                  onClick={() => navigate(`/ticket-group/${group.key}`)}
+                >
+                  <i className="bi bi-qr-code me-1"></i>
+                  Xem vé (QR)
+                </Button>
                 <div className="d-flex align-items-center gap-2 mb-2 mb-md-0">
                   <Badge bg="info" className="me-2">
                     Đợt {groupedTickets.length - groupIndex}

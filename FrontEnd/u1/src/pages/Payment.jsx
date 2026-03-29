@@ -231,9 +231,18 @@ export default function Payment() {
         }
 
         alert(message);
+        // SINGLE ticket
+        if (data.ticketId) {
+          navigate(`/ticket/${data.ticketId}`);
+        }
+
+        // MULTIPLE tickets
+        if (data.data?.tickets?.length > 0) {
+          navigate(`/ticket-group/${data.data.groupId}`);
+        }
 
         // Chuyển đến trang vé của tôi
-        navigate("/ve-cua-toi");
+        // navigate("/ve-cua-toi");
       } else {
         alert(data.message || "Đặt vé thất bại");
       }

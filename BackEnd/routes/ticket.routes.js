@@ -12,6 +12,15 @@ router.get('/my-tickets', authMiddleware, ticketController.getMyTickets);
 // Lấy chi tiết vé theo ID
 router.get('/:id', authMiddleware, ticketController.getTicketById);
 
+router.get('/verify/:id', ticketController.verifyTicket);
+router.post('/checkin/:id', authMiddleware, ticketController.checkInTicket);
+// Lấy danh sách vé theo nhóm
+router.get(
+    "/group/:groupId",
+    authMiddleware,
+    ticketController.getTicketsByGroupId
+);
+
 // Hủy vé
 router.post('/:id/cancel', authMiddleware, ticketController.cancelTicket);
 
