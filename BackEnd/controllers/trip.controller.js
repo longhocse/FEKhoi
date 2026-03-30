@@ -376,65 +376,60 @@ exports.getTripById = async (req, res) => {
             .input("id", sql.Int, id)
             .query(`
             SELECT 
-            t.id,
-            sFrom.name as fromStation,
-            sTo.name as toStation,
-            t.startTime,
-            t.price,
-            t.estimatedDuration,
+    t.id,
+    sFrom.name as fromStation,
+    sTo.name as toStation,
+    t.startTime,
+    t.price,
+    t.estimatedDuration,
 
-            v.id as vehicleId,
-            v.name as vehicleName,
-            v.type as vehicleType,
+    v.id as vehicleId,
+    v.name as vehicleName,
+    v.type as vehicleType,
 
-            pc.id as companyId,
-            pc.name as companyName,
-            pc.phone as companyPhone,
-            pc.address as companyAddress,
-            pc.logo as companyLogo,
+    u.id as companyId,
+    u.name as companyName,
+    u.phoneNumber as companyPhone,
+    u.companyAddress as companyAddress,
+    u.avatar as companyLogo,
 
-            u.id as userId,
-            u.name as createdBy,
-            u.phoneNumber as userPhone,
-            u.avatar as userAvatar,
+    u.id as userId,
+    u.name as createdBy,
+    u.phoneNumber as userPhone,
+    u.avatar as userAvatar,
 
-            (SELECT TOP 1 imageUrl 
-            FROM ImageVehicles 
-            WHERE vehicleId = v.id AND isPrimary = 1) AS imageUrl,
+    (SELECT TOP 1 imageUrl 
+     FROM ImageVehicles 
+     WHERE vehicleId = v.id AND isPrimary = 1) AS imageUrl,
 
-            STRING_AGG(sv.name, ',') as services
+    STRING_AGG(sv.name, ',') as services
 
-            FROM Trips t
-            JOIN Stations sFrom ON t.fromStationId = sFrom.id
-            JOIN Stations sTo ON t.toStationId = sTo.id
-            JOIN Vehicles v ON t.vehicleId = v.id
-            JOIN PassengerCarCompanies pc ON v.partnerId = pc.id
-            JOIN Users u ON v.partnerId = u.id   -- ✅ lấy user tạo chuyến
+FROM Trips t
+JOIN Stations sFrom ON t.fromStationId = sFrom.id
+JOIN Stations sTo ON t.toStationId = sTo.id
+JOIN Vehicles v ON t.vehicleId = v.id
+JOIN Users u ON v.partnerId = u.id
 
-            LEFT JOIN VehicleServices vs ON v.id = vs.vehicleId
-            LEFT JOIN Services sv ON vs.serviceId = sv.id
+LEFT JOIN VehicleServices vs ON v.id = vs.vehicleId
+LEFT JOIN Services sv ON vs.serviceId = sv.id
 
-            WHERE t.id = @id AND t.isActive = 1
+WHERE t.id = @id AND t.isActive = 1
 
-            GROUP BY 
-            t.id,
-            sFrom.name,
-            sTo.name,
-            t.startTime,
-            t.price,
-            t.estimatedDuration,
-            v.id,
-            v.name,
-            v.type,
-            pc.id,
-            pc.name,
-            pc.phone,
-            pc.address,
-            pc.logo,
-            u.id,
-            u.name,
-            u.phoneNumber,
-            u.avatar
+GROUP BY 
+    t.id,
+    sFrom.name,
+    sTo.name,
+    t.startTime,
+    t.price,
+    t.estimatedDuration,
+    v.id,
+    v.name,
+    v.type,
+    u.id,
+    u.name,
+    u.phoneNumber,
+    u.companyAddress,
+    u.avatar
             `);
 
         if (tripResult.recordset.length === 0) {
