@@ -1,0 +1,70 @@
+/* ===== PARTNER LAYOUT ===== */
+.partner-layout {
+  display: flex;
+  min-height: 100vh;
+  /* layout tối thiểu full màn hình */
+}
+
+.partner-sidebar {
+  width: 240px;
+  background: linear-gradient(180deg, #1e3a8a, #2563eb);
+  padding: 20px;
+  display: flex;
+  flex-direction: column;
+  color: white;
+}
+
+.partner-content {
+  flex: 1;
+  padding: 20px;
+}
+
+.partner-sidebar .logo {
+  font-size: 20px;
+  font-weight: bold;
+  margin-bottom: 30px;
+}
+
+.partner-sidebar a {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 12px 14px;
+  margin-bottom: 8px;
+  border-radius: 10px;
+  color: #e5e7eb;
+  text-decoration: none;
+  font-weight: 500;
+  transition: 0.25s;
+}
+
+.partner-sidebar a:hover {
+  background: rgba(255, 255, 255, 0.15);
+  color: white;
+}
+
+.partner-sidebar a.active {
+  background: white;
+  color: #1e3a8a;
+  font-weight: 600;
+}
+
+.logout-btn {
+  padding: 12px;
+  border: none;
+  border-radius: 10px;
+  background: #ef4444;
+  color: white;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.logout-btn:hover {
+  background: #dc2626;
+}
+
+/* CONTENT */
+.partner-content {
+  flex: 1;
+  padding: 24px;
+}
