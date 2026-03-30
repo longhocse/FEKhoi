@@ -11,6 +11,7 @@ export default function AdminRoutes() {
   const [editingRoute, setEditingRoute] = useState(null);
   const [formData, setFormData] = useState({ name: "", address: "", province: "" });
   const [submitting, setSubmitting] = useState(false);
+  const [errors, setErrors] = useState({});
 
   const API_URL = process.env.REACT_APP_API_URL || "http://localhost:5000/api";
 
@@ -56,6 +57,9 @@ export default function AdminRoutes() {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+
+    if (!validate()) return;
+
     setSubmitting(true);
     try {
       if (editingRoute) {
@@ -84,6 +88,33 @@ export default function AdminRoutes() {
       alert(err.response?.data?.message || "Xóa thất bại");
     }
   };
+
+  const validate = () => {
+    const newErrors = {};
+
+    // Name
+    if (!formData.name.trim()) {
+      newErrors.name = "Vui lòng nhập tên trạm";
+    } else if (formData.name.trim().length < 3) {
+      newErrors.name = "Tên trạm quá ngắn";
+    }
+
+    // Address
+    if (!formData.address.trim()) {
+      newErrors.address = "Vui lòng nhập địa chỉ";
+    }
+
+    // Province
+    if (!formData.province.trim()) {
+      newErrors.province = "Vui lòng nhập tỉnh/thành phố";
+    } else if (!/^[A-Za-zÀ-ỹ\s]+$/.test(formData.province)) {
+      newErrors.province = "Tỉnh/TP không hợp lệ";
+    }
+
+    setErrors(newErrors);
+    return Object.keys(newErrors).length === 0;
+  };
+
 
   if (loading) {
     return (
@@ -160,7 +191,7 @@ export default function AdminRoutes() {
         <Modal.Header closeButton>
           <Modal.Title>{editingRoute ? "Chỉnh sửa tuyến đường" : "Thêm tuyến đường mới"}</Modal.Title>
         </Modal.Header>
-        <Form onSubmit={handleSubmit}>
+        <Form noValidate onSubmit={handleSubmit}>
           <Modal.Body>
             <Form.Group className="mb-3">
               <Form.Label>Tên trạm</Form.Label>
@@ -170,7 +201,11 @@ export default function AdminRoutes() {
                 onChange={(e) => setFormData({ ...formData, name: e.target.value })}
                 required
                 placeholder="VD: Bến xe Giáp Bát"
+                isInvalid={!!errors.name}
               />
+              <Form.Control.Feedback type="invalid">
+                {errors.name}
+              </Form.Control.Feedback>
             </Form.Group>
             <Form.Group className="mb-3">
               <Form.Label>Địa chỉ</Form.Label>
@@ -178,9 +213,12 @@ export default function AdminRoutes() {
                 type="text"
                 value={formData.address}
                 onChange={(e) => setFormData({ ...formData, address: e.target.value })}
-                required
+                isInvalid={!!errors.address}
                 placeholder="VD: Giải Phóng, Hà Nội"
               />
+              <Form.Control.Feedback type="invalid">
+                {errors.address}
+              </Form.Control.Feedback>
             </Form.Group>
             <Form.Group className="mb-3">
               <Form.Label>Tỉnh/Thành phố</Form.Label>
@@ -188,9 +226,12 @@ export default function AdminRoutes() {
                 type="text"
                 value={formData.province}
                 onChange={(e) => setFormData({ ...formData, province: e.target.value })}
-                required
                 placeholder="VD: Hà Nội"
+                isInvalid={!!errors.province}
               />
+              <Form.Control.Feedback type="invalid">
+                {errors.province}
+              </Form.Control.Feedback>
             </Form.Group>
           </Modal.Body>
           <Modal.Footer>

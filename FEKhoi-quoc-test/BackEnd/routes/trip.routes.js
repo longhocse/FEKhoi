@@ -8,7 +8,6 @@ const sql = require("mssql");
 router.get("/trips", tripController.getTrips);
 router.get("/all", tripController.getAllTrips);
 router.get("/simple", tripController.getSimpleTrips);
-router.get("/search", tripController.searchTrips);
 router.get("/popular", tripController.getPopularTrips);
 router.post("/book", authMiddleware, tripController.bookTicket);
 router.post("/book-multiple", authMiddleware, tripController.bookMultipleTickets);
@@ -53,7 +52,6 @@ router.get('/fake-tracking/:tripId', async (req, res) => {
 
         const now = new Date(new Date().toLocaleString("en-US", { timeZone: "Asia/Ho_Chi_Minh" }));
         const startTime = new Date(trip.startTime);
-        startTime.setHours(startTime.getHours() - 7);
 
         const locationMap = {
             // Start - End
@@ -90,31 +88,16 @@ router.get('/fake-tracking/:tripId', async (req, res) => {
                 ];
             }
         };
+
         // 3. Convert time
-        const points = timePoints.map(tp => {
-            const arrival = new Date(startTime);
-            const departure = new Date(startTime);
-
-            const [ah, am, as] = getTimeParts(tp.arrivalTime);
-            const [dh, dm, ds] = getTimeParts(tp.departureTime);
-
-            arrival.setHours(ah, am, as);
-            departure.setHours(dh, dm, ds);
-
-            if (arrival < startTime) arrival.setDate(arrival.getDate() + 1);
-            if (departure < startTime) departure.setDate(departure.getDate() + 1);
-
-            const coords = locationMap[tp.address] || [18.5, 106.5];
-
-            return {
-                name: tp.address,   // 👈 dùng address làm name luôn
-                address: tp.address,
-                lat: coords[0],
-                lng: coords[1],
-                arrivalTime: arrival,
-                departureTime: departure
-            };
-        });
+        const points = timePoints.map(tp => ({
+            name: tp.address,
+            address: tp.address,
+            lat: locationMap[tp.address]?.[0] || 18.5,
+            lng: locationMap[tp.address]?.[1] || 106.5,
+            arrivalTime: new Date(tp.arrivalTime),   // dùng thẳng từ DB
+            departureTime: new Date(tp.departureTime)
+        }));
 
         points.sort((a, b) => a.arrivalTime - b.arrivalTime);
 
@@ -124,20 +107,20 @@ router.get('/fake-tracking/:tripId', async (req, res) => {
             address: trip.fromStation,
             lat: locationMap[trip.fromStation]?.[0] || 10.0,
             lng: locationMap[trip.fromStation]?.[1] || 105.0,
-            arrivalTime: startTime,
+            arrivalTime: new Date(startTime.getTime() + 7 * 60 * 60 * 1000), 
             departureTime: startTime
         });
 
         const last = points[points.length - 1];
 
-        // 🚀 thêm điểm đích
+
         points.push({
             name: trip.toStation,
             address: trip.toStation,
             lat: locationMap[trip.toStation]?.[0] || 16.0,
             lng: locationMap[trip.toStation]?.[1] || 108.0,
             arrivalTime: last.arrivalTime,
-            departureTime: last.departureTime
+            departureTime: new Date(last.arrivalTime.getTime() + (trip.estimatedDuration || 0) * 60000) // estimatedDuration tính bằng phút
         });
 
         // 4. BEFORE START

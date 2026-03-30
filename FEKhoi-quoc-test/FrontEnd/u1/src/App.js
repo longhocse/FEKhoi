@@ -32,6 +32,7 @@ import TinTuc from "./pages/TinTuc";
 import LienHe from "./pages/LienHe";
 import AdminReports from './pages/admin/AdminReports';
 import AdminReviews from './pages/admin/AdminReviews';
+import TicketDetail from "./pages/TicketDetail";
 
 // ===== Wallet Pages =====
 import WalletPage from './pages/Wallet';
@@ -46,6 +47,8 @@ import PartnerTrips from "./partner/PartnerTrips";
 import PartnerVehicles from "./partner/PartnerVehicles";
 import PartnerTicketsPage from "./partner/PartnerTicketPage";
 import TripSeats from "./partner/TripSeats";
+import QrTicketPage from "./pages/QrTicketPage";
+import PartnerRefunds from "./partner/PartnerRefunds";
 
 // ===== Pages admin =====
 import AdminLayout from "./admin/AdminLayout";
@@ -104,6 +107,8 @@ export default function App() {
                 <Route path="/tin-tuc" element={<TinTuc />} />
                 <Route path="/lien-he" element={<LienHe />} />
                 <Route path="/tracking/:tripId" element={<TrackingPage />} />
+                <Route path="/ticket-group/:groupId" element={<TicketDetail />} />
+                <Route path="/ticket/qrTicketPage/:id" element={<QrTicketPage />} />
 
                 {/* Routes yêu cầu đăng nhập */}
                 <Route
@@ -152,22 +157,22 @@ export default function App() {
                   }
                 />
 
-  <Route
-    path="/wallet/topup"
-    element={
-      <PrivateRoute>
-        <WalletTopUp />
-      </PrivateRoute>
-    }
-  />
+                <Route
+                  path="/wallet/topup"
+                  element={
+                    <PrivateRoute>
+                      <WalletTopUp />
+                    </PrivateRoute>
+                  }
+                />
               </Route >
 
-    {/* ================= ADMIN ================= */ }
-    < Route
-  path = "/admin"
-  element = {
+              {/* ================= ADMIN ================= */}
+              < Route
+                path="/admin"
+                element={
                   < AdminRoute >
-    <AdminLayout />
+                    <AdminLayout />
                   </AdminRoute >
                 }
               >
@@ -180,19 +185,19 @@ export default function App() {
                 <Route path="refunds" element={<AdminRefundManagement />} />
                 <Route path="reports" element={<AdminReports />} />
                 <Route path="reviews" element={<AdminReviews />} />
-                <Route path="routes" element={<AdminRoutes />} />
                 <Route path="admin-trips" element={<AdminTrips />} />
                 <Route path="seats" element={<AdminSeats />} />
                 <Route path="promotions" element={<AdminPromotions />} />
               </Route >
 
-  {/* ================= PARTNER ================= */ }
-  < Route
-path = "/doi-tac"
-element = {
+              {/* ================= PARTNER ================= */}
+              < Route
+                path="/doi-tac"
+                element={
                   < PartnerRoute >
-  <PartnerLayout />
+                    <PartnerLayout />
                   </PartnerRoute >
+                  
                 }
               >
                 <Route index element={<PartnerDashboard />} />
@@ -202,6 +207,7 @@ element = {
                 <Route path="tickets" element={<PartnerTicketsPage />} />
                 <Route path="create-trip" element={<CreateTrip />} />
                 <Route path="trip-seats/:tripId" element={<TripSeats />} />
+                <Route path="refunds" element={<PartnerRefunds />} />
               </Route >
 
               <Route path="/dang-nhap-nha-xe" element={<PartnerLogin />} />
@@ -224,8 +230,8 @@ element = {
                 }
               />
 
-{/* ================= 404 ================= */ }
-<Route path="*" element={<NotFound />} />
+              {/* ================= 404 ================= */}
+              <Route path="*" element={<NotFound />} />
             </Routes >
           </WalletProvider >
         </TripProvider >

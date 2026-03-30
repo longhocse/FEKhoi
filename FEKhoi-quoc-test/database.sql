@@ -123,6 +123,7 @@ CREATE TABLE Tickets (
     paymentMethod VARCHAR(20) CHECK (paymentMethod IN ('WALLET', 'CASH', 'BANKING')),
     transactionId INT,
     bookedAt DATETIME DEFAULT GETDATE(),
+	groupId NVARCHAR(100),
     FOREIGN KEY (userId) REFERENCES Users(id),
     FOREIGN KEY (tripId) REFERENCES Trips(id),
     FOREIGN KEY (seatId) REFERENCES Seats(id),
@@ -251,6 +252,26 @@ CREATE INDEX IX_Promotions_Date ON Promotions(startDate, endDate);
 CREATE INDEX IX_PromotionUsage_UserId ON PromotionUsage(userId);
 
 
+CREATE TABLE Services (
+    id INT PRIMARY KEY IDENTITY(1,1),
+    name NVARCHAR(100) NOT NULL,         -- Ví dụ: Wifi, Thú cưng
+    description NVARCHAR(255),
+    isActive BIT DEFAULT 1,
+    createdAt DATETIME DEFAULT GETDATE()
+);
+
+CREATE TABLE VehicleServices (
+    id INT PRIMARY KEY IDENTITY(1,1),
+    vehicleId INT NOT NULL,
+    serviceId INT NOT NULL,
+    createdAt DATETIME DEFAULT GETDATE(),
+
+    FOREIGN KEY (vehicleId) REFERENCES Vehicles(id) ON DELETE CASCADE,
+    FOREIGN KEY (serviceId) REFERENCES Services(id) ON DELETE CASCADE,
+
+    UNIQUE (vehicleId, serviceId) -- tránh duplicate
+);
+
 -- Xóa bảng cũ nếu tồn tại
 DROP TABLE IF EXISTS Reports;
 
@@ -295,6 +316,10 @@ BEGIN
     PRINT 'ℹ️ Cột adminNote đã tồn tại';
 END
 
+
+ALTER TABLE Tickets
+ADD qrCode NVARCHAR(MAX),
+    isCheckedIn BIT DEFAULT 0;
 
 GO
 INSERT INTO Users (
@@ -1986,36 +2011,13 @@ VALUES (
     N'Test tracking trip 50'
 );
 
-INSERT INTO Tickets (
-    userId,
-    tripId,
-    seatId,
-    totalAmount,
-    paymentMethod,
-    transactionId,
-    status
-)
-VALUES (
-    2,          -- userId (partner)
-    50,         -- tripId
-    1,          -- seatId (thay bằng seat bạn lấy được)
-    350000,
-    'WALLET',
-    (SELECT TOP 1 id FROM Transactions ORDER BY id DESC),
-    'PAID'
-);
 
-INSERT INTO TicketPassengers (
-    ticketId,
-    fullName,
-    phoneNumber,
-    email
-)
-VALUES (
-    (SELECT TOP 1 id FROM Tickets ORDER BY id DESC),
-    N'Test User 2',
-    '0900000999',
-    'test2@busgo.vn'
-);
-
+INSERT INTO Services (name, description)
+VALUES
+(N'Wifi', N'Có wifi miễn phí'),
+(N'Điều hòa', N'Xe có điều hòa'),
+(N'Chăn gối', N'Cung cấp chăn và gối'),
+(N'Cho phép thú cưng', N'Được mang thú cưng lên xe'),
+(N'Ổ cắm điện', N'Có ổ cắm sạc điện thoại'),
+(N'Nước uống', N'Phục vụ nước miễn phí');
 

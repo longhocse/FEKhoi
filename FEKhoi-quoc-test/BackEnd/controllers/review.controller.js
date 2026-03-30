@@ -3,6 +3,77 @@ const sql = require('mssql');
 const { poolPromise } = require('../config/db');
 
 const reviewController = {
+
+    // ================= GET ALL TRIP REVIEWS (ADMIN) =================
+    getAllTripReviews: async (req, res) => {
+        try {
+            const pool = await poolPromise;
+
+            const result = await pool.request()
+                .query(`
+                SELECT 
+                    r.*,
+                    u.name as userName,
+                    u.email as userEmail,
+                    sFrom.name as fromStation,
+                    sTo.name as toStation
+                FROM TripReviews r
+                JOIN Users u ON r.userId = u.id
+                JOIN Trips t ON r.tripId = t.id
+                JOIN Stations sFrom ON t.fromStationId = sFrom.id
+                JOIN Stations sTo ON t.toStationId = sTo.id
+                ORDER BY r.createdAt DESC
+            `);
+
+            res.json({
+                success: true,
+                data: result.recordset
+            });
+
+        } catch (error) {
+            console.error('❌ Lỗi getAllTripReviews:', error);
+            res.status(500).json({
+                success: false,
+                message: error.message
+            });
+        }
+    },
+
+
+    // ================= GET ALL COMPANY REVIEWS (ADMIN) =================
+    getAllCompanyReviews: async (req, res) => {
+        try {
+            const pool = await poolPromise;
+
+            const result = await pool.request()
+                .query(`
+                SELECT 
+                    r.*,
+                    u.name as userName,
+                    u.email as userEmail,
+                    c.name as companyName
+                FROM CompanyReviews r
+                JOIN Users u ON r.userId = u.id
+                JOIN PassengerCarCompanies c ON r.companyId = c.id
+                ORDER BY r.createdAt DESC
+            `);
+
+            res.json({
+                success: true,
+                data: result.recordset
+            });
+
+        } catch (error) {
+            console.error('❌ Lỗi getAllCompanyReviews:', error);
+            res.status(500).json({
+                success: false,
+                message: error.message
+            });
+        }
+    },
+
+
+
     // Đánh giá chuyến xe
     createTripReview: async (req, res) => {
         try {

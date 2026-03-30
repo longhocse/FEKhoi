@@ -4,6 +4,15 @@ import { useNavigate } from "react-router-dom";
 export default function RouteCard({ item }) {
   const navigate = useNavigate();
 
+  const serviceIcons = {
+    "Wifi": "bi-wifi",
+    "Điều hòa": "bi-snow",
+    "Chăn gối": "bi-moon-stars",
+    "Cho phép thú cưng": "bi-emoji-smile",
+    "Ổ cắm điện": "bi-plug",
+    "Nước uống": "bi-cup-straw",
+  };
+
   console.log('RouteCard nhận item:', item);
 
   const fromStation = item.fromStation || item.from || 'Không xác định';
@@ -12,10 +21,11 @@ export default function RouteCard({ item }) {
 
   // ĐÚNG: vehicleName là loại xe, companyName là nhà xe
   const vehicleType = item.vehicleName || item.vehicleType || item.vehicle || 'Xe khách';
-  const companyName = item.companyName || item.company || 'Nhà xe BUSGO';
+  const companyName = item.createdBy || 'Nhà xe BUSGO';
 
   const imageUrl = item.imageUrl || item.image || "/images/default-bus.jpg";
   const availableSeats = item.availableSeats || item.seatsAvailable || 0;
+  const services = item.services || [];
 
   return (
     <Card className="soft-card h-100 overflow-hidden">
@@ -58,6 +68,36 @@ export default function RouteCard({ item }) {
               {companyName}  {/* Nhà xe: Xe Phương Trang */}
             </div>
           </div>
+        </div>
+
+        <div className="mt-2">
+          {services.length > 0 ? (
+            <div className="d-flex flex-wrap gap-1">
+              {services.slice(0, 4).map((s, index) => {
+                const iconClass = serviceIcons[s.name] || "bi-check-circle";
+
+                return (
+                  <Badge
+                    key={s.id || index}
+                    bg="light"
+                    text="dark"
+                    className="border small"
+                  >
+                    <i className={`bi ${iconClass} me-1`}></i>
+                    {s.name}
+                  </Badge>
+                );
+              })}
+
+              {services.length > 4 && (
+                <Badge bg="secondary" className="small">
+                  +{services.length - 4}
+                </Badge>
+              )}
+            </div>
+          ) : (
+            <span className="text-muted small">Không có dịch vụ</span>
+          )}
         </div>
 
         <div className="mt-2 mb-3 text-muted small">

@@ -15,6 +15,7 @@ export default function AdminUsers() {
     password: '',
     role: 'customer'
   });
+  const [errors, setErrors] = useState({});
 
   // Lấy danh sách users
   useEffect(() => {
@@ -35,9 +36,54 @@ export default function AdminUsers() {
     }
   };
 
+
+  const validate = () => {
+    const newErrors = {};
+
+    // Name
+    if (!formData.name.trim()) {
+      newErrors.name = "Vui lòng nhập tên";
+    } else if (formData.name.trim().length < 2) {
+      newErrors.name = "Tên quá ngắn";
+    }
+
+    // Email
+    if (!formData.email.trim()) {
+      newErrors.email = "Vui lòng nhập email";
+    } else if (!/^\S+@\S+\.\S+$/.test(formData.email)) {
+      newErrors.email = "Email không hợp lệ";
+    }
+
+    // Phone (bắt buộc)
+    if (!formData.phoneNumber.trim()) {
+      newErrors.phoneNumber = "Vui lòng nhập số điện thoại";
+    } else if (!/^(0|\+84)(3|5|7|8|9)[0-9]{8}$/.test(formData.phoneNumber)) {
+      newErrors.phoneNumber = "Số điện thoại không hợp lệ";
+    }
+
+    // Password
+    if (!editingUser) {
+      if (!formData.password) {
+        newErrors.password = "Vui lòng nhập mật khẩu";
+      } else if (formData.password.length < 6) {
+        newErrors.password = "Mật khẩu tối thiểu 6 ký tự";
+      }
+    } else {
+      if (formData.password && formData.password.length < 6) {
+        newErrors.password = "Mật khẩu tối thiểu 6 ký tự";
+      }
+    }
+
+    setErrors(newErrors);
+    return Object.keys(newErrors).length === 0;
+  };
+
   // Xử lý thêm/sửa user
   const handleSubmit = async (e) => {
     e.preventDefault();
+
+    if (!validate()) return;
+
     try {
       if (editingUser) {
         // Cập nhật user
@@ -46,7 +92,7 @@ export default function AdminUsers() {
         // Thêm user mới
         await axios.post('http://localhost:5000/api/admin/users', formData);
       }
-      
+
       setShowModal(false);
       resetForm();
       fetchUsers(); // Tải lại danh sách
@@ -116,8 +162,8 @@ export default function AdminUsers() {
           <h2>Quản lý người dùng</h2>
         </Col>
         <Col className="text-end">
-          <Button 
-            variant="primary" 
+          <Button
+            variant="primary"
             onClick={() => {
               resetForm();
               setShowModal(true);
@@ -135,7 +181,7 @@ export default function AdminUsers() {
           <h5 className="mb-0">Thêm người dùng mới</h5>
         </Card.Header>
         <Card.Body>
-          <Form onSubmit={handleSubmit}>
+          <Form noValidate onSubmit={handleSubmit}>
             <Row>
               <Col md={3}>
                 <Form.Group className="mb-3">
@@ -144,9 +190,12 @@ export default function AdminUsers() {
                     type="text"
                     placeholder="Nhập tên"
                     value={formData.name}
-                    onChange={(e) => setFormData({...formData, name: e.target.value})}
-                    required
+                    onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                    isInvalid={!!errors.name}
                   />
+                  <Form.Control.Feedback type="invalid">
+                    {errors.name}
+                  </Form.Control.Feedback>
                 </Form.Group>
               </Col>
               <Col md={3}>
@@ -156,9 +205,12 @@ export default function AdminUsers() {
                     type="email"
                     placeholder="Nhập email"
                     value={formData.email}
-                    onChange={(e) => setFormData({...formData, email: e.target.value})}
-                    required
+                    onChange={(e) => setFormData({ ...formData, email: e.target.value })}
+                    isInvalid={!!errors.email}
                   />
+                  <Form.Control.Feedback type="invalid">
+                    {errors.email}
+                  </Form.Control.Feedback>
                 </Form.Group>
               </Col>
               <Col md={2}>
@@ -168,9 +220,12 @@ export default function AdminUsers() {
                     type="text"
                     placeholder="Nhập SĐT"
                     value={formData.phoneNumber}
-                    onChange={(e) => setFormData({...formData, phoneNumber: e.target.value})}
-                    required
+                    onChange={(e) => setFormData({ ...formData, phoneNumber: e.target.value })}
+                    isInvalid={!!errors.phoneNumber}
                   />
+                  <Form.Control.Feedback type="invalid">
+                    {errors.phoneNumber}
+                  </Form.Control.Feedback>
                 </Form.Group>
               </Col>
               <Col md={2}>
@@ -180,9 +235,13 @@ export default function AdminUsers() {
                     type="password"
                     placeholder="Nhập mật khẩu"
                     value={formData.password}
-                    onChange={(e) => setFormData({...formData, password: e.target.value})}
+                    onChange={(e) => setFormData({ ...formData, password: e.target.value })}
                     required={!editingUser}
+                    isInvalid={!!errors.password}
                   />
+                  <Form.Control.Feedback type="invalid">
+                    {errors.password}
+                  </Form.Control.Feedback>
                 </Form.Group>
               </Col>
               <Col md={2}>
@@ -190,7 +249,7 @@ export default function AdminUsers() {
                   <Form.Label>Role</Form.Label>
                   <Form.Select
                     value={formData.role}
-                    onChange={(e) => setFormData({...formData, role: e.target.value})}
+                    onChange={(e) => setFormData({ ...formData, role: e.target.value })}
                   >
                     <option value="customer">Customer</option>
                     <option value="partner">Partner</option>
@@ -240,7 +299,7 @@ export default function AdminUsers() {
                   <td>
                     <Badge bg={
                       user.role === 'admin' ? 'danger' :
-                      user.role === 'partner' ? 'success' : 'info'
+                        user.role === 'partner' ? 'success' : 'info'
                     }>
                       {user.role}
                     </Badge>
@@ -252,16 +311,16 @@ export default function AdminUsers() {
                     </Badge>
                   </td>
                   <td>
-                    <Button 
-                      variant="outline-primary" 
-                      size="sm" 
+                    <Button
+                      variant="outline-primary"
+                      size="sm"
                       className="me-2"
                       onClick={() => handleEdit(user)}
                     >
                       <i className="bi bi-pencil"></i>
                     </Button>
-                    <Button 
-                      variant="outline-danger" 
+                    <Button
+                      variant="outline-danger"
                       size="sm"
                       onClick={() => handleDelete(user.id)}
                     >

@@ -1,6 +1,7 @@
 import { Outlet, NavLink, useNavigate } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
 import "./admin.css";
+import { Button } from "react-bootstrap";
 
 export default function AdminLayout() {
   const { logout } = useAuth();
@@ -11,73 +12,62 @@ export default function AdminLayout() {
     navigate("/dang-nhap");
   };
 
-  // Log để kiểm tra
-  console.log("AdminLayout rendered");
-
   return (
     <div className="admin-layout">
       <aside className="admin-sidebar">
-        <h2 className="logo">🚌 BusGo Admin</h2>
+        <h2 className="logo">
+          <i className="bi bi-bus-front-fill me-2"></i> BusGo Admin
+        </h2>
 
         <div className="menu">
           <NavLink to="/admin" end className={({ isActive }) => isActive ? "active" : ""}>
-            📊 Dashboard
+            <i className="bi bi-bar-chart me-2"></i> Dashboard
           </NavLink>
 
           <NavLink to="/admin/users" className={({ isActive }) => isActive ? "active" : ""}>
-            👤 Người dùng
-          </NavLink>
-
-          <NavLink to="/admin/nha-xe" className={({ isActive }) => isActive ? "active" : ""}>
-            🏢 Nhà xe
+            <i className="bi bi-person me-2"></i> Người dùng
           </NavLink>
 
           <NavLink to="/admin/quan-ly-ve" className={({ isActive }) => isActive ? "active" : ""}>
-            🎫 Quản lý vé
+            <i className="bi bi-ticket-perforated me-2"></i> Quản lý vé
           </NavLink>
 
           <NavLink to="/admin/refunds" className={({ isActive }) => isActive ? "active" : ""}>
-            💰 Hoàn tiền
+            <i className="bi bi-cash-stack me-2"></i> Hoàn tiền
           </NavLink>
 
-          {/* SỬA LẠI DÒNG NÀY */}
           <NavLink to="/admin/reports" className={({ isActive }) => isActive ? "active" : ""}>
-            <i className="bi bi-flag me-2"></i>
-             Báo cáo
+            <i className="bi bi-flag me-2"></i> Báo cáo
           </NavLink>
+
           <NavLink to="/admin/reviews" className={({ isActive }) => isActive ? "active" : ""}>
-            <i className="bi bi-star me-2"></i>
-            Đánh giá
+            <i className="bi bi-star me-2"></i> Đánh giá
           </NavLink>
 
           <NavLink to="/admin/routes" className={({ isActive }) => isActive ? "active" : ""}>
-            <i className="bi bi-geo-alt me-2"></i>
-            Tuyến đường
+            <i className="bi bi-geo-alt me-2"></i> Tuyến đường
           </NavLink>
 
           <NavLink to="/admin/admin-trips" className={({ isActive }) => isActive ? "active" : ""}>
-            <i className="bi bi-bus-front me-2"></i>
-            Chuyến xe
+            <i className="bi bi-bus-front me-2"></i> Chuyến xe
           </NavLink>
 
           <NavLink to="/admin/seats" className={({ isActive }) => isActive ? "active" : ""}>
-            <i className="bi bi-grid-3x3-gap-fill me-2"></i>
-            Quản lý ghế
+            <i className="bi bi-grid-3x3-gap-fill me-2"></i> Quản lý ghế
           </NavLink>
 
           <NavLink to="/admin/promotions" className={({ isActive }) => isActive ? "active" : ""}>
-            <i className="bi bi-tag-fill me-2"></i>
-            Khuyến mãi
+            <i className="bi bi-tag-fill me-2"></i> Khuyến mãi
           </NavLink>
 
           <NavLink to="/admin/settings" className={({ isActive }) => isActive ? "active" : ""}>
-            ⚙️ Cài đặt
+            <i className="bi bi-gear me-2"></i> Cài đặt
           </NavLink>
         </div>
 
-        <button className="logout-btn" onClick={handleLogout}>
-          🚪 Đăng xuất
-        </button>
+        <Button variant="outline-danger" className="mt-3 w-100" onClick={handleLogout}>
+          <i className="bi bi-box-arrow-right me-2"></i> Đăng xuất
+        </Button>
       </aside>
 
       <main className="admin-content">

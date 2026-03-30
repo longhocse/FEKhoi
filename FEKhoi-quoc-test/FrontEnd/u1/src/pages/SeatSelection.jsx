@@ -168,6 +168,13 @@ export default function SeatSelection() {
         <Col lg={8}>
           <Card className="shadow-sm">
             <Card.Body>
+              {/* <div className="mb-3">
+                <Badge bg="success" className="me-2">Còn trống</Badge>
+                <Badge bg="secondary" className="me-2">Đã đặt</Badge>
+                <Badge bg="warning" className="me-2">Đang chọn</Badge>
+                <Badge bg="secondary">Bảo trì</Badge>
+              </div> */}
+
               <SeatLayout
                 seats={trip.seats || []}
                 selectedSeats={selectedSeats}
