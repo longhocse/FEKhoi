@@ -100,6 +100,21 @@ const sendTicketEmail = async (to, ticket) => {
           </table>
 
           <hr style="margin:20px 0">
+          <hr style="margin:20px 0">
+
+<h3 style="text-align:center">🎫 Mã QR lên xe</h3>
+
+<div style="text-align:center; margin-top:15px">
+  <img 
+  src="cid:qrcode" 
+  alt="QR Code"
+  style="width:200px;height:200px;border:1px solid #ddd;padding:10px;border-radius:10px"
+/>
+</div>
+
+<p style="text-align:center;color:#666;margin-top:10px">
+  Vui lòng xuất trình mã QR khi lên xe
+</p>
 
           <h3>📌 Lưu ý</h3>
 
@@ -121,8 +136,16 @@ const sendTicketEmail = async (to, ticket) => {
     await transporter.sendMail({
       from: `"BUSGO" <${process.env.EMAIL_USER}>`,
       to: to,
-      subject: " BUSGO - Xác nhận đặt vé",
-      html: html
+      subject: "BUSGO - Xác nhận đặt vé",
+      html: html,
+      attachments: [
+        {
+          filename: "qrcode.png",
+          content: ticket.qrCode.split("base64,")[1], // 🔥 lấy phần base64
+          encoding: "base64",
+          cid: "qrcode" // 🔥 phải trùng với src="cid:qrcode"
+        }
+      ]
     });
 
     console.log("✅ Email gửi thành công:", to);

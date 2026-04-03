@@ -1,4 +1,4 @@
-import { Container, Card, Row, Col, Form, Button, Badge, Spinner, InputGroup, Alert } from "react-bootstrap";
+import { Container, Card, Row, Col, Form, Button, Badge, Spinner, InputGroup, Modal } from "react-bootstrap";
 import { useNavigate, useLocation } from "react-router-dom";
 import { useState, useEffect } from "react";
 import axios from "axios";
@@ -18,6 +18,11 @@ export default function Payment() {
   const [appliedDiscount, setAppliedDiscount] = useState(null);
   const [discountLoading, setDiscountLoading] = useState(false);
   const [discountError, setDiscountError] = useState("");
+
+  const [showModal, setShowModal] = useState(false);
+  const [modalMessage, setModalMessage] = useState("");
+  const [modalTitle, setModalTitle] = useState("Thông báo");
+  const [onConfirm, setOnConfirm] = useState(null);
 
   // ==================== COUNTDOWN 5 PHÚT ====================
   const [timeLeft, setTimeLeft] = useState(300); // 5 phút = 300 giây
@@ -47,9 +52,10 @@ export default function Payment() {
       setTimeLeft((prev) => {
         if (prev <= 1) {
           clearInterval(timer);
-          alert("⏰ Thời gian giữ ghế đã hết 5 phút! Ghế đã được nhả.");
-          localStorage.removeItem('currentBooking');
-          navigate("/"); // Chuyển về trang chủ
+          showAlert("Thời gian giữ ghế đã hết 5 phút! Ghế đã được nhả.", "Hết thời gian", () => {
+            localStorage.removeItem('currentBooking');
+            navigate("/"); // Chuyển về trang chủ
+          });
           return 0;
         }
         return prev - 1;
@@ -145,7 +151,7 @@ export default function Payment() {
   // Xử lý thanh toán (giữ nguyên logic của bạn)
   const handlePayment = async () => {
     if (timeLeft <= 0) {
-      alert("Thời gian thanh toán đã hết!");
+      showAlert("Thời gian thanh toán đã hết!", "Hết hạn");
       return;
     }
 
@@ -155,22 +161,23 @@ export default function Payment() {
       const token = localStorage.getItem("token");
 
       if (!token) {
-        alert("Vui lòng đăng nhập để đặt vé");
-        navigate("/dang-nhap", { state: { from: location.pathname } });
+        showAlert("Vui lòng đăng nhập để đặt vé", "Yêu cầu đăng nhập", () => {
+          navigate("/dang-nhap", { state: { from: location.pathname } });
+        });
         return;
       }
 
       if (method === "wallet") {
         if (!wallet) {
-          alert("Không tìm thấy thông tin ví");
+          showAlert("Không tìm thấy thông tin ví");
           return;
         }
         if (wallet.isLocked) {
-          alert("Ví đang bị khóa, không thể thanh toán");
+          showAlert("Ví đang bị khóa, không thể thanh toán");
           return;
         }
         if (wallet.balance < finalTotalAmount) {
-          alert(`Số dư không đủ. Số dư hiện tại: ${formatCurrency(wallet.balance)}`);
+          showAlert(`Số dư không đủ. Số dư hiện tại: ${formatCurrency(wallet.balance)}`);
           return;
         }
       }
@@ -222,21 +229,17 @@ export default function Payment() {
           message += ` Đã áp dụng mã ${appliedDiscount.promotion.code}, tiết kiệm ${formatCurrency(appliedDiscount.discountAmount)}.`;
         }
 
-        alert(message);
-        // SINGLE ticket
-        if (data.ticketId) {
-          navigate(`/ticket/${data.ticketId}`);
-        }
+        showAlert(message, "Thành công", () => {
+          if (data.ticketId) {
+            navigate(`/ticket/${data.ticketId}`);
+          }
+          if (data.data?.tickets?.length > 0) {
+            navigate(`/ticket-group/${data.data.groupId}`);
+          }
+        });
 
-        // MULTIPLE tickets
-        if (data.data?.tickets?.length > 0) {
-          navigate(`/ticket-group/${data.data.groupId}`);
-        }
-
-        // Chuyển đến trang vé của tôi
-        // navigate("/ve-cua-toi");
       } else {
-        alert(data.message || "Đặt vé thất bại");
+        showAlert(data.message || "Đặt vé thất bại", "Lỗi");
       }
     } catch (err) {
       console.error("Lỗi thanh toán:", err);
@@ -266,6 +269,13 @@ export default function Payment() {
     return tripData?.seatName || tripData?.seatId || "Không xác định";
   };
 
+  const showAlert = (message, title = "Thông báo", callback = null) => {
+    setModalMessage(message);
+    setModalTitle(title);
+    setOnConfirm(() => callback);
+    setShowModal(true);
+  };
+
   // Nếu không có dữ liệu
   if (!tripData) {
     return (
@@ -288,7 +298,8 @@ export default function Payment() {
       {/* ==================== COUNTDOWN ==================== */}
       <div className="text-center mb-4">
         <Badge bg="danger" className="fs-5 px-4 py-2">
-          ⏱ Thời gian thanh toán còn lại: <strong>{formatTime(timeLeft)}</strong>
+          <i className="bi bi-clock-history me-2"></i>
+          Thời gian thanh toán còn lại: <strong>{formatTime(timeLeft)}</strong>
         </Badge>
         <p className="text-muted mt-2 small">
           Ghế đang được giữ trong 5 phút. Vui lòng hoàn tất thanh toán trước khi hết hạn.
@@ -346,10 +357,6 @@ export default function Payment() {
           </Row>
 
           {/* Nội dung theo phương thức - giữ nguyên */}
-          {method === "qr" && (
-            // ... phần QR code của bạn giữ nguyên
-            <>{/* QR code content */}</>
-          )}
 
           {method === "cash" && (
             <div className="mt-3">
@@ -521,6 +528,28 @@ export default function Payment() {
           )}
         </Button>
       </div>
+
+      <Modal show={showModal} onHide={() => setShowModal(false)} centered>
+        <Modal.Header closeButton>
+          <Modal.Title>{modalTitle}</Modal.Title>
+        </Modal.Header>
+
+        <Modal.Body>
+          <p className="mb-0">{modalMessage}</p>
+        </Modal.Body>
+
+        <Modal.Footer>
+          <Button
+            variant="primary"
+            onClick={() => {
+              setShowModal(false);
+              if (onConfirm) onConfirm();
+            }}
+          >
+            OK
+          </Button>
+        </Modal.Footer>
+      </Modal>
     </Container>
   );
 }

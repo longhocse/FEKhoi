@@ -73,12 +73,18 @@ exports.checkInTicket = async (req, res) => {
 
     const pool = await poolPromise;
 
+    // 🔥 JOIN để lấy partnerId (nhà xe)
     const result = await pool.request()
       .input('id', sql.Int, ticketId)
       .query(`
-        SELECT id, userId, status
-        FROM Tickets
-        WHERE id = @id
+        SELECT 
+          tk.id,
+          tk.status,
+          v.partnerId
+        FROM Tickets tk
+        JOIN Trips t ON tk.tripId = t.id
+        JOIN Vehicles v ON t.vehicleId = v.id
+        WHERE tk.id = @id
       `);
 
     if (result.recordset.length === 0) {
@@ -90,10 +96,12 @@ exports.checkInTicket = async (req, res) => {
 
     const ticket = result.recordset[0];
 
-    if (Number(ticket.userId) !== userId) {
+    // ❌ KHÔNG check userId nữa
+    // ✅ Check đúng nhà xe
+    if (Number(ticket.partnerId) !== userId) {
       return res.status(403).json({
         success: false,
-        message: "Bạn không có quyền check-in vé này"
+        message: "Bạn không phải nhà xe của vé này"
       });
     }
 
@@ -114,10 +122,11 @@ exports.checkInTicket = async (req, res) => {
     await pool.request()
       .input('id', sql.Int, ticketId)
       .query(`
-    UPDATE Tickets
-    SET status = 'USED'
-    WHERE id = @id
-  `);
+        UPDATE Tickets
+        SET status = 'USED',
+            isCheckedIn = 1
+        WHERE id = @id
+      `);
 
     return res.json({
       success: true,
@@ -125,7 +134,7 @@ exports.checkInTicket = async (req, res) => {
     });
 
   } catch (err) {
-    console.error("CHECKIN ERROR:", err); // 🔥 QUAN TRỌNG
+    console.error("CHECKIN ERROR:", err);
     res.status(500).json({
       success: false,
       message: err.message
@@ -563,6 +572,7 @@ exports.sendTicketConfirmation = async (ticketId) => {
       .query(`
         SELECT 
           t.id,
+          t.qrCode,
           u.name as userName,
           u.email,
           u.phoneNumber,
@@ -601,7 +611,8 @@ exports.sendTicketConfirmation = async (ticketId) => {
       phone: ticket.phoneNumber,
       email: ticket.email,
       companyName: ticket.companyName,      // ✅ Tên nhà xe
-      companyPhone: ticket.companyPhone     // ✅ SĐT nhà xe
+      companyPhone: ticket.companyPhone,     // ✅ SĐT nhà xe
+      qrCode: ticket.qrCode
     });
 
     console.log("📧 Email vé đã gửi thành công");
