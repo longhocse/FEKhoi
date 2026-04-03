@@ -49,6 +49,7 @@ export default function CreateTrip() {
     { label: "CN", value: 0 }
   ];
 
+
   const [form, setForm] = useState({
     fromStationId: "",
     toStationId: "",
@@ -99,6 +100,24 @@ export default function CreateTrip() {
     );
     setVehicles(res.data);
   };
+
+  const calculateStopDuration = (arrival, departure) => {
+    if (!arrival || !departure) return 0;
+
+    const [aH, aM] = arrival.split(":").map(Number);
+    const [dH, dM] = departure.split(":").map(Number);
+
+    let arrivalMinutes = aH * 60 + aM;
+    let departureMinutes = dH * 60 + dM;
+
+    // nếu qua ngày (vd: 23:50 -> 00:10)
+    if (departureMinutes < arrivalMinutes) {
+      departureMinutes += 24 * 60;
+    }
+
+    return departureMinutes - arrivalMinutes;
+  };
+
 
   const handleChange = (e) => {
     const { name, value } = e.target;
@@ -338,10 +357,21 @@ export default function CreateTrip() {
 
   const handleTimePointChange = (index, field, value) => {
     const updated = [...timePoints];
+
     updated[index][field] = value;
+
+    const { arrivalTime, departureTime } = updated[index];
+
+    // 🔥 auto tính stopDuration
+    if (arrivalTime && departureTime) {
+      updated[index].stopDuration = calculateStopDuration(
+        arrivalTime,
+        departureTime
+      );
+    }
+
     setTimePoints(updated);
   };
-
   const formatTime = (time) => {
     if (!time) return null; // 🔥 tránh gửi rác
 
@@ -613,6 +643,7 @@ export default function CreateTrip() {
               <Row key={index} className="mb-3">
 
                 <Col md={3}>
+                  <Form.Label>Điểm dừng</Form.Label>
                   <Form.Select
                     value={tp.pointId}
                     onChange={(e) =>
@@ -629,6 +660,7 @@ export default function CreateTrip() {
                 </Col>
 
                 <Col md={3}>
+                  <Form.Label>Giờ đến</Form.Label>
                   <Form.Control
                     type="time"
                     value={tp.arrivalTime}
@@ -639,6 +671,7 @@ export default function CreateTrip() {
                 </Col>
 
                 <Col md={3}>
+                  <Form.Label>Giờ đi</Form.Label>
                   <Form.Control
                     type="time"
                     value={tp.departureTime}
@@ -649,17 +682,18 @@ export default function CreateTrip() {
                 </Col>
 
                 <Col md={2}>
+                  <Form.Label>Thời gian nghỉ (phút)</Form.Label>
                   <Form.Control
                     type="number"
-                    placeholder="Stop (phút)"
                     value={tp.stopDuration}
                     onChange={(e) =>
                       handleTimePointChange(index, "stopDuration", e.target.value)
                     }
+                    disabled
                   />
                 </Col>
 
-                <Col md={1}>
+                <Col md={1} className="d-flex align-items-end">
                   <Button
                     variant="danger"
                     onClick={() => removeTimePoint(index)}
