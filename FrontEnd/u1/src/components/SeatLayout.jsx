@@ -7,7 +7,6 @@ export default function SeatLayout({ seats = [], selectedSeats = [], onSeatSelec
     return seats.find(s => s.seatName === name || s.name === name);
   };
 
-  // Kiểm tra ghế có đang được chọn không
   const isSeatSelected = (seatId) => {
     return selectedSeats.some(s => s.id === seatId);
   };
@@ -18,12 +17,12 @@ export default function SeatLayout({ seats = [], selectedSeats = [], onSeatSelec
 
   return (
     <div>
-      <div className="text-center mb-3 fw-bold">
+      <div className="text-center mb-3 fw-bold fs-5">
         🧑‍✈️ Tài xế
       </div>
 
       {rows.map(row => (
-        <Row key={row} className="mb-2 justify-content-center">
+        <Row key={row} className="mb-2 justify-content-center g-2">
           {/* Ghế trái (1-2) */}
           {[1, 2].map(num => {
             const seatName = row + num;
@@ -33,11 +32,15 @@ export default function SeatLayout({ seats = [], selectedSeats = [], onSeatSelec
             return (
               <Col xs={2} key={seatName}>
                 <Button
-                  className="w-100"
+                  className="w-100 py-2"
                   variant={
-                    !seat ? "secondary" :
-                      seat.status === "AVAILABLE" ? (isSelected ? "warning" : "outline-success") :
-                        "secondary"
+                    !seat
+                      ? "secondary"
+                      : seat.status === "AVAILABLE"
+                      ? isSelected
+                        ? "warning"
+                        : "outline-success"
+                      : "secondary"
                   }
                   disabled={!seat || seat.status !== "AVAILABLE"}
                   active={isSelected}
@@ -49,7 +52,9 @@ export default function SeatLayout({ seats = [], selectedSeats = [], onSeatSelec
             );
           })}
 
-          <Col xs={1} className="text-center text-muted">⬇️</Col> {/* lối đi */}
+          <Col xs={1} className="text-center text-muted d-flex align-items-center justify-content-center">
+            ⬇️
+          </Col>
 
           {/* Ghế phải (3-4) */}
           {[3, 4].map(num => {
@@ -60,11 +65,15 @@ export default function SeatLayout({ seats = [], selectedSeats = [], onSeatSelec
             return (
               <Col xs={2} key={seatName}>
                 <Button
-                  className="w-100"
+                  className="w-100 py-2"
                   variant={
-                    !seat ? "secondary" :
-                      seat.status === "AVAILABLE" ? (isSelected ? "warning" : "outline-success") :
-                        "secondary"
+                    !seat
+                      ? "secondary"
+                      : seat.status === "AVAILABLE"
+                      ? isSelected
+                        ? "warning"
+                        : "outline-success"
+                      : "secondary"
                   }
                   disabled={!seat || seat.status !== "AVAILABLE"}
                   active={isSelected}
@@ -79,18 +88,24 @@ export default function SeatLayout({ seats = [], selectedSeats = [], onSeatSelec
       ))}
 
       {/* Chú thích */}
-      <div className="mt-4 d-flex justify-content-center gap-4">
+      <div className="mt-4 d-flex justify-content-center gap-4 flex-wrap">
         <div className="d-flex align-items-center">
-          <Button size="sm" variant="outline-success" className="me-2" style={{ width: 40 }}>A1</Button>
+          <Button size="sm" variant="outline-success" className="me-2" style={{ width: 45 }}>
+            A1
+          </Button>
           <span className="small">Còn trống</span>
         </div>
         <div className="d-flex align-items-center">
-          <Button size="sm" variant="warning" className="me-2" style={{ width: 40 }}>A2</Button>
+          <Button size="sm" variant="warning" className="me-2" style={{ width: 45 }}>
+            A2
+          </Button>
           <span className="small">Đang chọn</span>
         </div>
         <div className="d-flex align-items-center">
-          <Button size="sm" variant="secondary" className="me-2" style={{ width: 40 }} disabled>A3</Button>
-          <span className="small">Đã đặt</span>
+          <Button size="sm" variant="secondary" className="me-2" style={{ width: 45 }} disabled>
+            A3
+          </Button>
+          <span className="small">Đã đặt / Đang giữ</span>
         </div>
       </div>
     </div>

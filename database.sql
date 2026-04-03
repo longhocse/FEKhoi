@@ -2021,3 +2021,20 @@ VALUES
 (N'Ổ cắm điện', N'Có ổ cắm sạc điện thoại'),
 (N'Nước uống', N'Phục vụ nước miễn phí');
 
+CREATE TABLE SeatHolds (
+    id INT IDENTITY(1,1) PRIMARY KEY,
+
+    seatId INT NOT NULL,
+    tripId INT NOT NULL,
+    userId INT NOT NULL,
+
+    expiredAt DATETIME NOT NULL, -- thời gian hết giữ ghế
+    createdAt DATETIME DEFAULT GETDATE(),
+
+    FOREIGN KEY (seatId) REFERENCES Seats(id),
+    FOREIGN KEY (tripId) REFERENCES Trips(id),
+    FOREIGN KEY (userId) REFERENCES Users(id)
+);
+
+CREATE INDEX IX_SeatHolds_TripSeat 
+ON SeatHolds(tripId, seatId, expiredAt);
