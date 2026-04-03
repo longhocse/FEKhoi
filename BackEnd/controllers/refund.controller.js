@@ -352,6 +352,123 @@ const refundController = {
                 message: error.message
             });
         }
+    },
+    // ================= PARTNER =================
+
+    // Partner lấy danh sách refund của mình
+    getRefundsByPartner: async (req, res) => {
+        try {
+            const partnerId = req.user.id;
+            const status = req.query.status;
+            const pool = await poolPromise;
+
+            const request = pool.request()
+                .input('partnerId', sql.Int, partnerId);
+
+            let query = `
+SELECT 
+    r.id,
+    r.status,
+    r.amount,
+    r.reason,
+    r.createdAt,
+
+    t.id AS ticketId,
+    t.totalAmount,
+
+    u.name AS customerName,
+    u.email AS customerEmail,
+
+    sFrom.name + N' → ' + sTo.name AS routeName,
+
+    se.name AS seatName
+
+FROM Refunds r
+JOIN Tickets t ON r.ticketId = t.id
+JOIN Users u ON t.userId = u.id
+JOIN Trips tr ON t.tripId = tr.id
+
+JOIN Stations sFrom ON tr.fromStationId = sFrom.id
+JOIN Stations sTo ON tr.toStationId = sTo.id
+
+JOIN Vehicles v ON tr.vehicleId = v.id
+
+JOIN Seats se ON t.seatId = se.id
+
+WHERE v.partnerId = @partnerId
+`;
+
+            if (status && status !== 'ALL') {
+                request.input('status', sql.VarChar, status);
+                query += ` AND r.status = @status`;
+            }
+
+            query += ` ORDER BY r.createdAt DESC`;
+
+            const result = await request.query(query);
+
+            res.json({
+                success: true,
+                data: result.recordset
+            });
+
+        } catch (error) {
+            console.error('❌ Lỗi getRefundsByPartner:', error);
+            res.status(500).json({
+                success: false,
+                message: error.message
+            });
+        }
+    },
+
+    // Partner duyệt refund
+    approveRefundByPartner: async (req, res) => {
+        try {
+            const { id } = req.params;
+            const { status } = req.body;
+            const partnerId = req.user.id;
+
+            const pool = await poolPromise;
+
+            const result = await pool.request()
+                .input('refundId', sql.Int, id)
+                .input('partnerId', sql.Int, partnerId)
+                .input('status', sql.VarChar(20), status)
+                .query(`
+                    UPDATE Refunds
+                    SET status = @status,
+                        processedAt = GETDATE()
+                    WHERE id = @refundId
+                    AND status = 'PENDING'
+                    AND EXISTS (
+                        SELECT 1
+                        FROM Tickets t
+                        JOIN Trips tr ON t.tripId = tr.id
+                        JOIN Vehicles v ON tr.vehicleId = v.id
+                        WHERE t.id = Refunds.ticketId
+                        AND v.partnerId = @partnerId
+                    )
+                `);
+
+            if (result.rowsAffected[0] === 0) {
+                return res.status(403).json({
+                    success: false,
+                    message: 'Không có quyền hoặc refund không hợp lệ'
+                });
+            }
+
+            res.json({
+                success: true,
+                message: 'Partner đã duyệt refund'
+            });
+
+        } catch (error) {
+            console.error('❌ Lỗi approveRefundByPartner:', error);
+            res.status(500).json({
+                success: false,
+                message: error.message
+            });
+        }
     }
 };
 

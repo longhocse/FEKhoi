@@ -335,9 +335,9 @@ export default function MyTickets() {
 
   const getRefundStatusBadge = (status) => {
     const statusMap = {
-      'PENDING': { bg: 'warning', text: 'Chờ duyệt' },
-      'APPROVED': { bg: 'success', text: 'Đã duyệt' },
-      'REJECTED': { bg: 'danger', text: 'Từ chối' }
+      'PENDING': { bg: 'warning', text: 'Chờ duyệt hoàn tiền' },
+      'APPROVED': { bg: 'success', text: 'Đã duyệt hoàn tiền' },
+      'REJECTED': { bg: 'danger', text: 'Từ chối hoàn tiền' }
     };
     const info = statusMap[status] || { bg: 'secondary', text: status };
     return <Badge bg={info.bg} className="ms-2">{info.text}</Badge>;

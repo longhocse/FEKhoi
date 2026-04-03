@@ -49,7 +49,6 @@ export default function CreateTrip() {
     { label: "CN", value: 0 }
   ];
 
-
   const [form, setForm] = useState({
     fromStationId: "",
     toStationId: "",

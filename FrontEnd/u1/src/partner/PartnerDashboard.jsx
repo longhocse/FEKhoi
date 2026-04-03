@@ -23,8 +23,10 @@ export default function PartnerDashboard() {
 
 
   useEffect(() => {
-    fetchTrips();
-  }, []);
+    if (partnerId) {
+      fetchTrips();
+    }
+  }, [partnerId]);
 
   const fetchTrips = async () => {
     try {
@@ -60,12 +62,22 @@ export default function PartnerDashboard() {
           <span>Chỉnh sửa →</span>
         </div>
 
-        <div className="stat-card green"
+        <div
+          className="stat-card green"
           onClick={() => navigate("/doi-tac/tickets")}
         >
-          <h4>vé đã được đặt</h4>
-          <p>xem danh sách vé đã đặt</p>
+          <h4>Vé đã được đặt</h4>
+          <p>Xem danh sách vé đã đặt</p>
           <span>View Tickets →</span>
+        </div>
+
+        <div
+          className="stat-card red"
+          onClick={() => navigate("/doi-tac/refunds")}
+        >
+          <h4>Yêu cầu hoàn tiền</h4>
+          <p>Duyệt hoàn tiền khách hàng</p>
+          <span>Xem ngay →</span>
         </div>
       </div>
 

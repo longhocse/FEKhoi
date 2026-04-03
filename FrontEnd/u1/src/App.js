@@ -48,6 +48,7 @@ import PartnerVehicles from "./partner/PartnerVehicles";
 import PartnerTicketsPage from "./partner/PartnerTicketPage";
 import TripSeats from "./partner/TripSeats";
 import QrTicketPage from "./pages/QrTicketPage";
+import PartnerRefunds from "./partner/PartnerRefunds";
 
 // ===== Pages admin =====
 import AdminLayout from "./admin/AdminLayout";
@@ -206,6 +207,7 @@ export default function App() {
                 <Route path="tickets" element={<PartnerTicketsPage />} />
                 <Route path="create-trip" element={<CreateTrip />} />
                 <Route path="trip-seats/:tripId" element={<TripSeats />} />
+                <Route path="refunds" element={<PartnerRefunds />} />
               </Route >
 
               <Route path="/dang-nhap-nha-xe" element={<PartnerLogin />} />
