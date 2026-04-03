@@ -1,6 +1,7 @@
 const sql = require("mssql");
 const { poolPromise } = require("../config/db");
 const Ticket = require('../models/ticketModel');
+const sendTicketEmail = require("../utils/sendMail");
 
 
 exports.verifyTicket = async (req, res) => {
@@ -273,7 +274,7 @@ exports.getTicketsByGroupId = async (req, res) => {
       success: true,
       data: result.recordset
     });
-console.log(result.recordset);
+    console.log(result.recordset);
   } catch (err) {
     res.status(500).json({ success: false, message: err.message });
   }
@@ -546,4 +547,69 @@ exports.cancelTicket = async (req, res) => {
       message: "Lỗi server"
     });
   }
+
+
+
 };
+
+exports.sendTicketConfirmation = async (ticketId) => {
+
+  try {
+
+    const pool = await poolPromise;
+
+    const result = await pool.request()
+      .input("ticketId", sql.Int, ticketId)
+      .query(`
+        SELECT 
+          t.id,
+          u.name as userName,
+          u.email,
+          u.phoneNumber,
+          sFrom.name as fromStation,
+          sTo.name as toStation,
+          tr.startTime,
+          se.name as seatName,
+          v.licensePlate,
+          t.totalAmount,
+          partner.name as companyName,      -- ✅ Tên nhà xe (từ Users role='partner')
+          partner.phoneNumber as companyPhone  -- ✅ SĐT nhà xe
+        FROM Tickets t
+        JOIN Users u ON t.userId = u.id
+        JOIN Trips tr ON t.tripId = tr.id
+        JOIN Stations sFrom ON tr.fromStationId = sFrom.id
+        JOIN Stations sTo ON tr.toStationId = sTo.id
+        JOIN Seats se ON t.seatId = se.id
+        JOIN Vehicles v ON tr.vehicleId = v.id
+        JOIN Users partner ON v.partnerId = partner.id   -- ✅ JOIN với Users để lấy thông tin nhà xe (partner)
+        WHERE t.id = @ticketId
+      `);
+
+    if (result.recordset.length === 0) return;
+
+    const ticket = result.recordset[0];
+
+    await sendTicketEmail(ticket.email, {
+      ticketId: ticket.id,
+      route: `${ticket.fromStation} - ${ticket.toStation}`,
+      date: new Date(ticket.startTime).toLocaleDateString(),
+      time: new Date(ticket.startTime).toLocaleTimeString(),
+      seat: ticket.seatName,
+      vehicle: ticket.licensePlate,
+      price: ticket.totalAmount,
+      name: ticket.userName,
+      phone: ticket.phoneNumber,
+      email: ticket.email,
+      companyName: ticket.companyName,      // ✅ Tên nhà xe
+      companyPhone: ticket.companyPhone     // ✅ SĐT nhà xe
+    });
+
+    console.log("📧 Email vé đã gửi thành công");
+
+  } catch (error) {
+
+    console.error("❌ sendTicketConfirmation:", error);
+
+  }
+};
+

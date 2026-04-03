@@ -1,6 +1,7 @@
 const sql = require("mssql");
 const { poolPromise } = require("../config/db");
 const { createQR } = require("../controllers/qrCode.controller");
+const ticketController = require("./ticket.controller");
 
 exports.bookMultipleTickets = async (req, res) => {
     try {
@@ -147,6 +148,8 @@ exports.bookMultipleTickets = async (req, res) => {
         WHERE id = @id
     `);
 
+            await ticketController.sendTicketConfirmation(ticketId);
+            
             tickets.push({
                 ticketId,
                 seatId,
