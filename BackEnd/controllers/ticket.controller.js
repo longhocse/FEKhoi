@@ -1,54 +1,291 @@
 const sql = require("mssql");
 const { poolPromise } = require("../config/db");
 const Ticket = require('../models/ticketModel');
+const sendTicketEmail = require("../utils/sendMail");
+
+
+exports.verifyTicket = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const pool = await poolPromise;
+
+    const result = await pool.request()
+      .input('id', sql.Int, id)
+      .query(`
+                SELECT 
+                    tk.id,
+                    tk.status,
+                    tk.bookedAt,
+
+                    u.id AS userId,
+                    u.name AS customerName,
+                    u.phoneNumber,
+
+                    t.startTime,
+
+                    sFrom.name AS fromStation,
+                    sTo.name AS toStation,
+
+                    s.name AS seatName
+
+                FROM Tickets tk
+                JOIN Users u ON tk.userId = u.id
+                JOIN Trips t ON tk.tripId = t.id
+                JOIN Stations sFrom ON t.fromStationId = sFrom.id
+                JOIN Stations sTo ON t.toStationId = sTo.id
+                JOIN Seats s ON tk.seatId = s.id
+
+                WHERE tk.id = @id
+            `);
+
+    if (result.recordset.length === 0) {
+      return res.status(404).json({
+        success: false,
+        message: "Không tìm thấy vé"
+      });
+    }
+
+    res.json({
+      success: true,
+      data: result.recordset[0]
+    });
+
+  } catch (err) {
+    res.status(500).json({
+      success: false,
+      message: err.message
+    });
+  }
+};
+
+
+exports.checkInTicket = async (req, res) => {
+  try {
+    if (!req.user || !req.user.id) {
+      return res.status(401).json({
+        success: false,
+        message: "Chưa xác thực người dùng"
+      });
+    }
+
+    const ticketId = parseInt(req.params.id);
+    const userId = parseInt(req.user.id);
+
+    const pool = await poolPromise;
+
+    // 🔥 JOIN để lấy partnerId (nhà xe)
+    const result = await pool.request()
+      .input('id', sql.Int, ticketId)
+      .query(`
+        SELECT 
+          tk.id,
+          tk.status,
+          v.partnerId
+        FROM Tickets tk
+        JOIN Trips t ON tk.tripId = t.id
+        JOIN Vehicles v ON t.vehicleId = v.id
+        WHERE tk.id = @id
+      `);
+
+    if (result.recordset.length === 0) {
+      return res.status(404).json({
+        success: false,
+        message: "Không tìm thấy vé"
+      });
+    }
+
+    const ticket = result.recordset[0];
+
+    // ❌ KHÔNG check userId nữa
+    // ✅ Check đúng nhà xe
+    if (Number(ticket.partnerId) !== userId) {
+      return res.status(403).json({
+        success: false,
+        message: "Bạn không phải nhà xe của vé này"
+      });
+    }
+
+    if (ticket.status === 'USED') {
+      return res.status(400).json({
+        success: false,
+        message: "Vé đã được check-in trước đó"
+      });
+    }
+
+    if (ticket.status !== 'PAID') {
+      return res.status(400).json({
+        success: false,
+        message: "Vé chưa thanh toán"
+      });
+    }
+
+    await pool.request()
+      .input('id', sql.Int, ticketId)
+      .query(`
+        UPDATE Tickets
+        SET status = 'USED',
+            isCheckedIn = 1
+        WHERE id = @id
+      `);
+
+    return res.json({
+      success: true,
+      message: "Check-in thành công"
+    });
+
+  } catch (err) {
+    console.error("CHECKIN ERROR:", err);
+    res.status(500).json({
+      success: false,
+      message: err.message
+    });
+  }
+};
 
 // Lấy vé của user hiện tại
 exports.getMyTickets = async (req, res) => {
   try {
-    console.log('📌 getMyTickets - userId:', req.user.id);
+    if (!req.user || !req.user.id) {
+      return res.status(401).json({
+        success: false,
+        message: "Unauthorized"
+      });
+    }
+
+    console.log("📌 getMyTickets - userId:", req.user.id);
+
+    const pool = await poolPromise;
+
+    const query = `
+      SELECT 
+          tk.id,
+          tk.totalAmount,
+          tk.status,
+          tk.paymentMethod,
+          tk.bookedAt,
+
+          -- 🔥 QUAN TRỌNG (fix lỗi group)
+          tk.groupId,
+          tk.transactionId,
+          tk.qrCode,
+          tk.isCheckedIn,
+
+          t.id AS tripId,
+          t.startTime,
+
+          sFrom.name AS fromStation,
+          sTo.name AS toStation,
+
+          pc.id AS companyId,
+          pc.name AS companyName,
+
+          s.name AS seatName
+
+      FROM Tickets tk
+      JOIN Trips t ON tk.tripId = t.id
+      JOIN Stations sFrom ON t.fromStationId = sFrom.id
+      JOIN Stations sTo ON t.toStationId = sTo.id
+      JOIN Vehicles v ON t.vehicleId = v.id
+      JOIN PassengerCarCompanies pc ON v.partnerId = pc.id
+      JOIN Seats s ON tk.seatId = s.id
+
+      WHERE tk.userId = @userId
+      ORDER BY tk.bookedAt DESC
+    `;
+
+    const result = await pool.request()
+      .input("userId", sql.Int, req.user.id)
+      .query(query);
+
+    const tickets = result.recordset || [];
+
+    console.log(`✅ Tìm thấy ${tickets.length} vé`);
+
+    if (tickets.length > 0) {
+      console.log("📌 Sample ticket:", {
+        id: tickets[0].id,
+        groupId: tickets[0].groupId,
+        transactionId: tickets[0].transactionId
+      });
+    }
+
+    return res.json({
+      success: true,
+      count: tickets.length,
+      data: tickets
+    });
+
+  } catch (error) {
+    console.error("❌ Lỗi getMyTickets:", error);
+
+    return res.status(500).json({
+      success: false,
+      message: "Lỗi server khi lấy danh sách vé",
+      error: error.message
+    });
+  }
+};
+
+
+
+exports.getTicketsByGroupId = async (req, res) => {
+  try {
+    const { groupId } = req.params;
+    const userId = req.user.id;
 
     const pool = await poolPromise;
 
     const result = await pool.request()
-      .input('userId', sql.Int, req.user.id)
+      .input('groupId', sql.NVarChar, groupId)
+      .input('userId', sql.Int, userId)
       .query(`
-            SELECT 
-                tk.id,
-                tk.totalAmount,
-                tk.status,
-                tk.paymentMethod,
-                tk.bookedAt,
-                t.id AS tripId,
-                t.startTime,
-                sFrom.name AS fromStation,
-                sTo.name AS toStation,
-                pc.id AS companyId,      -- THÊM DÒNG NÀY
-                pc.name AS companyName,  -- THÊM DÒNG NÀY
-                s.name AS seatName
-            FROM Tickets tk
-            JOIN Trips t ON tk.tripId = t.id
-            JOIN Stations sFrom ON t.fromStationId = sFrom.id
-            JOIN Stations sTo ON t.toStationId = sTo.id
-            JOIN Vehicles v ON t.vehicleId = v.id
-            JOIN PassengerCarCompanies pc ON v.partnerId = pc.id  -- THÊM JOIN NÀY
-            JOIN Seats s ON tk.seatId = s.id
-            WHERE tk.userId = @userId
-            ORDER BY tk.bookedAt DESC
-        `);
+        SELECT 
+            tk.id,
+            tk.status,
+            tk.totalAmount,
+            tk.qrCode,
+            tk.bookedAt,
+            
+            -- USER (người mua vé)
+            u.name AS customerName,
+            u.phoneNumber AS customerPhone,
+            u.email AS customerEmail,
 
-    console.log(`✅ Tìm thấy ${result.recordset.length} vé`);
-    console.log("📌 Vé đầu tiên:", result.recordset[0]); // Log để kiểm tra
+            -- TRIP
+            t.id AS tripId,
+            t.startTime,
+            t.price,
+            t.estimatedDuration,
+
+            -- STATION
+            sFrom.name AS fromStation,
+            sTo.name AS toStation,
+
+            -- VEHICLE
+            v.name AS vehicleName,
+
+            -- SEAT
+            s.name AS seatName
+
+        FROM Tickets tk
+        JOIN Users u ON tk.userId = u.id
+        JOIN Trips t ON tk.tripId = t.id
+        JOIN Stations sFrom ON t.fromStationId = sFrom.id
+        JOIN Stations sTo ON t.toStationId = sTo.id
+        JOIN Vehicles v ON t.vehicleId = v.id
+        JOIN Seats s ON tk.seatId = s.id
+
+        WHERE tk.groupId = @groupId
+          AND tk.userId = @userId
+      `);
 
     res.json({
       success: true,
       data: result.recordset
     });
-  } catch (error) {
-    console.error('❌ Lỗi getMyTickets:', error);
-    res.status(500).json({
-      success: false,
-      message: error.message
-    });
+    console.log(result.recordset);
+  } catch (err) {
+    res.status(500).json({ success: false, message: err.message });
   }
 };
 
@@ -58,8 +295,6 @@ exports.getTicketById = async (req, res) => {
     const { id } = req.params;
     const userId = req.user.id;
 
-    console.log(`📌 getTicketById - id: ${id}, userId: ${userId}`);
-
     const pool = await poolPromise;
 
     const result = await pool.request()
@@ -67,13 +302,28 @@ exports.getTicketById = async (req, res) => {
       .input('userId', sql.Int, userId)
       .query(`
         SELECT 
-          tk.*,
+          tk.id,
+          tk.status,
+          tk.totalAmount,
+          tk.paymentMethod,
+          tk.bookedAt,
+          tk.qrCode,
+          tk.isCheckedIn,
+
           t.startTime,
+          t.price,
+
           sFrom.name AS fromStation,
           sTo.name AS toStation,
+
           v.name AS vehicleName,
           pc.name AS companyName,
-          s.name AS seatName
+
+          s.name AS seatName,
+
+          tp.fullName AS passengerName,
+          tp.phoneNumber AS passengerPhone
+
         FROM Tickets tk
         JOIN Trips t ON tk.tripId = t.id
         JOIN Stations sFrom ON t.fromStationId = sFrom.id
@@ -81,6 +331,8 @@ exports.getTicketById = async (req, res) => {
         JOIN Vehicles v ON t.vehicleId = v.id
         JOIN PassengerCarCompanies pc ON v.partnerId = pc.id
         JOIN Seats s ON tk.seatId = s.id
+        LEFT JOIN TicketPassengers tp ON tp.ticketId = tk.id
+
         WHERE tk.id = @id AND tk.userId = @userId
       `);
 
@@ -91,9 +343,11 @@ exports.getTicketById = async (req, res) => {
       });
     }
 
+    const ticket = result.recordset[0];
+
     res.json({
       success: true,
-      data: result.recordset[0]
+      data: ticket
     });
 
   } catch (error) {
@@ -302,4 +556,71 @@ exports.cancelTicket = async (req, res) => {
       message: "Lỗi server"
     });
   }
+
+
+
 };
+
+exports.sendTicketConfirmation = async (ticketId) => {
+
+  try {
+
+    const pool = await poolPromise;
+
+    const result = await pool.request()
+      .input("ticketId", sql.Int, ticketId)
+      .query(`
+        SELECT 
+          t.id,
+          t.qrCode,
+          u.name as userName,
+          u.email,
+          u.phoneNumber,
+          sFrom.name as fromStation,
+          sTo.name as toStation,
+          tr.startTime,
+          se.name as seatName,
+          v.licensePlate,
+          t.totalAmount,
+          partner.name as companyName,      -- ✅ Tên nhà xe (từ Users role='partner')
+          partner.phoneNumber as companyPhone  -- ✅ SĐT nhà xe
+        FROM Tickets t
+        JOIN Users u ON t.userId = u.id
+        JOIN Trips tr ON t.tripId = tr.id
+        JOIN Stations sFrom ON tr.fromStationId = sFrom.id
+        JOIN Stations sTo ON tr.toStationId = sTo.id
+        JOIN Seats se ON t.seatId = se.id
+        JOIN Vehicles v ON tr.vehicleId = v.id
+        JOIN Users partner ON v.partnerId = partner.id   -- ✅ JOIN với Users để lấy thông tin nhà xe (partner)
+        WHERE t.id = @ticketId
+      `);
+
+    if (result.recordset.length === 0) return;
+
+    const ticket = result.recordset[0];
+
+    await sendTicketEmail(ticket.email, {
+      ticketId: ticket.id,
+      route: `${ticket.fromStation} - ${ticket.toStation}`,
+      date: new Date(ticket.startTime).toLocaleDateString(),
+      time: new Date(ticket.startTime).toLocaleTimeString(),
+      seat: ticket.seatName,
+      vehicle: ticket.licensePlate,
+      price: ticket.totalAmount,
+      name: ticket.userName,
+      phone: ticket.phoneNumber,
+      email: ticket.email,
+      companyName: ticket.companyName,      // ✅ Tên nhà xe
+      companyPhone: ticket.companyPhone,     // ✅ SĐT nhà xe
+      qrCode: ticket.qrCode
+    });
+
+    console.log("📧 Email vé đã gửi thành công");
+
+  } catch (error) {
+
+    console.error("❌ sendTicketConfirmation:", error);
+
+  }
+};
+

@@ -4,7 +4,7 @@ const tripController = require("../controllers/trip.controller");
 const authMiddleware = require("../middleware/authMiddleware");
 const { poolPromise } = require("../config/db");
 const sql = require("mssql");
-
+router.post("/seat-holds", authMiddleware, tripController.holdSeats);
 router.get("/trips", tripController.getTrips);
 router.get("/all", tripController.getAllTrips);
 router.get("/simple", tripController.getSimpleTrips);

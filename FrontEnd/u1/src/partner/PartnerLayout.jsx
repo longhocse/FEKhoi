@@ -46,6 +46,14 @@ export default function PartnerLayout() {
           <i className="bi bi-ticket-perforated me-2"></i> Vé được đặt
         </NavLink>
 
+        {/* Yêu cầu hoàn tiền */}
+        <NavLink
+          to="refunds"
+          className={({ isActive }) => (isActive ? "active" : "")}
+        >
+          <i className="bi bi-arrow-counterclockwise me-2"></i> Yêu cầu hoàn tiền
+        </NavLink>
+
         {/* Logout */}
         <Button className="logout-btn" onClick={handleLogout}>
           <i className="bi bi-box-arrow-right me-2"></i> Đăng xuất

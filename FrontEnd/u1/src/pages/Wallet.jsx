@@ -6,10 +6,12 @@ import { useWallet } from '../context/WalletProvider';
 
 export default function Wallet() {
     const navigate = useNavigate();
-    const { wallet, balance, loading, fetchWallet } = useWallet();
+    const { wallet, balance, loading, fetchWallet, transactions, fetchDepositHistory } = useWallet();
+
 
     useEffect(() => {
         fetchWallet();
+        fetchDepositHistory();
     }, []);
 
     const formatCurrency = (amount) => {
@@ -131,6 +133,61 @@ export default function Wallet() {
                                     </tr>
                                 </tbody>
                             </table>
+                        </Card.Body>
+                    </Card>
+                    {/* Deposit History */}
+                    <Card className="shadow-sm mt-4">
+                        <Card.Body>
+                            <h6 className="mb-3">
+                                <i className="bi bi-clock-history me-2"></i>
+                                Lịch sử nạp tiền
+                            </h6>
+
+                            {transactions.length === 0 ? (
+                                <p className="text-muted text-center mb-0">
+                                    Chưa có giao dịch nào
+                                </p>
+                            ) : (
+                                <div className="table-responsive">
+                                    <table className="table table-sm table-bordered align-middle">
+                                        <thead className="table-light">
+                                            <tr>
+                                                <th>Mã đơn</th>
+                                                <th>Số tiền</th>
+                                                <th>Trạng thái</th>
+                                                <th>Thời gian</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            {transactions.map((tx) => (
+                                                <tr key={tx.id}>
+                                                    <td>{tx.orderId}</td>
+
+                                                    <td className="fw-bold text-primary">
+                                                        {formatCurrency(tx.amount)}
+                                                    </td>
+
+                                                    <td>
+                                                        <Badge bg={
+                                                            tx.status === "PAID"
+                                                                ? "success"
+                                                                : tx.status === "PENDING"
+                                                                    ? "warning"
+                                                                    : "danger"
+                                                        }>
+                                                            {tx.status}
+                                                        </Badge>
+                                                    </td>
+
+                                                    <td>
+                                                        {formatDate(tx.paidAt || tx.createdAt)}
+                                                    </td>
+                                                </tr>
+                                            ))}
+                                        </tbody>
+                                    </table>
+                                </div>
+                            )}
                         </Card.Body>
                     </Card>
                 </Col>
