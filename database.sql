@@ -2038,3 +2038,17 @@ CREATE TABLE SeatHolds (
 
 CREATE INDEX IX_SeatHolds_TripSeat 
 ON SeatHolds(tripId, seatId, expiredAt);
+
+-- Bảng lưu giao dịch PayOS
+CREATE TABLE PayOSTransactions (
+    id INT PRIMARY KEY IDENTITY(1,1),
+    userId INT NOT NULL,
+    amount DECIMAL(12,2) NOT NULL,
+    orderId NVARCHAR(100) NOT NULL UNIQUE,
+    paymentId NVARCHAR(100) NOT NULL,
+    status VARCHAR(20) DEFAULT 'PENDING',
+    paymentUrl NVARCHAR(500),
+    paidAt DATETIME NULL,
+    createdAt DATETIME DEFAULT GETDATE(),
+    FOREIGN KEY (userId) REFERENCES Users(id)
+);
