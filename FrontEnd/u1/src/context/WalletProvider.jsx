@@ -18,6 +18,22 @@ export const WalletProvider = ({ children }) => {
     const [balance, setBalance] = useState(0);
     const [loading, setLoading] = useState(false);
     const { user, isAuthenticated } = useAuth();
+    const [transactions, setTransactions] = useState([]);
+
+    const fetchDepositHistory = async () => {
+        try {
+            const res = await axios.get(`${API_URL}/payos/deposit-history`, {
+                headers: getHeaders()
+            });
+
+            if (res.data.success) {
+                setTransactions(res.data.data || []);
+            }
+        } catch (err) {
+            console.error("fetchDepositHistory error:", err);
+            setTransactions([]);
+        }
+    };
 
     const API_URL = process.env.REACT_APP_API_URL || 'http://localhost:5000/api';
 
@@ -87,9 +103,11 @@ export const WalletProvider = ({ children }) => {
         wallet,
         balance,
         loading,
+        transactions,
         fetchWallet,
         refreshWallet,
-        topUp
+        topUp,
+        fetchDepositHistory
     };
 
     return (

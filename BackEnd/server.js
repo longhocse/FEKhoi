@@ -23,6 +23,7 @@ const adminTripRoutes = require('./routes/adminTrip.routes');
 const adminSeatRoutes = require('./routes/adminSeat.routes');
 const adminPromotionRoutes = require('./routes/adminPromotion.routes');
 const vehicleRoutes = require('./routes/vehicle.routes');
+const payosRoutes = require('./routes/payos.routes');
 
 
 
@@ -54,6 +55,7 @@ app.use('/api/admin', adminTripRoutes);
 app.use('/api/admin', adminSeatRoutes);
 app.use('/api/admin', adminPromotionRoutes);
 app.use('/api/vehicles', vehicleRoutes);
+app.use('/api/payos', payosRoutes);
 
 
 

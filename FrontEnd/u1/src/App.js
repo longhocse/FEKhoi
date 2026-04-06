@@ -33,6 +33,7 @@ import LienHe from "./pages/LienHe";
 import AdminReports from './pages/admin/AdminReports';
 import AdminReviews from './pages/admin/AdminReviews';
 import TicketDetail from "./pages/TicketDetail";
+import PaymentSuccess from "./pages/PaymentSuccess";
 
 // ===== Wallet Pages =====
 import WalletPage from './pages/Wallet';
@@ -109,6 +110,7 @@ export default function App() {
                 <Route path="/tracking/:tripId" element={<TrackingPage />} />
                 <Route path="/ticket-group/:groupId" element={<TicketDetail />} />
                 <Route path="/ticket/qrTicketPage/:id" element={<QrTicketPage />} />
+                <Route path="/vi/nap-tien/success" element={<PaymentSuccess />} />
 
                 {/* Routes yêu cầu đăng nhập */}
                 <Route
