@@ -24,8 +24,8 @@ export default function Payment() {
   const [modalTitle, setModalTitle] = useState("Thông báo");
   const [onConfirm, setOnConfirm] = useState(null);
 
-  // ==================== COUNTDOWN 5 PHÚT ====================
-  const [timeLeft, setTimeLeft] = useState(300); // 5 phút = 300 giây
+  // ==================== COUNTDOWN 1 PHÚT ====================
+  const [timeLeft, setTimeLeft] = useState(60); // 1 phút = 60 giây
 
   // Lấy dữ liệu từ location.state hoặc localStorage
   const { trip, seatId, seatName, totalAmount, seats, quantity } = location.state || {};
@@ -52,7 +52,7 @@ export default function Payment() {
       setTimeLeft((prev) => {
         if (prev <= 1) {
           clearInterval(timer);
-          showAlert("Thời gian giữ ghế đã hết 5 phút! Ghế đã được nhả.", "Hết thời gian", () => {
+          showAlert("Thời gian giữ ghế đã hết 1 phút! Ghế đã được nhả.", "Hết thời gian", () => {
             localStorage.removeItem('currentBooking');
             navigate("/"); // Chuyển về trang chủ
           });

@@ -750,7 +750,7 @@ exports.holdSeats = async (req, res) => {
         const userId = req.user.id;
 
         const pool = await poolPromise;
-        const expireMinutes = 5;
+        const expireMinutes = 1;
 
         for (const seatId of seatIds) {
 
@@ -808,7 +808,7 @@ exports.holdSeats = async (req, res) => {
 
         res.json({
             success: true,
-            message: "Giữ ghế thành công (5 phút)"
+            message: "Giữ ghế thành công (1 phút)"
         });
 
     } catch (err) {

@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import axios from "axios";
 import { useParams } from "react-router-dom";
+import { useNavigate } from "react-router-dom";
 import {
     Container, Row, Col, Card, Table,
     Modal, Button, Badge
@@ -14,6 +15,7 @@ export default function TripSeats() {
     const [showModal, setShowModal] = useState(false);
     const [tripDetail, setTripDetail] = useState(null);
     const [bookings, setBookings] = useState([]);
+    const navigate = useNavigate();
 
     useEffect(() => {
         fetchSeats();
@@ -22,8 +24,10 @@ export default function TripSeats() {
     }, []);
 
     const fetchSeats = async () => {
-        const res = await axios.get(`http://localhost:5000/api/partner/trips/${tripId}/seats`);
-        setSeats(res.data);
+        const res = await axios.get(`http://localhost:5000/api/trips/${tripId}`);
+
+        // lấy đúng từ backend bạn gửi
+        setSeats(res.data.data?.seats || []);
     };
 
     const fetchTripDetail = async () => {
@@ -51,11 +55,71 @@ export default function TripSeats() {
         fetchSeats();
     };
 
-    const getSeatStyle = (status) => {
-        if (status === "AVAILABLE") return { background: "#FF8C42", color: "#fff" };
-        if (status === "BOOKED") return { background: "#0C4A6E", color: "#fff" };
-        return { background: "#6c757d", color: "#fff" };
+    const handleCheckIn = (ticketId) => {
+        navigate(`/ticket/qrTicketPage/${ticketId}`);
     };
+
+    const getSeatStyle = (seat) => {
+        const booking = bookingMap[seat.id];
+
+        if (booking) {
+            if (booking.status === "PAID") {
+                return {
+                    background: "#0C4A6E",
+                    color: "#fff"
+                };
+            }
+
+            if (booking.status === "USED") {
+                return {
+                    background: "#374151", // xám đậm
+                    color: "#fff",
+                    opacity: 0.85
+                };
+            }
+        }
+
+        // fallback theo seat.status
+        switch (seat.status) {
+            case "AVAILABLE":
+                return { background: "#FF8C42", color: "#fff" };
+
+            case "MAINTENANCE":
+                return {
+                    background: "#9CA3AF",
+                    color: "#fff",
+                    border: "2px dashed #555"
+                };
+
+            default:
+                return { background: "#6c757d", color: "#fff" };
+        }
+    };
+
+    const bookingMap = {};
+
+    bookings.forEach(b => {
+        bookingMap[b.seatId] = b;
+    });
+
+    const getSeatName = (seat) => {
+        if (!seat) return "";
+        return seat.seatName || "";
+    };
+    // GROUP THEO ROW
+    const seatRows = {};
+
+    seats.forEach((seat) => {
+        if (!seat) return;
+
+        const seatName = getSeatName(seat);
+        if (!seatName) return;
+
+        const row = seatName[0];
+
+        if (!seatRows[row]) seatRows[row] = [];
+        seatRows[row].push(seat);
+    });
 
     return (
         <Container fluid style={{ background: "#FFF8F0", minHeight: "100vh", padding: "20px" }}>
@@ -94,27 +158,166 @@ export default function TripSeats() {
                     </h5>
 
                     <div style={{
-                        display: "grid",
-                        gridTemplateColumns: "repeat(8, 1fr)",
-                        gap: "10px"
+                        display: "flex",
+                        justifyContent: "center",
+                        gap: "20px",
+                        marginBottom: "15px",
+                        flexWrap: "wrap"
                     }}>
-                        {seats.map(seat => (
-                            <div
-                                key={seat.id}
-                                onClick={() => handleClick(seat)}
-                                style={{
-                                    ...getSeatStyle(seat.status),
-                                    padding: "10px",
-                                    textAlign: "center",
-                                    borderRadius: "8px",
-                                    cursor: "pointer",
-                                    fontWeight: "bold"
-                                }}
-                            >
-                                {seat.name}
-                            </div>
-                        ))}
+                        {/* AVAILABLE */}
+                        <div style={{ display: "flex", alignItems: "center", gap: "6px" }}>
+                            <div style={{
+                                width: "18px",
+                                height: "18px",
+                                background: "#FF8C42",
+                                borderRadius: "4px"
+                            }} />
+                            <span style={{ fontSize: "13px" }}>Còn trống</span>
+                        </div>
+
+                        {/* PAID / BOOKED */}
+                        <div style={{ display: "flex", alignItems: "center", gap: "6px" }}>
+                            <div style={{
+                                width: "18px",
+                                height: "18px",
+                                background: "#0C4A6E",
+                                borderRadius: "4px"
+                            }} />
+                            <span style={{ fontSize: "13px" }}>Đã đặt</span>
+                        </div>
+
+                        {/* USED */}
+                        <div style={{ display: "flex", alignItems: "center", gap: "6px" }}>
+                            <div style={{
+                                width: "18px",
+                                height: "18px",
+                                background: "#374151",
+                                borderRadius: "4px"
+                            }} />
+                            <span style={{ fontSize: "13px" }}>Đã sử dụng</span>
+                        </div>
+
+                        {/* MAINTENANCE */}
+                        <div style={{ display: "flex", alignItems: "center", gap: "6px" }}>
+                            <div style={{
+                                width: "18px",
+                                height: "18px",
+                                background: "#9CA3AF",
+                                borderRadius: "4px",
+                                border: "2px dashed #555"
+                            }} />
+                            <span style={{ fontSize: "13px" }}>Bảo trì</span>
+                        </div>
                     </div>
+
+                    <div style={{
+                        display: "flex",
+                        flexDirection: "column",
+                        alignItems: "center",
+                        gap: "12px",
+                        marginTop: "10px"
+                    }}>
+                        {Object.keys(seatRows).sort().map((rowKey) => {
+
+                            const rowSeats = seatRows[rowKey].sort((a, b) =>
+                                getSeatName(a).localeCompare(getSeatName(b))
+                            );
+
+                            return (
+                                <div
+                                    key={rowKey}
+                                    style={{
+                                        display: "flex",
+                                        alignItems: "center",
+                                        gap: "50px"
+                                    }}
+                                >
+                                    {/* LEFT SIDE */}
+                                    <div style={{ display: "flex", gap: "12px" }}>
+                                        {rowSeats.slice(0, 2).map((seat) => {
+                                            const seatName = getSeatName(seat);
+
+                                            return (
+                                                <div
+                                                    key={seat.id}
+                                                    onClick={() => handleClick(seat)}
+                                                    style={{
+                                                        width: "55px",
+                                                        height: "55px",
+                                                        borderRadius: "12px",
+                                                        display: "flex",
+                                                        alignItems: "center",
+                                                        justifyContent: "center",
+                                                        fontWeight: "600",
+                                                        fontSize: "14px",
+                                                        cursor: "pointer",
+                                                        transition: "all 0.2s ease",
+                                                        boxShadow: "0 2px 6px rgba(0,0,0,0.1)",
+                                                        ...getSeatStyle(seat)
+                                                    }}
+                                                    onMouseEnter={(e) => {
+                                                        e.currentTarget.style.transform = "scale(1.1)";
+                                                    }}
+                                                    onMouseLeave={(e) => {
+                                                        e.currentTarget.style.transform = "scale(1)";
+                                                    }}
+                                                >
+                                                    {seatName}
+                                                </div>
+                                            );
+                                        })}
+                                    </div>
+
+                                    {/* AISLE (lối đi) */}
+                                    <div style={{
+                                        width: "40px",
+                                        textAlign: "center",
+                                        color: "#999",
+                                        fontSize: "12px"
+                                    }}>
+                                        |
+                                    </div>
+
+                                    {/* RIGHT SIDE */}
+                                    <div style={{ display: "flex", gap: "12px" }}>
+                                        {rowSeats.slice(2, 4).map((seat) => {
+                                            const seatName = getSeatName(seat);
+
+                                            return (
+                                                <div
+                                                    key={seat.id}
+                                                    onClick={() => handleClick(seat)}
+                                                    style={{
+                                                        width: "55px",
+                                                        height: "55px",
+                                                        borderRadius: "12px",
+                                                        display: "flex",
+                                                        alignItems: "center",
+                                                        justifyContent: "center",
+                                                        fontWeight: "600",
+                                                        fontSize: "14px",
+                                                        cursor: "pointer",
+                                                        transition: "all 0.2s ease",
+                                                        boxShadow: "0 2px 6px rgba(0,0,0,0.1)",
+                                                        ...getSeatStyle(seat)
+                                                    }}
+                                                    onMouseEnter={(e) => {
+                                                        e.currentTarget.style.transform = "scale(1.1)";
+                                                    }}
+                                                    onMouseLeave={(e) => {
+                                                        e.currentTarget.style.transform = "scale(1)";
+                                                    }}
+                                                >
+                                                    {seatName}
+                                                </div>
+                                            );
+                                        })}
+                                    </div>
+                                </div>
+                            );
+                        })}
+                    </div>
+
                 </Card.Body>
             </Card>
 
@@ -132,12 +335,13 @@ export default function TripSeats() {
                                 <th>Tên</th>
                                 <th>SĐT</th>
                                 <th>Trạng thái</th>
+                                <th>Check-in</th>
                             </tr>
                         </thead>
                         <tbody>
                             {bookings.length === 0 ? (
                                 <tr>
-                                    <td colSpan="4" className="text-center text-muted">
+                                    <td colSpan="5" className="text-center text-muted">
                                         Không có dữ liệu
                                     </td>
                                 </tr>
@@ -151,6 +355,26 @@ export default function TripSeats() {
                                             <Badge bg={b.status === "PAID" ? "success" : "secondary"}>
                                                 {b.status}
                                             </Badge>
+                                        </td>
+
+                                        {/* ✅ CHECK-IN BUTTON */}
+                                        <td>
+                                            {b.status === "PAID" ? (
+                                                <Button
+                                                    size="sm"
+                                                    style={{
+                                                        background: "#0C4A6E",
+                                                        border: "none"
+                                                    }}
+                                                    onClick={() => handleCheckIn(b.ticketId)}
+                                                >
+                                                    Check-in
+                                                </Button>
+                                            ) : b.status === "USED" ? (
+                                                <Badge bg="dark">Đã check-in</Badge>
+                                            ) : (
+                                                "-"
+                                            )}
                                         </td>
                                     </tr>
                                 ))
@@ -167,23 +391,35 @@ export default function TripSeats() {
                 </Modal.Header>
 
                 <Modal.Body>
-                    {selectedSeat?.status === "BOOKED" ? (
-                        <>
-                            <p><b>Ghế:</b> {selectedSeat.name}</p>
-                            {bookings
-                                .filter(b => b.seatId === selectedSeat.id)
-                                .map((b, i) => (
-                                    <div key={i}>
-                                        <p><b>Tên:</b> {b.customerName}</p>
-                                        <p><b>SĐT:</b> {b.phone}</p>
-                                    </div>
-                                ))}
-                        </>
-                    ) : selectedSeat?.status === "AVAILABLE" ? (
-                        <p><FaLock /> Khóa ghế {selectedSeat?.name}?</p>
-                    ) : (
-                        <p><FaUnlock /> Mở khóa ghế {selectedSeat?.name}?</p>
-                    )}
+                    {(() => {
+                        const booking = bookings.find(b => b.seatId === selectedSeat?.id);
+
+                        if (booking) {
+                            return (
+                                <>
+                                    <p><b>Ghế:</b> {getSeatName(selectedSeat)}</p>
+                                    <p><b>Tên:</b> {booking.customerName}</p>
+                                    <p><b>SĐT:</b> {booking.phone}</p>
+                                    <p>
+                                        <b>Trạng thái:</b>{" "}
+                                        <Badge bg={booking.status === "PAID" ? "success" : "secondary"}>
+                                            {booking.status}
+                                        </Badge>
+                                    </p>
+                                </>
+                            );
+                        }
+
+                        if (selectedSeat?.status === "AVAILABLE") {
+                            return <p><FaLock /> Khóa ghế {getSeatName(selectedSeat)}?</p>;
+                        }
+
+                        if (selectedSeat?.status === "MAINTENANCE") {
+                            return <p><FaUnlock /> Mở khóa ghế {getSeatName(selectedSeat)}?</p>;
+                        }
+
+                        return <p>Không thể thao tác ghế này</p>;
+                    })()}
                 </Modal.Body>
 
                 <Modal.Footer>
